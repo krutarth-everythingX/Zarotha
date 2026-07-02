@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+    color-scheme: light dark;
+}
+
+@theme inline {
+    --font-sans: "Rubik", Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+    html,
+    body,
+    #app {
+        min-height: 100%;
+    }
+
+    body {
+        @apply bg-zinc-100 text-zinc-950 antialiased dark:bg-zinc-950 dark:text-white;
+    }
+}
