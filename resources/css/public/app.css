@@ -128,7 +128,7 @@
         @apply text-black font-serif;
     }
 
-    .site-header .site-nav a,
+    .site-header .site-nav a:not(.brand),
     .site-header .mobile-menu-button {
         @apply text-gray-700 font-bold uppercase tracking-wide text-xs;
     }
@@ -2017,6 +2017,7 @@ body.homepage .home-section__footer .button-secondary {
         width: 100%;
         height: 100dvh;
         min-height: 100dvh;
+        align-items: stretch;
         flex-direction: column;
         gap: 0;
         overflow-x: hidden;
@@ -2046,6 +2047,7 @@ body.homepage .home-section__footer .button-secondary {
         width: 100%;
         height: 100dvh;
         min-height: 100dvh;
+        align-items: stretch;
         border: 0;
         border-radius: 0;
         background: #fffdfa;
@@ -2065,6 +2067,7 @@ body.homepage .home-section__footer .button-secondary {
         width: 100%;
         height: 100dvh;
         min-height: 100dvh;
+        align-items: stretch;
         border: 0;
         border-radius: 0;
         background: #fffdfa;
@@ -2079,11 +2082,11 @@ body.homepage .home-section__footer .button-secondary {
 
     .site-nav__drawer-header {
         display: flex;
+        width: 100%;
         min-height: 2.75rem;
         align-items: center;
         justify-content: space-between;
         gap: 0.75rem;
-        padding: 0;
         opacity: 0;
         transform: translateY(0.7rem);
         transition:
@@ -2091,20 +2094,7 @@ body.homepage .home-section__footer .button-secondary {
             transform 280ms ease 240ms;
     }
 
-    .site-nav__drawer-header span {
-        min-width: 0;
-        flex: 1;
-        max-width: calc(100% - 3.5rem);
-        color: #241a12;
-        font-size: 0.82rem;
-        font-weight: 900;
-        letter-spacing: 0.06em;
-        line-height: 1.2;
-        overflow: hidden;
-        text-align: left;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+
 
     .site-nav[data-open='true'] .site-nav__drawer-header {
         opacity: 1;
@@ -2148,7 +2138,6 @@ body.homepage .home-section__footer .button-secondary {
     }
 
     .site-nav a {
-        border-radius: 0;
         color: inherit;
         text-decoration: none;
     }
@@ -2160,6 +2149,7 @@ body.homepage .home-section__footer .button-secondary {
         min-height: 3.8rem;
         align-items: center;
         justify-content: flex-start;
+        border-radius: 0;
         border-bottom: 0;
         padding: 1rem 0 1.1rem;
         font-size: 1.04rem;

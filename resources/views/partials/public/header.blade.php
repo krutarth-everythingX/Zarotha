@@ -22,7 +22,9 @@
         </button>
         <nav id="site-navigation" class="site-nav" data-site-nav aria-label="Primary navigation">
             <div class="site-nav__drawer-header">
-                <span>ZAROKHA WOODEN ARTS</span>
+                <a href="{{ route('public.home') }}" class="brand" tabindex="-1">
+                    <span>{{ $siteSettings?->site_name ?? config('app.name') }}</span>
+                </a>
                 <button class="site-nav__close" type="button" data-menu-close aria-label="Close navigation">
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
