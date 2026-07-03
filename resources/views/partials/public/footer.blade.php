@@ -1,37 +1,80 @@
 <footer class="site-footer">
-    <div class="footer-grid">
-        <div>
-            <p class="footer-brand">{{ $siteSettings?->site_name ?? config('app.name') }}</p>
-            <p>Premium catalogue presentation for handcrafted wooden decor. Final business copy remains CMS-managed.</p>
+    <div class="site-footer__inner">
+        <div class="footer-grid">
+            <section class="site-footer__panel">
+                <h2>About</h2>
+                <p class="site-footer__about-copy">We shape custom wooden pieces for homes, studios, and hospitality spaces with calm materials and thoughtful detail.</p>
+                @if (($socialLinks ?? collect())->isNotEmpty())
+                    <div class="site-footer__socials">
+                        @foreach (($socialLinks ?? collect())->take(4) as $link)
+                            @php
+                                $platform = strtolower($link->platform_key ?? $link->platform ?? 'social');
+                                $platformName = ucfirst($platform);
+                            @endphp
+                            <a class="site-footer__social-link" href="{{ $link->url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ $platformName }}">
+                                @if ($platform === 'facebook')
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3a5 5 0 0 0-5 5v3H6v4h3v6h4v-6h3l1-4h-4V9a1 1 0 0 1 1-1Z"/></svg>
+                                @elseif ($platform === 'instagram')
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37Z"/><path d="M17.5 6.5h.01"/></svg>
+                                @elseif ($platform === 'linkedin')
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 1 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                                @else
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18"/><path d="M12 3a15 15 0 0 0 0 18"/></svg>
+                                @endif
+                            </a>
+                        @endforeach
+                    </div>
+                @endif
+            </section>
+
+            <section class="site-footer__panel">
+                <h2>Useful Links</h2>
+                <nav class="site-footer__links" aria-label="Footer navigation">
+                    <a href="{{ route('public.pages.about') }}">About</a>
+                    <a href="{{ route('public.products.index') }}">Products</a>
+                    <a href="{{ route('public.home') }}">Latest Projects</a>
+                    <a href="{{ route('public.contact.show') }}">Contact Us</a>
+                </nav>
+            </section>
+
+            <section class="site-footer__panel">
+                <h2>Contact</h2>
+                <div class="site-footer__contact">
+                    @if ($contactInformation?->address_primary)
+                        <p>{{ $contactInformation->address_primary }}</p>
+                    @endif
+                    @if ($contactInformation?->email_primary)
+                        <a class="site-footer__contact-link" href="mailto:{{ $contactInformation->email_primary }}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v.4l-10 6.25L2 6.4V6a2 2 0 0 1 2-2Zm18 5.1-9.47 5.92a1 1 0 0 1-1.06 0L2 9.1V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.1Z"/></svg>
+                            <span>{{ $contactInformation->email_primary }}</span>
+                        </a>
+                    @endif
+                    @if ($contactInformation?->phone_primary)
+                        <a class="site-footer__contact-link" href="tel:{{ $contactInformation->phone_primary }}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.52 19.52 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.63 2.62a2 2 0 0 1-.45 2.11L8 9.91a16 16 0 0 0 6.09 6.09l1.46-1.29a2 2 0 0 1 2.11-.45c.84.3 1.72.51 2.62.63A2 2 0 0 1 22 16.92Z"/></svg>
+                            <span>{{ $contactInformation->phone_primary }}</span>
+                        </a>
+                    @endif
+                    @if ($contactInformation?->whatsapp_number)
+                        <a class="site-footer__contact-link" href="https://wa.me/{{ preg_replace('/\D+/', '', $contactInformation->whatsapp_number) }}?text={{ urlencode($contactInformation->whatsapp_text ?? '') }}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.6 14.1c-.2-.1-1.3-.6-1.5-.7s-.3-.1-.4.1-.6.7-.7.8-.2.1-.4 0a6.1 6.1 0 0 1-1.8-1.1 6.74 6.74 0 0 1-1.2-1.5c-.1-.2 0-.3.1-.4l.3-.3c.1-.1.1-.2.2-.3s0-.2 0-.3-.4-1.1-.6-1.5c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3s-.8.8-.8 1.9.8 2.1.9 2.2 1.6 2.4 3.9 3.3c.5.2 1 .4 1.4.5.6.2 1.1.2 1.5.1.5-.1 1.3-.5 1.5-1 .2-.5.2-1 .1-1.1s-.2-.1-.4-.2Z"/><path d="M12 2a10 10 0 0 0-8.7 14.9L2 22l5.3-1.4A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3.1.8.8-3-.2-.3A8 8 0 1 1 12 20Z"/></svg>
+                            <span>WhatsApp</span>
+                        </a>
+                    @endif
+                </div>
+            </section>
         </div>
-        <div>
-            <h2>Explore</h2>
-            <a href="{{ route('public.products.index') }}">Products</a>
-            <a href="{{ route('public.pages.about') }}">About Us</a>
-            <a href="{{ route('public.pages.craftsmanship') }}">Our Craftsmanship</a>
-            <a href="{{ route('public.contact.show') }}">Contact</a>
-        </div>
-        <div>
-            <h2>Categories</h2>
-            @forelse ($footerCategories as $category)
-                <a href="{{ route('public.products.index', ['category' => $category->slug]) }}">{{ $category->name }}</a>
-            @empty
-                <p>Categories will appear when added in CMS.</p>
-            @endforelse
-        </div>
-        <div>
-            <h2>Contact</h2>
-            @if ($contactInformation?->show_phone && $contactInformation->phone_primary)
-                <a href="tel:{{ $contactInformation->phone_primary }}">{{ $contactInformation->phone_primary }}</a>
-            @endif
-            @if ($contactInformation?->show_email && $contactInformation->email_primary)
-                <a href="mailto:{{ $contactInformation->email_primary }}">{{ $contactInformation->email_primary }}</a>
-            @endif
-            @if ($contactInformation?->show_whatsapp && $contactInformation->whatsapp_number)
-                <a href="https://wa.me/{{ preg_replace('/\D+/', '', $contactInformation->whatsapp_number) }}">WhatsApp inquiry</a>
-            @endif
-            <a href="{{ route('public.pages.privacy') }}">Privacy Policy</a>
-            <a href="{{ route('public.pages.terms') }}">Terms and Conditions</a>
+
+        <!-- <div class="site-footer__brand" aria-hidden="true">
+            ZAROKHA
+        </div> -->
+
+        <div class="site-footer__bottom">
+            <p>All Rights Reserved {{ now()->year }}.</p>
+            <div class="site-footer__legal">
+                <a href="{{ route('public.pages.privacy') }}">Privacy Policy</a>
+                <a href="{{ route('public.pages.terms') }}">Terms & Conditions</a>
+            </div>
         </div>
     </div>
 </footer>

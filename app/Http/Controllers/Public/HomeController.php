@@ -39,13 +39,13 @@ class HomeController extends Controller
         $latestSection = $sections->get('latest_products');
         $testimonialsSection = $sections->get('testimonials');
         $quickInquirySection = $sections->get('quick_inquiry');
-        $hero = HeroBanner::query()
+        $heroBanners = HeroBanner::query()
             ->with(['desktopMedia.variants', 'mobileMedia.variants'])
             ->where('is_active', true)
             ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
             ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
             ->orderBy('sort_order')
-            ->first();
+            ->get();
         $latestLimit = min(max((int) ($latestSection ? $latestSection->max_items : 10), 1), 10);
         $selectedFeaturedProducts = $featuredSection?->featuredProducts
             ->filter(fn (HomepageFeaturedProductItem $item): bool => $item->product?->status === PublishStatus::Published && $item->product->published_at !== null)
@@ -55,7 +55,7 @@ class HomeController extends Controller
 
         return view('pages.home', [
             ...$this->sharedPublicData(),
-            'hero' => $hero,
+            'heroBanners' => $heroBanners,
             'heroSection' => $heroSection,
             'floatingProducts' => $heroSection?->floatingProducts
                 ->filter(fn (HomepageFloatingProductItem $item): bool => $item->is_visible && $item->product?->status === PublishStatus::Published)

@@ -118,6 +118,18 @@ class MediaAsset extends Model
             ->orderBy('width')
             ->get();
 
+        // Fall back to the original file when no webp variants have been generated
+        if ($variants->isEmpty()) {
+            return [
+                'src' => $this->url(),
+                'srcset' => $this->url() . ($this->width ? ' ' . $this->width . 'w' : ''),
+                'sizes' => $sizes,
+                'width' => $this->width,
+                'height' => $this->height,
+                'alt' => $this->alt_text ?? '',
+            ];
+        }
+
         return [
             'src' => $variants->last()?->url(),
             'srcset' => $variants->map(fn (MediaVariant $variant): string => $variant->url().' '.$variant->width.'w')->implode(', '),

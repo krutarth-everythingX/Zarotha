@@ -51,9 +51,10 @@ type AdminShellProps = {
     title: string;
     description: string;
     children: React.ReactNode;
+    actions?: React.ReactNode;
 };
 
-export function AdminShell({ title, description, children }: AdminShellProps) {
+export function AdminShell({ title, description, children, actions }: AdminShellProps) {
     const page = usePage<AppPageProps>();
     const user = page.props.auth.user;
 
@@ -123,9 +124,12 @@ export function AdminShell({ title, description, children }: AdminShellProps) {
 
     return (
         <SidebarLayout navbar={navbar} sidebar={sidebar}>
-            <header className="space-y-2">
-                <Heading>{title}</Heading>
-                <Text>{description}</Text>
+            <header className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                    <Heading>{title}</Heading>
+                    <Text>{description}</Text>
+                </div>
+                {actions && <div className="flex-shrink-0">{actions}</div>}
             </header>
             <div className="mt-10">{children}</div>
         </SidebarLayout>

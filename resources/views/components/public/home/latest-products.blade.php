@@ -16,7 +16,11 @@
     <div class="product-slider" data-slider>
         <div class="product-slider__track" data-slider-track>
             @foreach ($products as $product)
-                <div class="product-slider__slide">
+                @php
+                    $media = $product->featuredMedia ?? $product->media->first();
+                    $aspectRatio = $media && $media->width && $media->height ? ($media->width . ' / ' . $media->height) : '4 / 5';
+                @endphp
+                <div class="product-slider__slide" style="aspect-ratio: {{ $aspectRatio }};">
                     <x-public.product-card
                         :product="$product"
                         image-only

@@ -1,20 +1,16 @@
-@props(['hero', 'heroSection', 'theme', 'overlayOpacity', 'siteSettings', 'contactInformation', 'socialLinks'])
+@props(['heroBanners', 'heroSection', 'theme', 'overlayOpacity', 'siteSettings', 'contactInformation', 'socialLinks'])
 
 <section class="home-hero home-hero--{{ $theme }}" data-hero-slider>
     <div class="home-hero__bg-left"></div>
     
     <div class="home-hero__container">
         <div class="home-hero__slider group">
-            @php
-                $banners = $heroSection?->banners?->where('is_visible', true) ?? collect();
-            @endphp
-
-            @if($banners->isNotEmpty())
+            @if($heroBanners->isNotEmpty())
                 <div class="home-hero__media-container">
-                    @foreach($banners as $index => $banner)
+                    @foreach($heroBanners as $index => $banner)
                         <picture class="home-hero__media {{ $index === 0 ? 'is-active' : '' }}" aria-hidden="true" data-slide="{{ $index }}">
-                            @if ($banner->imageMedia)
-                                @php $desktopImage = $banner->imageMedia->responsiveImage('100vw'); @endphp
+                            @if ($banner->desktopMedia)
+                                @php $desktopImage = $banner->desktopMedia->responsiveImage('100vw'); @endphp
                                 @if ($desktopImage['src'])
                                     <img
                                         src="{{ $desktopImage['src'] }}"
@@ -30,28 +26,10 @@
                         </picture>
                     @endforeach
                 </div>
-            @elseif ($hero?->desktopMedia)
-                {{-- Fallback to the single desktop media --}}
-                <div class="home-hero__media-container">
-                    <picture class="home-hero__media is-active" aria-hidden="true">
-                        @php $desktopImage = $hero->desktopMedia->responsiveImage('100vw'); @endphp
-                        @if ($desktopImage['src'])
-                            <img
-                                src="{{ $desktopImage['src'] }}"
-                                srcset="{{ $desktopImage['srcset'] }}"
-                                sizes="{{ $desktopImage['sizes'] }}"
-                                width="{{ $desktopImage['width'] }}"
-                                height="{{ $desktopImage['height'] }}"
-                                alt=""
-                                loading="eager"
-                            >
-                        @endif
-                    </picture>
-                </div>
             @endif
 
             {{-- Slider Arrows --}}
-            @if($banners->count() > 1)
+            @if($heroBanners->count() > 1)
                 <button type="button" class="home-hero__arrow home-hero__arrow--prev" data-hero-prev aria-label="Previous banner">
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
                 </button>

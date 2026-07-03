@@ -5,9 +5,23 @@
     if ($section?->background_color) {
         $quickStyles[] = '--section-bg-color: '.$section->background_color;
     }
-    $defaultImage = asset('images/custom-commissions-workshop.webp');
-    $bannerUrls = [$defaultImage];
-    $quickStyles[] = "--section-bg-image: url('".$defaultImage."')";
+    $bannerUrls = [];
+    if ($section?->banners && $section->banners->count() > 0) {
+        foreach ($section->banners as $banner) {
+            if ($banner->imageMedia && $url = $banner->imageMedia->url()) {
+                $bannerUrls[] = $url;
+            }
+        }
+    }
+
+    if (empty($bannerUrls)) {
+        if ($section?->backgroundMedia && $url = $section->backgroundMedia->url()) {
+            $bannerUrls[] = $url;
+        } else {
+            $bannerUrls[] = asset('images/custom-commissions-workshop.webp');
+        }
+    }
+    $quickStyles[] = "--section-bg-image: url('".$bannerUrls[0]."')";
 
     $whatsappNumber = preg_replace('/[^0-9]/', '', (string) ($contactInformation?->whatsapp_number ?? ''));
     $whatsappUrl = $whatsappNumber

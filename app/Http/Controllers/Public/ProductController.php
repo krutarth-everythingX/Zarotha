@@ -17,8 +17,8 @@ class ProductController extends Controller
 
     public function index(Request $request): View|JsonResponse
     {
-        $sort = (string) $request->query('sort', 'sort_order');
-        $sort = in_array($sort, ['sort_order', 'newest', 'oldest', 'name_az', 'name_za'], true) ? $sort : 'sort_order';
+        $sort = (string) $request->query('sort', 'newest');
+        $sort = in_array($sort, ['newest', 'oldest', 'name_az', 'name_za'], true) ? $sort : 'newest';
 
         $products = Product::query()
             ->with([
@@ -35,7 +35,7 @@ class ProductController extends Controller
             'oldest' => $products->orderBy('published_at')->orderBy('id'),
             'name_az' => $products->orderBy('name')->orderBy('id'),
             'name_za' => $products->orderByDesc('name')->orderByDesc('id'),
-            default => $products->orderBy('sort_order')->orderByDesc('published_at')->orderByDesc('id'),
+            default => $products->orderByDesc('published_at')->orderByDesc('id'),
         };
 
         $paginatedProducts = $products->paginate(20)->withQueryString();
@@ -57,7 +57,6 @@ class ProductController extends Controller
             'products' => $paginatedProducts,
             'sort' => $sort,
             'sortOptions' => [
-                'sort_order' => 'CMS order',
                 'newest' => 'Newest',
                 'oldest' => 'Oldest',
                 'name_az' => 'Name A-Z',
@@ -85,11 +84,42 @@ class ProductController extends Controller
             ->limit(4)
             ->get();
 
+        $otherProducts = Product::query()
+            ->with(['category', 'featuredMedia.variants'])
+            ->where('status', PublishStatus::Published->value)
+            ->whereNotNull('published_at')
+            ->where('category_id', '!=', $product->category_id)
+            ->whereKeyNot($product->id)
+            ->orderBy('sort_order')
+            ->orderByDesc('published_at')
+            ->limit(4)
+            ->get();
+
+        if ($otherProducts->isEmpty()) {
+            $otherProducts = Product::query()
+                ->with(['category', 'featuredMedia.variants'])
+                ->where('status', PublishStatus::Published->value)
+                ->whereNotNull('published_at')
+                ->whereKeyNot($product->id)
+                ->whereKeyNot($relatedProducts->modelKeys())
+                ->orderBy('sort_order')
+                ->orderByDesc('published_at')
+                ->limit(4)
+                ->get();
+        }
+
+        $gallery = collect([$product->featuredMedia])
+            ->filter()
+            ->merge($product->media)
+            ->unique('id')
+            ->values();
+
         return view('pages.products.show', [
             ...$this->sharedPublicData(),
             'product' => $product,
-            'gallery' => $product->media->isNotEmpty() ? $product->media : collect([$product->featuredMedia])->filter(),
+            'gallery' => $gallery,
             'relatedProducts' => $relatedProducts,
+            'otherProducts' => $otherProducts,
         ]);
     }
 

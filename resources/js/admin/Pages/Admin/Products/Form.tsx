@@ -1,41 +1,18 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@admin/Components/ui/button';
-import { Field, Label } from '@admin/Components/ui/fieldset';
-import { Text } from '@admin/Components/ui/text';
 import { AdminShell } from '@admin/Layouts/AdminShell';
-import { FieldError, FormInput, FormSelect, FormTextarea, PagePanel } from '@admin/Components/AdminPrimitives';
-import type { PublishStatus, SelectOption } from '@admin/types';
-
-type ProductFormPayload = {
-    id?: number;
-    name: string;
-    slug: string;
-    categoryId: number | '';
-    shortDescription: string | null;
-    fullDescription: string | null;
-    dimensions: string | null;
-    material: string | null;
-    finish: string | null;
-    featuredMediaId: number | null;
-    status: PublishStatus;
-    publishedAt: string | null;
-    sortOrder: number;
-    isFeatured: boolean;
-    isBestSelling: boolean;
-    isLatest: boolean;
-    metaTitle: string | null;
-    metaDescription: string | null;
-    ogTitle: string | null;
-    ogDescription: string | null;
-    ogImageMediaId: number | null;
-    canonicalUrl: string | null;
-    robotsIndex: boolean;
-    robotsFollow: boolean;
-};
+import { PagePanel, FormCheckbox } from '@admin/Components/AdminPrimitives';
+import { Text } from '@admin/Components/ui/text';
+import { useEffect, useState } from 'react';
+import {
+    BasicInfoSection, ImagesSection, MaterialSection, DimensionsSection,
+    PricingSection, InventorySection, SpecsSection
+} from './ProductSections';
+import type { SelectOption } from '@admin/types';
 
 type ProductsFormProps = {
     mode: 'create' | 'edit';
-    product: ProductFormPayload | null;
+    product: any | null;
     categories: SelectOption[];
 };
 
@@ -44,163 +21,162 @@ export default function ProductsForm({ mode, product, categories }: ProductsForm
         category_id: product?.categoryId ?? '',
         name: product?.name ?? '',
         slug: product?.slug ?? '',
+        sku: product?.sku ?? '',
+        product_type: product?.productType ?? '',
+        wood_type: product?.woodType ?? '',
+        style: product?.style ?? '',
+        regular_price: product?.regularPrice ?? '',
+        sale_price: product?.salePrice ?? '',
+        is_track_inventory: product?.isTrackInventory ?? false,
+        stock_quantity: product?.stockQuantity ?? '',
+        availability: product?.availability ?? 'in_stock',
+
         short_description: product?.shortDescription ?? '',
         full_description: product?.fullDescription ?? '',
-        dimensions: product?.dimensions ?? '',
-        material: product?.material ?? '',
-        finish: product?.finish ?? '',
-        featured_media_id: product?.featuredMediaId ?? '',
+
+        details: product?.details ?? {
+            custom_wood_type: '',
+            material_grade: '',
+            wood_source: '',
+            is_reclaimed_wood: false,
+            is_sustainably_sourced: false,
+            dimensions_unit: 'inches',
+            height: '',
+            width: '',
+            depth: '',
+            weight: '',
+            dynamic_specs: []
+        },
+
+        gallery_images_state: product?.galleryImages ?? [],
+
         status: product?.status ?? 'draft',
-        published_at: product?.publishedAt ?? '',
-        sort_order: product?.sortOrder ?? 0,
         is_featured: product?.isFeatured ?? false,
         is_best_selling: product?.isBestSelling ?? false,
         is_latest: product?.isLatest ?? false,
-        meta_title: product?.metaTitle ?? '',
-        meta_description: product?.metaDescription ?? '',
-        og_title: product?.ogTitle ?? '',
-        og_description: product?.ogDescription ?? '',
-        og_image_media_id: product?.ogImageMediaId ?? '',
-        canonical_url: product?.canonicalUrl ?? '',
-        robots_index: product?.robotsIndex ?? true,
-        robots_follow: product?.robotsFollow ?? true,
     });
 
-    const submit = () => {
+    const submit = (statusOverride?: string) => {
+        const payload: Record<string, any> = {
+            ...form.data,
+            gallery_images: form.data.gallery_images_state.map((img: any) => img.id),
+        };
+
+        if (statusOverride) {
+            payload.status = statusOverride;
+        }
+
+        // Remove the gallery_images_state from the payload (not a DB field)
+        delete payload.gallery_images_state;
+
         if (mode === 'edit' && product?.id) {
+            form.transform(() => payload);
             form.patch(`/admin/products/${product.id}`);
             return;
         }
 
+        form.transform(() => payload);
         form.post('/admin/products');
+    };
+
+    const sections = [
+        { id: 'basic-info', label: 'Basic Info' },
+        { id: 'images', label: 'Images' },
+        { id: 'material', label: 'Material' },
+        { id: 'dimensions', label: 'Dimensions & Weight' },
+        { id: 'pricing', label: 'Pricing' },
+        { id: 'inventory', label: 'Inventory' },
+        { id: 'specifications', label: 'Dynamic Specs' },
+    ];
+
+    const [activeSection, setActiveSection] = useState(sections[0].id);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollPosition = window.scrollY + 150;
+            for (let i = sections.length - 1; i >= 0; i--) {
+                const sectionId = sections[i].id;
+                const element = document.getElementById(sectionId);
+                if (element && element.offsetTop <= scrollPosition) {
+                    setActiveSection(sectionId);
+                    break;
+                }
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToSection = (id: string) => {
+        const element = document.getElementById(id);
+        if (element) {
+            const y = element.getBoundingClientRect().top + window.scrollY - 100;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
     };
 
     return (
         <>
-            <Head title={mode === 'edit' ? `Edit ${product?.name ?? 'Product'}` : 'Create Product'} />
+            <Head title={mode === 'edit' ? `Edit ${product?.name ?? 'Product'}` : 'Add Product'} />
             <AdminShell
-                title={mode === 'edit' ? 'Edit Product' : 'Create Product'}
-                description="Products remain inquiry catalogue records with required category organization."
+                title={mode === 'edit' ? 'Edit Product' : 'Add Product'}
+                description="Manage comprehensive product details."
+                actions={
+                    <div className="flex gap-2">
+                        <Button outline type="button" onClick={() => submit('draft')} disabled={form.processing}>Save as Draft</Button>
+                        <Button type="button" onClick={() => submit('published')} disabled={form.processing}>Publish Product</Button>
+                    </div>
+                }
             >
                 <form
-                    className="space-y-6"
+                    className="grid grid-cols-1 xl:grid-cols-[250px_1fr] gap-8 items-start relative pb-20"
                     onSubmit={(event) => {
                         event.preventDefault();
                         submit();
                     }}
                 >
-                    <PagePanel>
-                        <div className="grid gap-5 lg:grid-cols-2">
-                            <Field>
-                                <Label>Name</Label>
-                                <FormInput value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} />
-                                <FieldError message={form.errors.name} />
-                            </Field>
-                            <Field>
-                                <Label>Slug</Label>
-                                <FormInput value={form.data.slug} onChange={(event) => form.setData('slug', event.target.value)} />
-                                <FieldError message={form.errors.slug} />
-                            </Field>
-                            <Field>
-                                <Label>Category</Label>
-                                <FormSelect
-                                    value={form.data.category_id}
-                                    onChange={(event) => form.setData('category_id', event.target.value === '' ? '' : Number(event.target.value))}
-                                >
-                                    <option value="">Choose category</option>
-                                    {categories.map((category) => (
-                                        <option key={category.id} value={category.id}>
-                                            {category.label}
-                                        </option>
-                                    ))}
-                                </FormSelect>
-                                <FieldError message={form.errors.category_id} />
-                            </Field>
-                            <Field>
-                                <Label>Status</Label>
-                                <FormSelect value={form.data.status} onChange={(event) => form.setData('status', event.target.value as PublishStatus)}>
-                                    <option value="draft">Draft</option>
-                                    <option value="published">Published</option>
-                                    <option value="archived">Archived</option>
-                                </FormSelect>
-                            </Field>
-                            <Field className="lg:col-span-2">
-                                <Label>Short description</Label>
-                                <FormTextarea rows={3} value={form.data.short_description} onChange={(event) => form.setData('short_description', event.target.value)} />
-                            </Field>
-                            <Field className="lg:col-span-2">
-                                <Label>Full description</Label>
-                                <FormTextarea rows={6} value={form.data.full_description} onChange={(event) => form.setData('full_description', event.target.value)} />
-                            </Field>
-                        </div>
-                    </PagePanel>
+                    {/* Left Sticky Navigation */}
+                    <div className="hidden xl:block sticky top-24">
+                        <PagePanel className="p-4">
+                            <p className="font-semibold mb-4 px-2 text-zinc-950 dark:text-white">Sections</p>
+                            <nav className="flex flex-col space-y-1">
+                                {sections.map(section => (
+                                    <button
+                                        key={section.id}
+                                        type="button"
+                                        onClick={() => scrollToSection(section.id)}
+                                        className={`text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                                            activeSection === section.id
+                                                ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 font-medium'
+                                                : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 dark:hover:bg-zinc-800 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        {section.label}
+                                    </button>
+                                ))}
+                            </nav>
 
-                    <PagePanel>
-                        <div className="grid gap-5 lg:grid-cols-3">
-                            <Field>
-                                <Label>Dimensions</Label>
-                                <FormInput value={form.data.dimensions} onChange={(event) => form.setData('dimensions', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Material</Label>
-                                <FormInput value={form.data.material} onChange={(event) => form.setData('material', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Finish</Label>
-                                <FormInput value={form.data.finish} onChange={(event) => form.setData('finish', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Featured media ID</Label>
-                                <FormInput
-                                    type="number"
-                                    value={form.data.featured_media_id}
-                                    onChange={(event) => form.setData('featured_media_id', event.target.value === '' ? '' : Number(event.target.value))}
-                                />
-                                <FieldError message={form.errors.featured_media_id} />
-                            </Field>
-                            <Field>
-                                <Label>Sort order</Label>
-                                <FormInput type="number" value={form.data.sort_order} onChange={(event) => form.setData('sort_order', Number(event.target.value))} />
-                            </Field>
-                            <Field>
-                                <Label>Homepage flags</Label>
-                                <div className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                    {(['is_featured', 'is_best_selling', 'is_latest'] as const).map((field) => (
-                                        <label key={field} className="flex items-center gap-2">
-                                            <input type="checkbox" checked={form.data[field]} onChange={(event) => form.setData(field, event.target.checked)} />
-                                            {field.replace('is_', '').replace('_', ' ')}
-                                        </label>
-                                    ))}
+                            <div className="mt-8 border-t border-zinc-950/8 dark:border-white/10 pt-4 px-2 space-y-4">
+                                <p className="font-semibold text-zinc-950 dark:text-white">Visibility flags</p>
+                                <div className="space-y-3">
+                                    <FormCheckbox checked={form.data.is_featured} onChange={(e) => form.setData('is_featured', e.target.checked)} label="Featured Product" />
+                                    <FormCheckbox checked={form.data.is_best_selling} onChange={(e) => form.setData('is_best_selling', e.target.checked)} label="Best Selling" />
+                                    <FormCheckbox checked={form.data.is_latest} onChange={(e) => form.setData('is_latest', e.target.checked)} label="Latest Collection" />
                                 </div>
-                            </Field>
-                        </div>
-                    </PagePanel>
+                            </div>
+                        </PagePanel>
+                    </div>
 
-                    <PagePanel>
-                        <div className="grid gap-5 lg:grid-cols-2">
-                            <Field>
-                                <Label>Meta title</Label>
-                                <FormInput value={form.data.meta_title} onChange={(event) => form.setData('meta_title', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Meta description</Label>
-                                <FormInput value={form.data.meta_description} onChange={(event) => form.setData('meta_description', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Canonical URL</Label>
-                                <FormInput value={form.data.canonical_url} onChange={(event) => form.setData('canonical_url', event.target.value)} />
-                            </Field>
-                            <Text>Publishing is blocked server-side until required product media is present.</Text>
-                        </div>
-                    </PagePanel>
-
-                    <div className="flex flex-wrap gap-3">
-                        <Button type="submit" disabled={form.processing}>
-                            Save product
-                        </Button>
-                        <Button href="/admin/products" color="light">
-                            Back to products
-                        </Button>
+                    {/* Main Content Sections */}
+                    <div className="space-y-8 min-w-0">
+                        <BasicInfoSection data={form.data} setData={form.setData} errors={form.errors} categories={categories} />
+                        <ImagesSection data={form.data} setData={form.setData} errors={form.errors} />
+                        <MaterialSection data={form.data} setData={form.setData} errors={form.errors} />
+                        <DimensionsSection data={form.data} setData={form.setData} errors={form.errors} />
+                        <PricingSection data={form.data} setData={form.setData} errors={form.errors} />
+                        <InventorySection data={form.data} setData={form.setData} errors={form.errors} />
+                        <SpecsSection data={form.data} setData={form.setData} errors={form.errors} />
                     </div>
                 </form>
             </AdminShell>

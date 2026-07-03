@@ -1,11 +1,17 @@
+@php
+    $compact = $compact ?? false;
+@endphp
+
 <form class="inquiry-form" method="post" action="{{ $action }}">
     @csrf
     <input type="text" name="website" tabindex="-1" autocomplete="off" class="honeypot" aria-hidden="true">
-    <div class="section-heading">
-        <p class="eyebrow">Inquiry</p>
-        <h2>{{ isset($product) && $product ? 'Ask about ' . $product->name : 'Send an inquiry' }}</h2>
-        <p>{{ $contactInformation?->form_helper_text ?? 'Share your question and the team can respond through the configured inquiry workflow.' }}</p>
-    </div>
+    @unless ($compact)
+        <div class="section-heading">
+            <p class="eyebrow">Inquiry</p>
+            <h2>{{ isset($product) && $product ? 'Ask about ' . $product->name : 'Send an inquiry' }}</h2>
+            <p>{{ $contactInformation?->form_helper_text ?? 'Share your question and the team can respond through the configured inquiry workflow.' }}</p>
+        </div>
+    @endunless
     <div class="form-grid">
         <label>Name<input name="name" value="{{ old('name') }}" required></label>
         <label>Email<input name="email" value="{{ old('email') }}" type="email" required></label>

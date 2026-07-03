@@ -92,6 +92,14 @@ class ProductController extends Controller
             'updated_by_user_id' => $request->user()->id,
         ]);
 
+        if ($request->has('gallery_images')) {
+            $galleryData = [];
+            foreach ($request->input('gallery_images', []) as $index => $mediaId) {
+                $galleryData[$mediaId] = ['sort_order' => $index];
+            }
+            $product->media()->sync($galleryData);
+        }
+
         return redirect()
             ->route('admin.products.edit', $product)
             ->with('status', 'Product created.');
@@ -101,7 +109,7 @@ class ProductController extends Controller
     {
         $this->authorize('update', $product);
 
-        $product->load('category');
+        $product->load('category', 'media');
 
         return Inertia::render('Admin/Products/Form', $this->formPayload($product));
     }
@@ -112,6 +120,14 @@ class ProductController extends Controller
             ...$request->validated(),
             'updated_by_user_id' => $request->user()->id,
         ]);
+
+        if ($request->has('gallery_images')) {
+            $galleryData = [];
+            foreach ($request->input('gallery_images', []) as $index => $mediaId) {
+                $galleryData[$mediaId] = ['sort_order' => $index];
+            }
+            $product->media()->sync($galleryData);
+        }
 
         return redirect()
             ->route('admin.products.edit', $product)
@@ -196,6 +212,23 @@ class ProductController extends Controller
                 'canonicalUrl' => $product->canonical_url,
                 'robotsIndex' => $product->robots_index,
                 'robotsFollow' => $product->robots_follow,
+
+                // New fields
+                'sku' => $product->sku,
+                'productType' => $product->product_type,
+                'woodType' => $product->wood_type,
+                'style' => $product->style,
+                'regularPrice' => $product->regular_price,
+                'salePrice' => $product->sale_price,
+                'isTrackInventory' => $product->is_track_inventory,
+                'stockQuantity' => $product->stock_quantity,
+                'availability' => $product->availability,
+                'details' => $product->details ?? [],
+                'galleryImages' => $product->media ? $product->media->map(fn($media) => [
+                    'id' => $media->id,
+                    'url' => \Illuminate\Support\Facades\Storage::disk($media->disk)->url($media->directory . '/' . $media->filename),
+                    'isPrimary' => $product->featured_media_id === $media->id,
+                ]) : [],
             ],
             'categories' => Category::query()->orderBy('name')->get(['id', 'name'])->map(fn (Category $category) => [
                 'id' => $category->id,

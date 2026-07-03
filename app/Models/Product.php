@@ -70,6 +70,16 @@ class Product extends Model
         'robots_follow',
         'created_by_user_id',
         'updated_by_user_id',
+        'sku',
+        'product_type',
+        'wood_type',
+        'style',
+        'regular_price',
+        'sale_price',
+        'is_track_inventory',
+        'stock_quantity',
+        'availability',
+        'details',
     ];
 
     protected function casts(): array
@@ -82,6 +92,11 @@ class Product extends Model
             'is_latest' => 'boolean',
             'robots_index' => 'boolean',
             'robots_follow' => 'boolean',
+            'regular_price' => 'decimal:2',
+            'sale_price' => 'decimal:2',
+            'is_track_inventory' => 'boolean',
+            'stock_quantity' => 'integer',
+            'details' => 'array',
         ];
     }
 

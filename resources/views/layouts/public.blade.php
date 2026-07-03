@@ -18,7 +18,7 @@
         <title>@yield('title', $siteSettings?->default_meta_title ?? config('app.name'))</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
         @vite(['resources/css/public/app.css', 'resources/js/public/app.ts'])
     </head>
     <body class="@yield('body_class')">

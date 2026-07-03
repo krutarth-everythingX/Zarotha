@@ -111,3 +111,17 @@ export function TextLink({ href, children }: { href: string; children: React.Rea
         </Link>
     );
 }
+
+export function FormCheckbox({ checked, onChange, label }: { checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; label: string }) {
+    return (
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+                type="checkbox"
+                checked={checked}
+                onChange={onChange}
+                className="h-4 w-4 rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:focus:ring-white"
+            />
+            <span className="text-sm text-zinc-700 dark:text-zinc-300">{label}</span>
+        </label>
+    );
+}
