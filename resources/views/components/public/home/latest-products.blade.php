@@ -1,5 +1,9 @@
 @props(['section', 'products'])
 
+@php
+    $displayProducts = $products->take(6);
+@endphp
+
 <section class="home-section home-section--latest" aria-labelledby="latest-products-title">
     <div class="home-section__heading">
         <div>
@@ -8,26 +12,20 @@
                 <p>{{ $section->section_intro }}</p>
             @endif
         </div>
-        <div class="slider-controls">
-            <button type="button" data-slider-prev aria-label="Previous latest products">Previous</button>
-            <button type="button" data-slider-next aria-label="Next latest products">Next</button>
-        </div>
+        <a class="latest-products__view-all" href="{{ route('public.products.index') }}" aria-label="View all products">
+            <span class="latest-products__view-all-label">View All</span>
+            <span class="latest-products__view-all-icon" aria-hidden="true"></span>
+        </a>
     </div>
-    <div class="product-slider" data-slider>
-        <div class="product-slider__track" data-slider-track>
-            @foreach ($products as $product)
-                @php
-                    $media = $product->featuredMedia ?? $product->media->first();
-                    $aspectRatio = $media && $media->width && $media->height ? ($media->width . ' / ' . $media->height) : '4 / 5';
-                @endphp
-                <div class="product-slider__slide" style="aspect-ratio: {{ $aspectRatio }};">
-                    <x-public.product-card
-                        :product="$product"
-                        image-only
-                        sizes="(min-width: 1600px) 21vw, (min-width: 1280px) 29vw, (min-width: 1024px) 31vw, (min-width: 768px) 48vw, 48vw"
-                    />
-                </div>
-            @endforeach
-        </div>
+    <div class="latest-products__grid">
+        @foreach ($displayProducts as $product)
+            <div class="latest-products__item">
+                <x-public.product-card
+                    :product="$product"
+                    image-only
+                    sizes="(min-width: 1280px) 30vw, (min-width: 1024px) 31vw, (min-width: 768px) 48vw, 50vw"
+                />
+            </div>
+        @endforeach
     </div>
 </section>

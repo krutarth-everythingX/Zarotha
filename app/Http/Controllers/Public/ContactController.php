@@ -9,6 +9,8 @@ use App\Http\Controllers\Public\Concerns\BuildsPublicViewData;
 use App\Http\Requests\Public\SubmitInquiryRequest;
 use App\Models\Inquiry;
 use App\Models\InquiryActivity;
+use App\Models\Client;
+use App\Models\ContactInformation;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,12 @@ class ContactController extends Controller
     {
         return view('pages.contact', [
             ...$this->sharedPublicData(),
+            'clients' => Client::query()
+                ->with('logoMedia.variants')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(),
             'product' => null,
         ]);
     }
@@ -57,6 +65,6 @@ class ContactController extends Controller
 
         return redirect()
             ->back()
-            ->with('status', 'Your inquiry has been received.');
+            ->with('status', ContactInformation::query()->first()?->success_message ?: 'Your inquiry has been received.');
     }
 }

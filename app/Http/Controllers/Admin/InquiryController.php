@@ -51,6 +51,13 @@ class InquiryController extends Controller
                 'assignedUserId' => $assignedUserId,
                 'sourcePageKey' => $sourcePageKey,
             ],
+            'stats' => [
+                'total' => Inquiry::query()->count(),
+                'unread' => Inquiry::query()->where('status', 'unread')->count(),
+                'read' => Inquiry::query()->where('status', 'read')->count(),
+                'replied' => Inquiry::query()->where('status', 'replied')->count(),
+                'archived' => Inquiry::query()->where('status', 'archived')->count(),
+            ],
             'assignableUsers' => $this->assignableUsers(),
             'inquiries' => [
                 'data' => $inquiries->getCollection()->map(fn (Inquiry $inquiry) => $this->inquiryListItem($inquiry)),
@@ -101,6 +108,8 @@ class InquiryController extends Controller
 
     public function updateStatus(UpdateInquiryStatusRequest $request, Inquiry $inquiry): RedirectResponse
     {
+        $this->authorize('update', $inquiry);
+
         DB::transaction(function () use ($request, $inquiry): void {
             $oldStatus = $inquiry->status->value;
             $newStatus = $request->validated('status');
@@ -123,6 +132,35 @@ class InquiryController extends Controller
         return redirect()
             ->route('admin.inquiries.show', $inquiry)
             ->with('status', 'Inquiry status updated.');
+    }
+
+    public function markRead(Request $request, Inquiry $inquiry): RedirectResponse
+    {
+        $this->authorize('update', $inquiry);
+
+        if ($inquiry->status->value !== 'read') {
+            DB::transaction(function () use ($request, $inquiry): void {
+                $oldStatus = $inquiry->status->value;
+
+                $inquiry->update([
+                    'status' => 'read',
+                    'archived_at' => null,
+                ]);
+
+                InquiryActivity::query()->create([
+                    'inquiry_id' => $inquiry->id,
+                    'actor_user_id' => $request->user()->id,
+                    'activity_type' => InquiryActivityType::StatusChanged,
+                    'old_status' => $oldStatus,
+                    'new_status' => 'read',
+                    'created_at' => now(),
+                ]);
+            });
+        }
+
+        return redirect()
+            ->back()
+            ->with('status', 'Inquiry marked as read.');
     }
 
     public function addNote(AddInquiryNoteRequest $request, Inquiry $inquiry): RedirectResponse
@@ -163,6 +201,17 @@ class InquiryController extends Controller
         return redirect()
             ->route('admin.inquiries.show', $inquiry)
             ->with('status', 'Inquiry assignment updated.');
+    }
+
+    public function destroy(Inquiry $inquiry): RedirectResponse
+    {
+        $this->authorize('update', $inquiry);
+
+        $inquiry->delete();
+
+        return redirect()
+            ->route('admin.inquiries.index')
+            ->with('status', 'Inquiry removed.');
     }
 
     public function export(ExportInquiriesRequest $request): StreamedResponse
@@ -207,6 +256,7 @@ class InquiryController extends Controller
                 'Name',
                 'Email',
                 'Phone',
+                'Company Name',
                 'WhatsApp Number',
                 'Subject',
                 'Message',
@@ -233,6 +283,7 @@ class InquiryController extends Controller
                     $this->safeCsv($inquiry->name),
                     $this->safeCsv($inquiry->email),
                     $this->safeCsv($inquiry->phone),
+                    $this->safeCsv($inquiry->company_name),
                     $this->safeCsv($inquiry->whatsapp_number),
                     $this->safeCsv($inquiry->subject),
                     $this->safeCsv($inquiry->message),
@@ -283,6 +334,7 @@ class InquiryController extends Controller
             'name' => $inquiry->name,
             'email' => $inquiry->email,
             'phone' => $inquiry->phone,
+            'companyName' => $inquiry->company_name,
             'subject' => $inquiry->subject,
             'product' => $inquiry->product === null ? null : [
                 'id' => $inquiry->product->id,
@@ -294,6 +346,11 @@ class InquiryController extends Controller
                 'name' => $inquiry->assignedUser->name,
             ],
             'sourcePageKey' => $inquiry->source_page_key,
+            'sourceUrl' => $inquiry->source_url,
+            'message' => $inquiry->message,
+            'whatsappNumber' => $inquiry->whatsapp_number,
+            'referrerUrl' => $inquiry->referrer_url,
+            'consentConfirmed' => $inquiry->consent_confirmed,
             'createdAt' => $inquiry->created_at?->toAtomString(),
         ];
     }

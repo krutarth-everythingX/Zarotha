@@ -9,12 +9,12 @@ if (menuButton && siteNav) {
     siteNav.setAttribute('data-open', 'false');
     menuBackdrop?.setAttribute('data-open', 'false');
 
-    const phoneHomepageQuery = window.matchMedia('(max-width: 767px)');
+    const compactMenuQuery = window.matchMedia('(max-width: 1023px)');
     let closeMenuTimer: number | null = null;
     let menuOrigin: { x: number; y: number } | null = null;
 
     const isMobileMenu = () => (
-        phoneHomepageQuery.matches
+        compactMenuQuery.matches
     );
 
     const applyCircularRevealGeometry = (x: number, y: number) => {
@@ -183,7 +183,7 @@ if (menuButton && siteNav) {
         }
     });
 
-    phoneHomepageQuery.addEventListener('change', () => {
+    compactMenuQuery.addEventListener('change', () => {
         closeMenu(false);
     });
 

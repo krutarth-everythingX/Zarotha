@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Product\StoreProductRequest;
 use App\Http\Requests\Admin\Product\UpdateProductRequest;
 use App\Models\Category;
+use App\Models\MediaAsset;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,20 +86,19 @@ class ProductController extends Controller
 
     public function store(StoreProductRequest $request): RedirectResponse
     {
+        $validated = $request->validated();
+
         /** @var Product $product */
         $product = Product::query()->create([
-            ...$request->validated(),
+            ...$validated,
+            'published_at' => ($validated['status'] ?? null) === PublishStatus::Published->value
+                ? ($validated['published_at'] ?? now())
+                : ($validated['published_at'] ?? null),
             'created_by_user_id' => $request->user()->id,
             'updated_by_user_id' => $request->user()->id,
         ]);
 
-        if ($request->has('gallery_images')) {
-            $galleryData = [];
-            foreach ($request->input('gallery_images', []) as $index => $mediaId) {
-                $galleryData[$mediaId] = ['sort_order' => $index];
-            }
-            $product->media()->sync($galleryData);
-        }
+        $this->syncGalleryImages($product, $request->input('gallery_images', []));
 
         return redirect()
             ->route('admin.products.edit', $product)
@@ -116,18 +116,17 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
+        $validated = $request->validated();
+
         $product->update([
-            ...$request->validated(),
+            ...$validated,
+            'published_at' => ($validated['status'] ?? null) === PublishStatus::Published->value
+                ? ($validated['published_at'] ?? $product->published_at ?? now())
+                : ($validated['published_at'] ?? null),
             'updated_by_user_id' => $request->user()->id,
         ]);
 
-        if ($request->has('gallery_images')) {
-            $galleryData = [];
-            foreach ($request->input('gallery_images', []) as $index => $mediaId) {
-                $galleryData[$mediaId] = ['sort_order' => $index];
-            }
-            $product->media()->sync($galleryData);
-        }
+        $this->syncGalleryImages($product, $request->input('gallery_images', []));
 
         return redirect()
             ->route('admin.products.edit', $product)
@@ -138,21 +137,13 @@ class ProductController extends Controller
     {
         $this->authorize('publish', $product);
 
-        if ($product->featured_media_id === null) {
-            return redirect()
-                ->route('admin.products.edit', $product)
-                ->withErrors([
-                    'product' => 'A featured image is required before publishing a product.',
-                ]);
-        }
-
         $product->update([
             'status' => PublishStatus::Published,
-            'published_at' => now(),
+            'published_at' => $product->published_at ?? now(),
         ]);
 
         return redirect()
-            ->route('admin.products.edit', $product)
+            ->back()
             ->with('status', 'Product published.');
     }
 
@@ -165,8 +156,33 @@ class ProductController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.products.edit', $product)
+            ->back()
             ->with('status', 'Product archived.');
+    }
+
+    public function toggle(Product $product): RedirectResponse
+    {
+        $this->authorize('publish', $product);
+
+        if ($product->status === PublishStatus::Published) {
+            $product->update([
+                'status' => PublishStatus::Draft,
+                'published_at' => null,
+            ]);
+
+            return redirect()
+                ->back()
+                ->with('status', 'Product made inactive.');
+        }
+
+        $product->update([
+            'status' => PublishStatus::Published,
+            'published_at' => $product->published_at ?? now(),
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('status', 'Product made active.');
     }
 
     public function destroy(Product $product): RedirectResponse
@@ -185,6 +201,19 @@ class ProductController extends Controller
      */
     private function formPayload(?Product $product): array
     {
+        $mediaOptions = MediaAsset::query()
+            ->with('variants')
+            ->orderByDesc('created_at')
+            ->limit(250)
+            ->get()
+            ->map(fn (MediaAsset $media) => [
+                'id' => $media->id,
+                'label' => $media->original_filename,
+                'altText' => $media->alt_text,
+                'url' => $media->responsiveImage('25vw')['src'],
+                'status' => $media->status,
+            ]);
+
         return [
             'mode' => $product === null ? 'create' : 'edit',
             'product' => $product === null ? null : [
@@ -226,7 +255,10 @@ class ProductController extends Controller
                 'details' => $product->details ?? [],
                 'galleryImages' => $product->media ? $product->media->map(fn($media) => [
                     'id' => $media->id,
-                    'url' => \Illuminate\Support\Facades\Storage::disk($media->disk)->url($media->directory . '/' . $media->filename),
+                    'url' => $media->responsiveImage('25vw')['src'],
+                    'label' => $media->original_filename,
+                    'altText' => $media->alt_text,
+                    'status' => $media->status,
                     'isPrimary' => $product->featured_media_id === $media->id,
                 ]) : [],
             ],
@@ -235,8 +267,29 @@ class ProductController extends Controller
                 'label' => $category->name,
             ]),
             'mediaPicker' => [
-                'recent' => [],
+                'recent' => $mediaOptions,
             ],
         ];
+    }
+
+    /**
+     * @param  array<int, int|string>  $mediaIds
+     */
+    private function syncGalleryImages(Product $product, array $mediaIds): void
+    {
+        $galleryData = [];
+
+        foreach (array_values($mediaIds) as $index => $mediaId) {
+            if ($mediaId === '' || $mediaId === null) {
+                continue;
+            }
+
+            $galleryData[(int) $mediaId] = [
+                'sort_order' => $index,
+                'is_gallery_visible' => true,
+            ];
+        }
+
+        $product->media()->sync($galleryData);
     }
 }

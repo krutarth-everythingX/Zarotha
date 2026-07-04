@@ -38,7 +38,7 @@ class ProductController extends Controller
             default => $products->orderByDesc('published_at')->orderByDesc('id'),
         };
 
-        $paginatedProducts = $products->paginate(20)->withQueryString();
+        $paginatedProducts = $products->paginate(18)->withQueryString();
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([

@@ -17,6 +17,13 @@
 @section('content')
     @if ($pageKey === 'about_us')
         @include('pages.partials.about-designed', ['page' => $page])
+
+        @if ($quickInquirySection?->is_visible ?? true)
+            <x-public.home.quick-inquiry
+                :section="$quickInquirySection"
+                :contactInformation="$contactInformation"
+            />
+        @endif
     @else
         <section class="page-hero">
             <p class="eyebrow">{{ str_replace('_', ' ', $pageKey) }}</p>

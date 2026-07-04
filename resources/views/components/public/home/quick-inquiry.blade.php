@@ -7,7 +7,7 @@
     }
     $bannerUrls = [];
     if ($section?->banners && $section->banners->count() > 0) {
-        foreach ($section->banners as $banner) {
+        foreach ($section->banners->where('is_visible', true) as $banner) {
             if ($banner->imageMedia && $url = $banner->imageMedia->url()) {
                 $bannerUrls[] = $url;
             }
@@ -30,19 +30,12 @@
     $ctaUrl = $whatsappUrl ?: ($section?->cta_url ?: route('public.contact.show'));
     $ctaTarget = $whatsappUrl ? '_blank' : null;
     $ctaRel = $whatsappUrl ? 'noopener noreferrer' : null;
-    $storedLabel = trim((string) ($section?->cta_label ?? ''));
-    $ctaLabel = in_array(strtolower($storedLabel), ['', 'inquiry', 'send inquiry'], true)
-        ? 'Start a Conversation'
-        : $storedLabel;
-    $storedTitle = trim((string) ($section?->section_title ?? ''));
-    $sectionTitle = in_array(strtolower($storedTitle), ['', 'quick inquiry'], true)
-        ? 'Custom Commissions'
-        : $storedTitle;
-    $storedIntro = trim((string) ($section?->section_intro ?? ''));
-    $legacyIntros = ['', 'need a custom piece or have a question?'];
-    $sectionIntro = in_array(strtolower($storedIntro), $legacyIntros, true)
-        ? 'Have a vision for a specific space? We collaborate with architects, designers, and homeowners to bring unique wooden dreams to life. Your heritage, our hands.'
-        : $storedIntro;
+    $ctaAriaLabel = $whatsappUrl
+        ? 'Start a WhatsApp conversation about a custom commission'
+        : 'Start a conversation about a custom commission';
+    $ctaLabel = trim((string) ($section?->cta_label ?? '')) ?: 'Start a Conversation';
+    $sectionTitle = trim((string) ($section?->section_title ?? '')) ?: 'Custom Commissions';
+    $sectionIntro = trim((string) ($section?->section_intro ?? '')) ?: 'Have a vision for a specific space? We collaborate with architects, designers, and homeowners to bring unique wooden dreams to life. Your heritage, our hands.';
 @endphp
 <section class="quick-inquiry" style="{{ implode('; ', $quickStyles) }}" data-inquiry-banners='@json($bannerUrls)'>
     <div class="quick-inquiry__inner">
@@ -50,7 +43,7 @@
         <h2>{{ $sectionTitle }}</h2>
         <p>{{ $sectionIntro }}</p>
         <div class="quick-inquiry__actions">
-            <a class="button button-primary" href="{{ $ctaUrl }}" @if ($ctaTarget) target="{{ $ctaTarget }}" @endif @if ($ctaRel) rel="{{ $ctaRel }}" @endif aria-label="Start a WhatsApp conversation about a custom commission">
+            <a class="button button-primary" href="{{ $ctaUrl }}" @if ($ctaTarget) target="{{ $ctaTarget }}" @endif @if ($ctaRel) rel="{{ $ctaRel }}" @endif aria-label="{{ $ctaAriaLabel }}">
                 {{ $ctaLabel }}
             </a>
         </div>

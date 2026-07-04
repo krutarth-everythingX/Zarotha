@@ -3,8 +3,9 @@ import { Field, Label } from '@admin/Components/ui/fieldset';
 import { FieldError, FormInput, FormSelect, FormTextarea, PagePanel, FormCheckbox } from '@admin/Components/AdminPrimitives';
 import { Text } from '@admin/Components/ui/text';
 import RichTextEditor from './RichTextEditor';
-import ImageUploadArea from './ImageUploadArea';
-import DynamicSpecifications from './DynamicSpecifications';
+import ImageUploadArea, { type ProductImage } from './ImageUploadArea';
+import DynamicSpecifications, { type DynamicSpec } from './DynamicSpecifications';
+import type { PublishStatus, SelectOption } from '@admin/types';
 
 // Reusable Section Panel wrapper
 export const SectionPanel = ({ id, title, description, children }: { id: string, title: string, description: string, children: React.ReactNode }) => (
@@ -21,12 +22,76 @@ export const SectionPanel = ({ id, title, description, children }: { id: string,
     </div>
 );
 
-// Generic props type since all sections receive the Inertia form
+export type ProductDetails = {
+    custom_wood_type?: string;
+    material_grade?: string;
+    wood_source?: string;
+    is_reclaimed_wood?: boolean;
+    is_sustainably_sourced?: boolean;
+    dimensions_unit?: string;
+    height?: string;
+    width?: string;
+    depth?: string;
+    weight?: string;
+    dynamic_specs?: DynamicSpec[];
+};
+
+export type ProductPayload = {
+    id: number;
+    categoryId: number | string;
+    name: string;
+    slug: string;
+    sku?: string | null;
+    productType?: string | null;
+    woodType?: string | null;
+    style?: string | null;
+    regularPrice?: string | number | null;
+    salePrice?: string | number | null;
+    isTrackInventory?: boolean;
+    stockQuantity?: string | number | null;
+    availability?: string | null;
+    shortDescription?: string | null;
+    fullDescription?: string | null;
+    details?: ProductDetails | null;
+    galleryImages?: ProductImage[];
+    status: PublishStatus;
+    isFeatured: boolean;
+    isBestSelling: boolean;
+    isLatest: boolean;
+    robotsIndex: boolean;
+    robotsFollow: boolean;
+};
+
+export type ProductFormData = {
+    category_id: number | string;
+    name: string;
+    slug: string;
+    sku: string;
+    product_type: string;
+    wood_type: string;
+    style: string;
+    regular_price: string | number;
+    sale_price: string | number;
+    is_track_inventory: boolean;
+    stock_quantity: string | number;
+    availability: string;
+    short_description: string;
+    full_description: string;
+    details: ProductDetails;
+    gallery_images_state: ProductImage[];
+    status: PublishStatus;
+    is_featured: boolean;
+    is_best_selling: boolean;
+    is_latest: boolean;
+    robots_index: boolean;
+    robots_follow: boolean;
+};
+
 export type SectionProps = {
-    data: any;
-    setData: (key: string | Record<string, any>, value?: any) => void;
+    data: ProductFormData;
+    setData: <K extends keyof ProductFormData>(key: K, value: ProductFormData[K]) => void;
     errors: Record<string, string>;
-    categories?: any[];
+    categories?: SelectOption[];
 };
 
 export const BasicInfoSection = ({ data, setData, errors, categories }: SectionProps) => (
@@ -51,7 +116,7 @@ export const BasicInfoSection = ({ data, setData, errors, categories }: SectionP
                 <Label>Category</Label>
                 <FormSelect value={data.category_id} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setData('category_id', e.target.value)}>
                     <option value="">Select Category</option>
-                    {categories?.map((c: any) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    {categories?.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </FormSelect>
                 <FieldError message={errors.category_id} />
             </Field>

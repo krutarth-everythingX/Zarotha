@@ -40,6 +40,7 @@ class BannerController extends Controller
                 'endsAt' => $banner->ends_at?->toDateTimeString(),
             ]),
             'mediaOptions' => MediaAsset::query()
+                ->with('variants')
                 ->where('status', 'processed')
                 ->latest()
                 ->limit(50)
@@ -47,6 +48,9 @@ class BannerController extends Controller
                 ->map(fn (MediaAsset $media) => [
                     'id' => $media->id,
                     'label' => $media->original_filename,
+                    'altText' => $media->alt_text,
+                    'url' => $media->responsiveImage('25vw')['src'] ?? null,
+                    'status' => $media->status,
                 ]),
         ]);
     }

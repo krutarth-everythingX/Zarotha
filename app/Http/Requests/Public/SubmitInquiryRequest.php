@@ -20,6 +20,7 @@ class SubmitInquiryRequest extends FormRequest
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email:rfc', 'max:190'],
             'phone' => ['required', 'string', 'max:50'],
+            'company_name' => ['nullable', 'string', 'max:150'],
             'whatsapp_number' => ['nullable', 'string', 'max:50'],
             'subject' => ['nullable', 'string', 'max:255'],
             'message' => ['required', 'string', 'max:5000'],

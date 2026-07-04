@@ -22,6 +22,7 @@ class InquiryFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->safeEmail(),
             'phone' => fake()->phoneNumber(),
+            'company_name' => fake()->optional()->company(),
             'subject' => fake()->sentence(3),
             'message' => fake()->paragraph(),
             'consent_confirmed' => true,

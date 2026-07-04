@@ -1,4 +1,4 @@
-import { useForm, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import React from 'react';
 import { Button } from '@admin/Components/ui/button';
 import { Text } from '@admin/Components/ui/text';
@@ -35,7 +35,18 @@ interface SocialLink {
 
 interface Props {
     links: SocialLink[];
+    settings: {
+        showSocialLinksOnHero: boolean;
+    };
 }
+
+type SocialLinkPayload = {
+    platform_key: string;
+    label: string | null;
+    url: string;
+    sort_order: number;
+    is_active: boolean;
+};
 
 const AVAILABLE_PLATFORMS = [
     { key: 'facebook', label: 'Facebook' },
@@ -81,7 +92,7 @@ function SortableLinkItem({
                         <Label>Platform</Label>
                         <FormSelect
                             value={link.platform_key}
-                            onChange={(e: any) => onUpdate({ platform_key: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onUpdate({ platform_key: e.target.value })}
                         >
                             <option value="">Select platform</option>
                             {AVAILABLE_PLATFORMS.map((p) => (
@@ -98,7 +109,7 @@ function SortableLinkItem({
                         <Label>URL</Label>
                         <FormInput
                             value={link.url}
-                            onChange={(e: any) => onUpdate({ url: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdate({ url: e.target.value })}
                             placeholder="https://..."
                         />
                     </Field>
@@ -124,9 +135,10 @@ function SortableLinkItem({
     );
 }
 
-export default function SocialLinksIndex({ links, errors }: any) {
+export default function SocialLinksIndex({ links, settings }: Props) {
     const [localLinks, setLocalLinks] = React.useState<SocialLink[]>(links);
     const [isSaving, setIsSaving] = React.useState(false);
+    const [showHeroSocials, setShowHeroSocials] = React.useState(settings.showSocialLinksOnHero);
 
     React.useEffect(() => {
         setLocalLinks(links);
@@ -196,27 +208,35 @@ export default function SocialLinksIndex({ links, errors }: any) {
                 hasError = true;
                 break;
             }
+            const payload: SocialLinkPayload = {
+                platform_key: link.platform_key,
+                label: link.label,
+                url: link.url,
+                sort_order: link.sort_order,
+                is_active: link.is_active,
+            };
+
             if (link.id < 0) {
                 // new link
-                await new Promise(resolve => router.post('/admin/social-links', link as any, {
+                await new Promise<void>((resolve) => router.post('/admin/social-links', payload, {
                     preserveScroll: true,
                     onError: (err) => {
                         console.error(err);
                         alert(`Failed to save ${link.platform_key}: ${Object.values(err)[0]}`);
                         hasError = true;
                     },
-                    onFinish: resolve
+                    onFinish: () => resolve()
                 }));
             } else {
                 // update existing
-                await new Promise(resolve => router.put(`/admin/social-links/${link.id}`, link as any, {
+                await new Promise<void>((resolve) => router.put(`/admin/social-links/${link.id}`, payload, {
                     preserveScroll: true,
                     onError: (err) => {
                         console.error(err);
                         alert(`Failed to update ${link.platform_key}: ${Object.values(err)[0]}`);
                         hasError = true;
                     },
-                    onFinish: resolve
+                    onFinish: () => resolve()
                 }));
             }
             if (hasError) break;
@@ -228,12 +248,41 @@ export default function SocialLinksIndex({ links, errors }: any) {
     };
 
     return (
-        <AdminShell title="Social Links" description="Manage your social media presence.">
+        <AdminShell title="Socials" description="Add social links, edit existing links, remove links, and switch them active or inactive.">
             <div className="mb-6 flex flex-wrap items-center justify-end gap-3">
                 <Button onClick={handleSaveAll} disabled={isSaving}>
-                    Save Changes
+                    Save socials
                 </Button>
             </div>
+
+            <PagePanel className="mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                            Social Display
+                        </h2>
+                        <Text>
+                            Control where active social links appear on the public site.
+                        </Text>
+                    </div>
+                    <label className="inline-flex items-center gap-3 rounded-xl border border-zinc-950/10 px-3 py-2 text-sm text-zinc-700 dark:border-white/10 dark:text-zinc-300">
+                        <input
+                            type="checkbox"
+                            checked={showHeroSocials}
+                            onChange={(event) => {
+                                const checked = event.target.checked;
+                                setShowHeroSocials(checked);
+                                router.patch("/admin/social-links/settings", {
+                                    show_social_links_on_hero: checked,
+                                }, {
+                                    preserveScroll: true,
+                                });
+                            }}
+                        />
+                        Show active social links on homepage hero
+                    </label>
+                </div>
+            </PagePanel>
 
             <PagePanel>
                 <DndContext
@@ -261,7 +310,7 @@ export default function SocialLinksIndex({ links, errors }: any) {
                 <div className="mt-6 flex">
                     <Button type="button" color="light" onClick={handleAdd}>
                         <PlusIcon className="w-4 h-4 mr-2" />
-                        Add Social Link
+                        Add social link
                     </Button>
                 </div>
             </PagePanel>

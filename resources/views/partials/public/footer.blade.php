@@ -30,10 +30,9 @@
             <section class="site-footer__panel">
                 <h2>Useful Links</h2>
                 <nav class="site-footer__links" aria-label="Footer navigation">
-                    <a href="{{ route('public.pages.about') }}">About</a>
-                    <a href="{{ route('public.products.index') }}">Products</a>
-                    <a href="{{ route('public.home') }}">Latest Projects</a>
-                    <a href="{{ route('public.contact.show') }}">Contact Us</a>
+                    <a href="{{ route('public.products.index') }}">Our Crafts</a>
+                    <a href="{{ route('public.pages.about') }}">Our Journey</a>
+                    <a href="{{ route('public.contact.show') }}">Connect With Us</a>
                 </nav>
             </section>
 
@@ -64,10 +63,6 @@
                 </div>
             </section>
         </div>
-
-        <!-- <div class="site-footer__brand" aria-hidden="true">
-            ZAROKHA
-        </div> -->
 
         <div class="site-footer__bottom">
             <p>All Rights Reserved {{ now()->year }}.</p>

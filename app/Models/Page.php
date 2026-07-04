@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $intro_title
  * @property string|null $intro_body
  * @property string|null $body_html
+ * @property array<string, mixed>|null $about_details
  * @property int|null $hero_media_id
  * @property string|null $cta_label
  * @property string|null $cta_url
@@ -47,6 +48,7 @@ class Page extends Model
         'intro_title',
         'intro_body',
         'body_html',
+        'about_details',
         'hero_media_id',
         'cta_label',
         'cta_url',
@@ -73,6 +75,7 @@ class Page extends Model
             'status' => PublishStatus::class,
             'robots_index' => 'boolean',
             'robots_follow' => 'boolean',
+            'about_details' => 'array',
         ];
     }
 

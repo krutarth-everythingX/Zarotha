@@ -13,6 +13,7 @@ type InquiryDetailProps = {
         name: string;
         email: string;
         phone: string;
+        companyName: string | null;
         subject: string | null;
         message: string;
         product: { id: number; name: string; slug: string } | null;
@@ -54,6 +55,7 @@ export default function InquiriesShow({ inquiry, assignableUsers }: InquiryDetai
                         <div className="mt-4 grid gap-2 text-sm text-zinc-600 dark:text-zinc-300">
                             <Text>{inquiry.email}</Text>
                             <Text>{inquiry.phone}</Text>
+                            {inquiry.companyName ? <Text>{inquiry.companyName}</Text> : null}
                             {inquiry.whatsappNumber ? <Text>{inquiry.whatsappNumber}</Text> : null}
                             <Text>{inquiry.product?.name ?? 'General inquiry'}</Text>
                             <Text>{inquiry.subject ?? 'No subject'}</Text>

@@ -58,14 +58,27 @@ class MediaController extends Controller
         ]);
     }
 
-    public function store(StoreMediaRequest $request, MediaLibrary $mediaLibrary): RedirectResponse
+    public function store(StoreMediaRequest $request, MediaLibrary $mediaLibrary): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         try {
-            $mediaLibrary->storeUpload($request->file('file'), $request->user()->id, $request->safe()->except('file'));
+            $media = $mediaLibrary->storeUpload($request->file('file'), $request->user()->id, $request->safe()->except('file'));
         } catch (RuntimeException $exception) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $exception->getMessage(),
+                    'errors' => [
+                        'file' => [$exception->getMessage()],
+                    ],
+                ], 422);
+            }
+
             return redirect()
                 ->route('admin.media.index')
                 ->withErrors(['file' => $exception->getMessage()]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json($this->mediaOption($media->refresh()), 201);
         }
 
         return redirect()
@@ -135,6 +148,25 @@ class MediaController extends Controller
             'url' => $asset->status === 'processed' ? $asset->responsiveImage()['src'] : null,
             'variantCount' => $asset->variants->count(),
             'referenceCount' => $mediaLibrary->referenceCount($asset),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mediaOption(MediaAsset $asset): array
+    {
+        $image = $asset->responsiveImage('25vw');
+
+        return [
+            'id' => $asset->id,
+            'label' => $asset->original_filename,
+            'originalFilename' => $asset->original_filename,
+            'altText' => $asset->alt_text,
+            'url' => $image['src'] ?? $asset->url(),
+            'status' => $asset->status,
+            'width' => $asset->width,
+            'height' => $asset->height,
         ];
     }
 }

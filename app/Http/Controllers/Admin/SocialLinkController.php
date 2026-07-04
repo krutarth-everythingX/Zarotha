@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SiteSetting;
 use App\Models\SocialLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,29 @@ class SocialLinkController extends Controller
 
         return Inertia::render('Admin/SocialLinks/Index', [
             'links' => $links,
+            'settings' => [
+                'showSocialLinksOnHero' => (bool) SiteSetting::query()->first()?->show_social_links_on_hero,
+            ],
         ]);
+    }
+
+    public function settings(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'show_social_links_on_hero' => ['required', 'boolean'],
+        ]);
+
+        $siteSetting = SiteSetting::query()->firstOrCreate(['id' => 1], [
+            'site_name' => config('app.name', 'Zarokha'),
+            'default_robots_index' => true,
+            'default_robots_follow' => true,
+        ]);
+
+        $siteSetting->update([
+            'show_social_links_on_hero' => $validated['show_social_links_on_hero'],
+        ]);
+
+        return redirect()->back()->with('status', 'Social display settings updated.');
     }
 
     public function store(Request $request): RedirectResponse

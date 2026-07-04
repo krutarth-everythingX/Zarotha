@@ -31,25 +31,25 @@ type ProductsIndexProps = {
 };
 
 function statusTone(status: PublishStatus) {
-    if (status === 'published') {
-        return 'green';
-    }
-
-    if (status === 'archived') {
-        return 'red';
-    }
-
-    return 'amber';
+    return status === 'published' ? 'green' : status === 'archived' ? 'red' : 'amber';
 }
 
 export default function ProductsIndex({ products, categories, filters }: ProductsIndexProps) {
+    const removeProduct = (product: ProductListItem) => {
+        if (!window.confirm(`Remove ${product.name}?`)) {
+            return;
+        }
+
+        router.delete(`/admin/products/${product.id}`, { preserveScroll: true });
+    };
+
     return (
         <>
             <Head title="Products" />
-            <AdminShell title="Products" description="Review, filter, publish, archive, and manage inquiry catalogue products.">
+            <AdminShell title="Products" description="List, add, edit, remove, and switch product pages active or inactive.">
                 <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <Text>Categories remain required for product organization and public filtering.</Text>
-                    <Button href="/admin/products/create">Create product</Button>
+                    <Text>Active products are published on the public product pages.</Text>
+                    <Button href="/admin/products/create">Add product</Button>
                 </div>
 
                 <PagePanel>
@@ -62,8 +62,8 @@ export default function ProductsIndex({ products, categories, filters }: Product
                             <Label>Status</Label>
                             <FormSelect name="status" defaultValue={filters.status ?? ''}>
                                 <option value="">All</option>
-                                <option value="draft">Draft</option>
-                                <option value="published">Published</option>
+                                <option value="published">Active</option>
+                                <option value="draft">Inactive</option>
                                 <option value="archived">Archived</option>
                             </FormSelect>
                         </Field>
@@ -92,34 +92,33 @@ export default function ProductsIndex({ products, categories, filters }: Product
                 <div className="mt-6 overflow-hidden rounded-3xl border border-zinc-950/8 bg-white/90 shadow-sm dark:border-white/10 dark:bg-zinc-900/90">
                     {products.data.length === 0 ? (
                         <div className="p-6">
-                            <EmptyState title="No products found" description="Create products or adjust filters to continue." />
+                            <EmptyState title="No products found" description="Add products or adjust filters to continue." />
                         </div>
                     ) : (
                         <div className="divide-y divide-zinc-950/8 dark:divide-white/10">
                             {products.data.map((product) => (
-                                <article key={product.id} className="grid gap-4 p-5 xl:grid-cols-[1fr_180px_120px_auto] xl:items-center">
-                                    <div>
-                                        <p className="font-medium text-zinc-950 dark:text-white">{product.name}</p>
+                                <article key={product.id} className="grid gap-4 p-5 xl:grid-cols-[1fr_150px_120px_auto] xl:items-center">
+                                    <div className="min-w-0">
+                                        <p className="truncate font-medium text-zinc-950 dark:text-white">{product.name}</p>
                                         <Text>
-                                            /products/{product.slug} Â· {product.category.name}
+                                            /products/{product.slug} / {product.category.name}
                                         </Text>
                                     </div>
-                                    <StatusBadge tone={statusTone(product.status)}>{product.status}</StatusBadge>
+                                    <StatusBadge tone={statusTone(product.status)}>{product.status === 'published' ? 'active' : 'inactive'}</StatusBadge>
                                     <Text>Sort {product.sortOrder}</Text>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-2 xl:justify-end">
                                         <Button href={`/admin/products/${product.id}`} color="light">
                                             Edit
                                         </Button>
-                                        <Button href={`/admin/products/${product.id}/gallery`} color="light">
-                                            Gallery
-                                        </Button>
                                         <Button
+                                            type="button"
                                             color="light"
-                                            onClick={() => {
-                                                router.post(`/admin/products/${product.id}/${product.status === 'published' ? 'archive' : 'publish'}`, {}, { preserveScroll: true });
-                                            }}
+                                            onClick={() => router.post(`/admin/products/${product.id}/toggle`, {}, { preserveScroll: true })}
                                         >
-                                            {product.status === 'published' ? 'Archive' : 'Publish'}
+                                            {product.status === 'published' ? 'Inactive' : 'Active'}
+                                        </Button>
+                                        <Button type="button" plain onClick={() => removeProduct(product)}>
+                                            Remove
                                         </Button>
                                     </div>
                                 </article>

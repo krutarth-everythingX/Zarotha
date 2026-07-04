@@ -6,12 +6,15 @@ use App\Enums\InquiryActivityType;
 use App\Enums\PublishStatus;
 use App\Enums\UserRole;
 use App\Models\Category;
-use App\Models\HomepageFloatingProductItem;
+use App\Models\ContactInformation;
+use App\Models\Client;
 use App\Models\HomepageSection;
+use App\Models\HomepageSectionBanner;
 use App\Models\Inquiry;
 use App\Models\InquiryActivity;
 use App\Models\MediaAsset;
 use App\Models\MediaVariant;
+use App\Models\Page;
 use App\Models\Product;
 use App\Models\Redirect;
 use App\Models\Role;
@@ -101,6 +104,8 @@ class Stage9BackendCmsTest extends TestCase
             'is_latest' => true,
             'robots_index' => true,
             'robots_follow' => true,
+            'regular_price' => 0,
+            'is_track_inventory' => false,
         ]);
 
         $product = Product::query()->where('slug', 'hand-carved-panel')->firstOrFail();
@@ -202,13 +207,6 @@ class Stage9BackendCmsTest extends TestCase
     {
         $editor = $this->userFor(UserRole::ContentEditor);
         $media = $this->processedMedia();
-        $products = Product::factory()
-            ->count(4)
-            ->create([
-                'status' => PublishStatus::Published,
-                'published_at' => now(),
-                'featured_media_id' => $media->id,
-            ]);
 
         $this->actingAs($editor)->get(route('admin.homepage.edit'))->assertOk();
 
@@ -225,25 +223,48 @@ class Stage9BackendCmsTest extends TestCase
                 'overlay_opacity' => 30,
                 'text_theme' => 'light',
                 'is_visible' => true,
+                'items' => [
+                    [
+                        'imageMediaId' => $media->id,
+                        'sortOrder' => 0,
+                        'isVisible' => true,
+                    ],
+                ],
             ],
-            'floating_products' => $products->values()->map(fn (Product $product, int $index): array => [
-                'product_id' => $product->id,
-                'image_media_id' => $media->id,
-                'alt_text' => 'Floating '.$index,
-                'position' => ['top-left', 'top-right', 'bottom-left', 'bottom-right'][$index],
-                'tilt_preset' => 'full',
-                'tap_label' => 'Tap to View',
+            'turnkey' => [
+                'eyebrow' => 'Complete custom',
+                'title' => 'Furniture solutions from CMS',
+                'subtitle' => 'CMS turnkey copy.',
+                'button_url' => 'https://www.youtube.com/watch?v=abcDEF12345',
                 'is_visible' => true,
-            ])->all(),
-            'featured' => [
-                'title' => 'Featured Products',
-                'subtitle' => 'Selected items.',
-                'view_all_label' => 'View All Products',
-                'view_all_url' => '/products',
+                'items' => [
+                    [
+                        'heading' => 'CMS Service',
+                        'body_text' => 'CMS service text.',
+                        'sort_order' => 0,
+                        'is_active' => true,
+                    ],
+                ],
+            ],
+            'aboutPreview' => [
+                'eyebrow' => 'About CMS',
+                'title' => 'About section from CMS',
+                'subtitle' => 'CMS about intro.',
+                'body' => 'CMS about body.',
+                'primary_button_label' => 'Read about us',
+                'primary_button_url' => '/about-us',
+                'secondary_button_label' => 'Talk to us',
+                'secondary_button_url' => '/contact',
+                'background_media_id' => $media->id,
                 'is_visible' => true,
-                'products' => $products->take(3)->map(fn (Product $product): array => [
-                    'product_id' => $product->id,
-                ])->values()->all(),
+                'points' => [
+                    [
+                        'heading' => 'CMS quality point',
+                        'body_text' => '',
+                        'sort_order' => 0,
+                        'is_active' => true,
+                    ],
+                ],
             ],
             'latest' => [
                 'title' => 'Latest Products',
@@ -253,32 +274,44 @@ class Stage9BackendCmsTest extends TestCase
                 'view_all_url' => '/products',
                 'is_visible' => true,
             ],
-            'testimonials' => [
-                'title' => 'Testimonials',
-                'subtitle' => 'Client words.',
-                'background_media_id' => $media->id,
-                'background_color' => '#d7d4cf',
+            'industryStats' => [
+                'title' => '#1 Furniture Manufacturing Industry.',
+                'highlight' => 'Manufacturing',
+                'subtitle' => 'Factory-built confidence.',
+                'body' => 'Need support? :contact or :more',
+                'contact_label' => 'contact us',
+                'contact_url' => '/contact',
+                'more_label' => 'View More',
+                'more_url' => '/products',
                 'is_visible' => true,
                 'items' => [
                     [
-                        'customer_name' => 'A Customer',
-                        'location_or_role' => 'Homeowner',
-                        'body_text' => 'A CMS managed testimonial.',
-                        'image_media_id' => $media->id,
-                        'status' => 'published',
-                        'sort_order' => 1,
-                        'is_visible' => true,
+                        'heading' => '7000',
+                        'body_text' => 'Residential Projects',
+                        'sort_order' => 0,
+                        'is_active' => true,
                     ],
                 ],
             ],
-            'quick_inquiry' => [
-                'heading' => 'Quick Inquiry',
-                'subtext' => 'Send a note.',
+            'quickInquiry' => [
+                'title' => 'Quick Inquiry',
+                'subtitle' => 'Send a note.',
                 'button_label' => 'Inquiry',
                 'button_url' => '/contact',
                 'background_media_id' => $media->id,
                 'background_color' => '#ffffff',
                 'is_visible' => true,
+                'items' => [
+                    [
+                        'imageMediaId' => $media->id,
+                        'sortOrder' => 0,
+                        'isVisible' => true,
+                    ],
+                ],
+            ],
+            'settings' => [
+                'whatsapp_text' => 'Hello CMS',
+                'whatsapp_number' => '+919999999999',
             ],
         ]);
 
@@ -289,12 +322,43 @@ class Stage9BackendCmsTest extends TestCase
             'secondary_cta_label' => 'Contact',
             'overlay_opacity' => 30,
         ]);
-        $this->assertSame(4, HomepageFloatingProductItem::query()->count());
-        $this->assertSame(3, HomepageSection::query()->where('section_key', 'featured_products')->firstOrFail()->featuredProducts()->count());
-        $this->assertDatabaseHas('homepage_testimonials', [
-            'customer_name' => 'A Customer',
-            'status' => 'published',
+        $this->assertDatabaseHas('homepage_section_banners', [
+            'homepage_section_id' => HomepageSection::query()->where('section_key', 'hero')->firstOrFail()->id,
+            'media_asset_id' => $media->id,
+            'is_visible' => true,
         ]);
+        $this->assertDatabaseHas('contact_information', [
+            'whatsapp_number' => '+919999999999',
+            'whatsapp_text' => 'Hello CMS',
+        ]);
+        $turnkeySection = HomepageSection::query()->where('section_key', 'turnkey_solutions')->firstOrFail();
+        $this->assertSame('Furniture solutions from CMS', $turnkeySection->section_title);
+        $this->assertSame('https://www.youtube.com/watch?v=abcDEF12345', $turnkeySection->cta_url);
+        $this->assertNull($turnkeySection->background_media_id);
+        $this->assertDatabaseHas('why_choose_us_items', [
+            'homepage_section_id' => $turnkeySection->id,
+            'heading' => 'CMS Service',
+            'body_text' => 'CMS service text.',
+        ]);
+        $aboutPreviewSection = HomepageSection::query()->where('section_key', 'about_preview')->firstOrFail();
+        $this->assertSame('About section from CMS', $aboutPreviewSection->section_title);
+        $this->assertDatabaseHas('why_choose_us_items', [
+            'homepage_section_id' => $aboutPreviewSection->id,
+            'heading' => 'CMS quality point',
+        ]);
+        $this->assertDatabaseHas('homepage_section_banners', [
+            'homepage_section_id' => HomepageSection::query()->where('section_key', 'quick_inquiry')->firstOrFail()->id,
+            'media_asset_id' => $media->id,
+            'is_visible' => true,
+        ]);
+        $industryStatsSection = HomepageSection::query()->where('section_key', 'industry_stats')->firstOrFail();
+        $this->assertSame('#1 Furniture Manufacturing Industry.', $industryStatsSection->section_title);
+        $this->assertDatabaseHas('why_choose_us_items', [
+            'homepage_section_id' => $industryStatsSection->id,
+            'heading' => '7000',
+            'body_text' => 'Residential Projects',
+        ]);
+        $this->assertSame(2, HomepageSectionBanner::query()->count());
     }
 
     public function test_homepage_cms_rejects_over_limits_invalid_ids_and_script_urls(): void
@@ -316,23 +380,7 @@ class Stage9BackendCmsTest extends TestCase
                 'overlay_opacity' => 90,
                 'text_theme' => 'light',
                 'is_visible' => true,
-            ],
-            'floating_products' => array_fill(0, 5, [
-                'product_id' => null,
-                'image_media_id' => null,
-                'alt_text' => null,
-                'position' => 'top-left',
-                'tilt_preset' => 'full',
-                'tap_label' => 'Tap to View',
-                'is_visible' => true,
-            ]),
-            'featured' => [
-                'title' => 'Featured',
-                'subtitle' => null,
-                'view_all_label' => 'View',
-                'view_all_url' => '/products',
-                'is_visible' => true,
-                'products' => array_fill(0, 11, ['product_id' => 999999]),
+                'items' => [],
             ],
             'latest' => [
                 'title' => 'Latest',
@@ -342,22 +390,27 @@ class Stage9BackendCmsTest extends TestCase
                 'view_all_url' => '/products',
                 'is_visible' => true,
             ],
-            'testimonials' => [
-                'title' => 'Testimonials',
+            'turnkey' => [
+                'eyebrow' => 'Complete custom',
+                'title' => 'Furniture',
                 'subtitle' => null,
-                'background_media_id' => null,
-                'background_color' => 'red',
+                'button_url' => 'https://vimeo.com/12345',
                 'is_visible' => true,
                 'items' => [],
             ],
-            'quick_inquiry' => [
-                'heading' => 'Inquiry',
-                'subtext' => null,
+            'quickInquiry' => [
+                'title' => 'Inquiry',
+                'subtitle' => null,
                 'button_label' => 'Contact',
                 'button_url' => 'javascript:alert(1)',
                 'background_media_id' => null,
                 'background_color' => '#ffffff',
                 'is_visible' => true,
+                'items' => [],
+            ],
+            'settings' => [
+                'whatsapp_text' => '',
+                'whatsapp_number' => '',
             ],
         ];
 
@@ -369,12 +422,186 @@ class Stage9BackendCmsTest extends TestCase
                 'hero.desktop_media_id',
                 'hero.primary_button_url',
                 'hero.overlay_opacity',
-                'floating_products',
-                'featured.products',
                 'latest.max_items',
-                'testimonials.background_color',
-                'quick_inquiry.button_url',
+                'turnkey.button_url',
+                'quickInquiry.button_url',
             ]);
+    }
+
+    public function test_clients_cms_page_creates_updates_and_removes_clients(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+        $media = $this->processedMedia();
+
+        $this->actingAs($editor)->get(route('admin.clients.index'))->assertOk();
+
+        $createResponse = $this->actingAs($editor)->post(route('admin.clients.store'), [
+            'name' => 'New-Tech Industries',
+            'website_url' => 'https://example.com',
+            'logo_media_id' => $media->id,
+            'sort_order' => 2,
+            'is_active' => true,
+        ]);
+
+        $client = Client::query()->where('name', 'New-Tech Industries')->firstOrFail();
+
+        $createResponse->assertRedirect(route('admin.clients.index'));
+        $this->assertDatabaseHas('clients', [
+            'id' => $client->id,
+            'logo_media_id' => $media->id,
+            'created_by_user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($editor)->patch(route('admin.clients.update', $client), [
+            'name' => 'New-Tech Industries',
+            'website_url' => 'https://example.org',
+            'logo_media_id' => $media->id,
+            'sort_order' => 3,
+            'is_active' => false,
+        ])->assertRedirect(route('admin.clients.index'));
+
+        $this->assertDatabaseHas('clients', [
+            'id' => $client->id,
+            'website_url' => 'https://example.org',
+            'sort_order' => 3,
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($editor)
+            ->from(route('admin.clients.index'))
+            ->post(route('admin.clients.store'), [
+                'name' => 'Bad Link',
+                'website_url' => 'javascript:alert(1)',
+                'logo_media_id' => $media->id,
+                'sort_order' => 4,
+                'is_active' => true,
+            ])
+            ->assertRedirect(route('admin.clients.index'))
+            ->assertSessionHasErrors('website_url');
+
+        $this->actingAs($editor)->delete(route('admin.clients.destroy', $client))->assertRedirect(route('admin.clients.index'));
+        $this->assertDatabaseMissing('clients', ['id' => $client->id]);
+    }
+
+    public function test_contact_page_cms_persists_map_socials_and_form_options(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+
+        $this->actingAs($editor)->get(route('admin.pages.contact.edit'))->assertOk();
+
+        $this->actingAs($editor)->patch(route('admin.pages.contact.update'), [
+            'business_name' => 'Zarokha Wooden Arts',
+            'phone_primary' => '+91 90000 11111',
+            'phone_secondary' => '',
+            'email_primary' => 'studio@example.com',
+            'email_secondary' => '',
+            'whatsapp_number' => '+919000011111',
+            'whatsapp_text' => 'Hello from contact CMS',
+            'page_title' => 'Contact Form CMS',
+            'page_intro' => 'CMS controlled contact intro.',
+            'form_title' => 'Start a custom conversation',
+            'submit_label' => 'Send request',
+            'inquiry_type_options' => ['Showroom visit', '', 'Custom furniture'],
+            'location_kicker' => 'Visit Us',
+            'location_title' => 'CMS Location',
+            'location_body' => 'CMS location body.',
+            'address_label' => 'Showroom',
+            'map_embed_url' => 'https://maps.google.com/maps?q=Zarokha&z=14&output=embed',
+            'map_link_url' => 'https://maps.google.com/?q=Zarokha',
+            'contact_social_links' => [
+                ['label' => 'Instagram', 'url' => 'https://instagram.com/zarokha'],
+                ['label' => '', 'url' => 'https://example.com/empty-label'],
+                ['label' => 'WhatsApp', 'url' => 'https://wa.me/919000011111'],
+            ],
+            'address_line_1' => 'CMS Road',
+            'address_line_2' => 'Second floor',
+            'city' => 'Ahmedabad',
+            'state' => 'Gujarat',
+            'postal_code' => '380001',
+            'country' => 'India',
+            'show_address' => true,
+            'show_phone' => true,
+            'show_email' => true,
+            'show_whatsapp' => true,
+            'contact_intro' => 'Legacy intro',
+            'form_helper_text' => 'CMS helper copy.',
+            'success_message' => 'CMS success message.',
+            'consent_text' => 'CMS consent text.',
+        ])->assertRedirect(route('admin.pages.contact.edit'));
+
+        $contact = ContactInformation::query()->firstOrFail();
+        $this->assertSame('Contact Form CMS', $contact->page_title);
+        $this->assertSame(['Showroom visit', 'Custom furniture'], $contact->inquiry_type_options);
+        $this->assertSame('https://maps.google.com/maps?q=Zarokha&z=14&output=embed', $contact->map_embed_url);
+        $this->assertSame([
+            ['label' => 'Instagram', 'url' => 'https://instagram.com/zarokha'],
+            ['label' => 'WhatsApp', 'url' => 'https://wa.me/919000011111'],
+        ], $contact->contact_social_links);
+
+        $this->get('/contact')
+            ->assertOk()
+            ->assertSee('Contact Form CMS')
+            ->assertSee('Showroom visit')
+            ->assertSee('https://maps.google.com/maps?q=Zarokha&amp;z=14&amp;output=embed', false)
+            ->assertSee('Instagram')
+            ->assertSee('home-clients', false);
+    }
+
+    public function test_about_page_cms_persists_structured_details_and_rejects_non_youtube_video(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+        $media = $this->processedMedia();
+        Page::factory()->create([
+            'page_key' => 'about_us',
+            'slug' => 'about-us',
+            'title' => 'About Us',
+        ]);
+
+        $this->actingAs($editor)->patch(route('admin.pages.update', 'about-us'), [
+            'title' => 'About Us',
+            'navigation_label' => 'About Us',
+            'intro_title' => 'Intro',
+            'intro_body' => 'Intro body',
+            'body_html' => '',
+            'hero_media_id' => $media->id,
+            'cta_label' => 'Explore Products',
+            'cta_url' => '/products',
+            'status' => PublishStatus::Published->value,
+            'published_at' => now()->toDateTimeString(),
+            'robots_index' => true,
+            'robots_follow' => true,
+            'about_details' => [
+                'video_url' => 'https://youtu.be/abcDEF12345',
+                'who_we_are_title' => 'CMS about heading',
+                'why_items' => ['Quality checks'],
+                'gallery_media_ids' => [$media->id],
+                'stats' => [
+                    ['value' => '12+', 'label' => 'Years'],
+                ],
+                'skills' => [
+                    ['label' => 'Project planning', 'percent' => 91],
+                ],
+            ],
+        ])->assertRedirect(route('admin.pages.edit', 'about-us'));
+
+        $page = Page::query()->where('page_key', 'about_us')->firstOrFail();
+        $this->assertSame('CMS about heading', $page->about_details['who_we_are_title']);
+        $this->assertSame([$media->id], $page->about_details['gallery_media_ids']);
+
+        $this->actingAs($editor)
+            ->from(route('admin.pages.edit', 'about-us'))
+            ->patch(route('admin.pages.update', 'about-us'), [
+                'title' => 'About Us',
+                'status' => PublishStatus::Published->value,
+                'published_at' => now()->toDateTimeString(),
+                'robots_index' => true,
+                'robots_follow' => true,
+                'about_details' => [
+                    'video_url' => 'https://vimeo.com/12345',
+                ],
+            ])
+            ->assertRedirect(route('admin.pages.edit', 'about-us'))
+            ->assertSessionHasErrors('about_details.video_url');
     }
 
     private function userFor(UserRole $role): User

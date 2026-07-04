@@ -5,7 +5,10 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Jobs\GenerateMediaVariants;
 use App\Models\Category;
+use App\Models\HomepageSection;
+use App\Models\HomepageSectionBanner;
 use App\Models\MediaAsset;
+use App\Models\Page;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
@@ -58,6 +61,56 @@ class Stage10MediaPipelineTest extends TestCase
         $this->assertTrue($media->variants->every(fn ($variant): bool => $variant->format === 'webp'));
         Storage::disk('public')->assertExists($media->path());
         Storage::disk('public')->assertExists($media->variants->first()->path);
+    }
+
+    public function test_json_upload_returns_media_option_for_cms_dropzones(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+
+        $response = $this->actingAs($editor)
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.media.store'), [
+                'file' => $this->validWebpUpload('cms-banner.webp'),
+                'alt_text' => 'Homepage banner',
+            ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('label', 'cms-banner.webp')
+            ->assertJsonPath('altText', 'Homepage banner')
+            ->assertJsonPath('status', 'processed')
+            ->assertJsonStructure(['id', 'label', 'url', 'status']);
+
+        $this->assertDatabaseHas('media_assets', [
+            'original_filename' => 'cms-banner.webp',
+            'alt_text' => 'Homepage banner',
+        ]);
+    }
+
+    public function test_duplicate_json_upload_reuses_existing_media_asset(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+
+        $first = $this->actingAs($editor)
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.media.store'), [
+                'file' => $this->validWebpUpload('hero-slide.webp'),
+                'alt_text' => 'Hero slide',
+            ]);
+
+        $duplicate = $this->actingAs($editor)
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.media.store'), [
+                'file' => $this->validWebpUpload('same-hero-slide.webp'),
+                'alt_text' => 'Hero slide duplicate',
+            ]);
+
+        $duplicate
+            ->assertCreated()
+            ->assertJsonPath('id', $first->json('id'))
+            ->assertJsonStructure(['id', 'label', 'url', 'status']);
+
+        $this->assertSame(1, MediaAsset::query()->count());
     }
 
     public function test_invalid_mime_oversized_and_unauthorized_uploads_are_rejected(): void
@@ -130,6 +183,57 @@ class Stage10MediaPipelineTest extends TestCase
         $this->assertFalse($media->fresh()->trashed());
     }
 
+    public function test_reference_safe_delete_blocks_homepage_banner_media(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+        $media = app(MediaLibrary::class)->storeUpload($this->validWebpUpload('homepage-banner.webp'), $editor->id);
+        $section = HomepageSection::query()->create([
+            'section_key' => 'hero',
+            'section_title' => 'Hero',
+            'source_mode' => 'manual',
+            'sort_order' => 0,
+            'is_visible' => true,
+        ]);
+
+        HomepageSectionBanner::query()->create([
+            'homepage_section_id' => $section->id,
+            'media_asset_id' => $media->id,
+            'sort_order' => 0,
+            'is_visible' => true,
+            'created_by_user_id' => $editor->id,
+            'updated_by_user_id' => $editor->id,
+        ]);
+
+        $response = $this->actingAs($editor)->delete(route('admin.media.destroy', $media));
+
+        $response->assertRedirect(route('admin.media.index'));
+        $response->assertSessionHasErrors('media');
+        $this->assertDatabaseHas('homepage_section_banners', [
+            'media_asset_id' => $media->id,
+        ]);
+        $this->assertFalse($media->fresh()->trashed());
+    }
+
+    public function test_reference_safe_delete_blocks_about_details_media(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+        $media = app(MediaLibrary::class)->storeUpload($this->validWebpUpload('about-gallery.webp'), $editor->id);
+
+        Page::factory()->create([
+            'page_key' => 'about_us',
+            'slug' => 'about-us',
+            'about_details' => [
+                'gallery_media_ids' => [$media->id],
+            ],
+        ]);
+
+        $response = $this->actingAs($editor)->delete(route('admin.media.destroy', $media));
+
+        $response->assertRedirect(route('admin.media.index'));
+        $response->assertSessionHasErrors('media');
+        $this->assertFalse($media->fresh()->trashed());
+    }
+
     public function test_product_gallery_attach_reorder_feature_and_detach_are_deterministic(): void
     {
         $editor = $this->userFor(UserRole::ContentEditor);
@@ -174,6 +278,51 @@ class Stage10MediaPipelineTest extends TestCase
         $this->assertDatabaseMissing('product_media', [
             'product_id' => $product->id,
             'media_asset_id' => $first->id,
+        ]);
+    }
+
+    public function test_product_form_save_syncs_gallery_images_and_featured_media(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+        $category = Category::factory()->create();
+        $first = app(MediaLibrary::class)->storeUpload($this->validWebpUpload('primary.webp'), $editor->id);
+        $second = app(MediaLibrary::class)->storeUpload($this->validWebpUpload('detail.webp', [70, 90, 130]), $editor->id);
+
+        $response = $this->actingAs($editor)->post(route('admin.products.store'), [
+            'category_id' => $category->id,
+            'name' => 'Carved Cabinet',
+            'slug' => 'carved-cabinet',
+            'short_description' => 'A carved cabinet.',
+            'full_description' => 'A carved cabinet with gallery images.',
+            'status' => 'draft',
+            'is_featured' => false,
+            'is_best_selling' => false,
+            'is_latest' => false,
+            'robots_index' => true,
+            'robots_follow' => true,
+            'regular_price' => 1200,
+            'sale_price' => null,
+            'is_track_inventory' => false,
+            'stock_quantity' => null,
+            'featured_media_id' => $second->id,
+            'gallery_images' => [$first->id, $second->id],
+        ]);
+
+        $product = Product::query()->where('slug', 'carved-cabinet')->firstOrFail();
+
+        $response->assertRedirect(route('admin.products.edit', $product));
+        $this->assertSame($second->id, $product->featured_media_id);
+        $this->assertDatabaseHas('product_media', [
+            'product_id' => $product->id,
+            'media_asset_id' => $first->id,
+            'sort_order' => 0,
+            'is_gallery_visible' => true,
+        ]);
+        $this->assertDatabaseHas('product_media', [
+            'product_id' => $product->id,
+            'media_asset_id' => $second->id,
+            'sort_order' => 1,
+            'is_gallery_visible' => true,
         ]);
     }
 

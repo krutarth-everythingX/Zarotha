@@ -1,10 +1,12 @@
 import { Head, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import { Button } from '@admin/Components/ui/button';
 import { Field, Label } from '@admin/Components/ui/fieldset';
 import { Text } from '@admin/Components/ui/text';
 import { AdminShell } from '@admin/Layouts/AdminShell';
-import { EmptyState, FormInput, FormSelect, PagePanel, StatusBadge } from '@admin/Components/AdminPrimitives';
-import type { SelectOption } from '@admin/types';
+import { EmptyState, FormInput, PagePanel, StatusBadge } from '@admin/Components/AdminPrimitives';
+import { MediaDropSelect, type MediaOption as UploadMediaOption } from '@admin/Components/MediaDropSelect';
+import { X } from 'lucide-react';
 
 type GalleryProps = {
     product: {
@@ -20,14 +22,28 @@ type GalleryProps = {
             url: string | null;
         }>;
     };
-    mediaOptions: Array<SelectOption & { altText?: string | null }>;
+    mediaOptions: UploadMediaOption[];
 };
 
 export default function ProductsGallery({ product, mediaOptions }: GalleryProps) {
-    const attachForm = useForm({
+    const [mediaChoices, setMediaChoices] = useState<UploadMediaOption[]>(mediaOptions);
+    const [previewImage, setPreviewImage] = useState<{ url: string; altText: string | null; label: string } | null>(null);
+    const attachForm = useForm<{
+        media_asset_id: number | '';
+        alt_text_override: string;
+    }>({
         media_asset_id: '',
         alt_text_override: '',
     });
+    const rememberUploadedMedia = (media: UploadMediaOption) => {
+        setMediaChoices((current) => [
+            media,
+            ...current.filter((item) => item.id !== media.id),
+        ]);
+    };
+    const selectedMedia = attachForm.data.media_asset_id === ''
+        ? null
+        : mediaChoices.find((option) => option.id === attachForm.data.media_asset_id) ?? null;
 
     return (
         <>
@@ -43,14 +59,14 @@ export default function ProductsGallery({ product, mediaOptions }: GalleryProps)
                     >
                         <Field>
                             <Label>Media asset</Label>
-                            <FormSelect value={attachForm.data.media_asset_id} onChange={(event) => attachForm.setData('media_asset_id', event.target.value)}>
-                                <option value="">Choose processed media</option>
-                                {mediaOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </FormSelect>
+                            <MediaDropSelect
+                                value={attachForm.data.media_asset_id}
+                                options={mediaChoices}
+                                preview={selectedMedia}
+                                label="Gallery image"
+                                onUploaded={rememberUploadedMedia}
+                                onChange={(media_asset_id) => attachForm.setData('media_asset_id', media_asset_id)}
+                            />
                         </Field>
                         <Field>
                             <Label>Alt text override</Label>
@@ -72,7 +88,20 @@ export default function ProductsGallery({ product, mediaOptions }: GalleryProps)
                             {product.gallery.map((item) => (
                                 <article key={item.id} className="grid gap-4 p-5 lg:grid-cols-[100px_1fr_140px_auto] lg:items-center">
                                     <div className="aspect-square overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                                        {item.url ? <img src={item.url} alt={item.altText ?? ''} className="h-full w-full object-cover" /> : null}
+                                        {item.url ? (
+                                            <button
+                                                type="button"
+                                                className="block h-full w-full cursor-zoom-in"
+                                                onClick={() => setPreviewImage({
+                                                    url: item.url as string,
+                                                    altText: item.altText,
+                                                    label: item.originalFilename,
+                                                })}
+                                                aria-label={`Preview ${item.originalFilename}`}
+                                            >
+                                                <img src={item.url} alt={item.altText ?? ''} className="h-full w-full object-cover" />
+                                            </button>
+                                        ) : null}
                                     </div>
                                     <div>
                                         <p className="font-medium text-zinc-950 dark:text-white">{item.originalFilename}</p>
@@ -100,6 +129,31 @@ export default function ProductsGallery({ product, mediaOptions }: GalleryProps)
                         </div>
                     )}
                 </div>
+                {previewImage ? (
+                    <div
+                        className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`Image preview for ${previewImage.label}`}
+                        onClick={() => setPreviewImage(null)}
+                    >
+                        <div className="relative max-h-[90vh] max-w-5xl" onClick={(event) => event.stopPropagation()}>
+                            <button
+                                type="button"
+                                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-zinc-900 shadow-sm hover:bg-white"
+                                onClick={() => setPreviewImage(null)}
+                                aria-label="Close image preview"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                            <img
+                                src={previewImage.url}
+                                alt={previewImage.altText ?? ''}
+                                className="max-h-[90vh] max-w-full rounded-xl object-contain shadow-2xl"
+                            />
+                        </div>
+                    </div>
+                ) : null}
             </AdminShell>
         </>
     );

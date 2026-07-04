@@ -4,7 +4,7 @@ return [
     'disk' => env('MEDIA_DISK', 'public'),
     'original_directory' => env('MEDIA_ORIGINAL_DIRECTORY', 'media/originals'),
     'variant_directory' => env('MEDIA_VARIANT_DIRECTORY', 'media/variants'),
-    'max_upload_kb' => (int) env('MEDIA_MAX_UPLOAD_KB', 8192),
+    'max_upload_kb' => (int) env('MEDIA_MAX_UPLOAD_KB', 51200),
     'min_width' => (int) env('MEDIA_MIN_WIDTH', 320),
     'min_height' => (int) env('MEDIA_MIN_HEIGHT', 320),
     'max_width' => (int) env('MEDIA_MAX_WIDTH', 8000),

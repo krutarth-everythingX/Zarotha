@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $email
  * @property string $phone
+ * @property string|null $company_name
  * @property string|null $whatsapp_number
  * @property string|null $subject
  * @property string $message
@@ -48,6 +49,7 @@ class Inquiry extends Model
         'name',
         'email',
         'phone',
+        'company_name',
         'whatsapp_number',
         'subject',
         'message',

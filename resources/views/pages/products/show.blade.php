@@ -62,7 +62,6 @@
     $summarySpecs = collect([
         'Product type' => $product->product_type,
         'Category' => $product->category?->name,
-        'SKU' => $product->sku,
         'Price' => $formatPrice($product->sale_price ?: $product->regular_price),
         'Availability' => $availability,
         'Wood' => $woodType,
@@ -72,7 +71,6 @@
     $overviewRows = collect([
         'Product type' => $product->product_type,
         'Category' => $product->category?->name,
-        'SKU' => $product->sku,
         'Style' => $product->style,
         'Availability' => $availability,
         'Stock quantity' => $product->is_track_inventory && filled($product->stock_quantity) ? $product->stock_quantity : null,
@@ -337,6 +335,13 @@
             </section>
         @endif
     </div>
+
+    @if ($quickInquirySection?->is_visible ?? true)
+        <x-public.home.quick-inquiry
+            :section="$quickInquirySection"
+            :contactInformation="$contactInformation"
+        />
+    @endif
 
     <div
         class="product-inquiry-modal"

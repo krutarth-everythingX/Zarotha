@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ContactSocialController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HomepageController;
 use App\Http\Controllers\Admin\InquiryController;
@@ -36,6 +38,7 @@ Route::prefix('admin')
         Route::match(['put', 'patch'], '/products/{product}', [ProductController::class, 'update'])->name('products.update');
         Route::post('/products/{product}/publish', [ProductController::class, 'publish'])->name('products.publish');
         Route::post('/products/{product}/archive', [ProductController::class, 'archive'])->name('products.archive');
+        Route::post('/products/{product}/toggle', [ProductController::class, 'toggle'])->name('products.toggle');
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
         Route::get('/products/{product}/gallery', [ProductGalleryController::class, 'index'])->name('products.gallery.index');
         Route::post('/products/{product}/gallery', [ProductGalleryController::class, 'attach'])->name('products.gallery.attach');
@@ -56,7 +59,15 @@ Route::prefix('admin')
         Route::get('/testimonials', [TestimonialController::class, 'index'])->name('testimonials.index');
         Route::match(['put', 'patch'], '/testimonials', [TestimonialController::class, 'update'])->name('testimonials.update');
 
+        Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::match(['put', 'patch'], '/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+        Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+        Route::patch('/social-links/settings', [SocialLinkController::class, 'settings'])->name('social-links.settings');
         Route::resource('social-links', SocialLinkController::class)->except(['create', 'show', 'edit']);
+        Route::get('/contact-socials', [ContactSocialController::class, 'edit'])->name('contact-socials.edit');
+        Route::match(['put', 'patch'], '/contact-socials/contact', [ContactSocialController::class, 'updateContact'])->name('contact-socials.contact.update');
 
         Route::get('/banners', [BannerController::class, 'index'])->name('banners.index');
         Route::post('/banners', [BannerController::class, 'store'])->name('banners.store');
@@ -65,10 +76,12 @@ Route::prefix('admin')
 
         Route::get('/inquiries', [InquiryController::class, 'index'])->name('inquiries.index');
         Route::get('/inquiries/{inquiry}', [InquiryController::class, 'show'])->name('inquiries.show');
+        Route::post('/inquiries/{inquiry}/mark-read', [InquiryController::class, 'markRead'])->name('inquiries.mark-read');
         Route::post('/inquiries/{inquiry}/status', [InquiryController::class, 'updateStatus'])->name('inquiries.update-status');
         Route::post('/inquiries/{inquiry}/notes', [InquiryController::class, 'addNote'])->name('inquiries.add-note');
         Route::post('/inquiries/{inquiry}/assign', [InquiryController::class, 'assign'])->name('inquiries.assign');
         Route::post('/inquiries/export', [InquiryController::class, 'export'])->name('inquiries.export');
+        Route::delete('/inquiries/{inquiry}', [InquiryController::class, 'destroy'])->name('inquiries.destroy');
 
         Route::get('/redirects', [RedirectController::class, 'index'])->name('redirects.index');
         Route::post('/redirects', [RedirectController::class, 'store'])->name('redirects.store');

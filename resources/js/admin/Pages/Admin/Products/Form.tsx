@@ -2,22 +2,34 @@ import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@admin/Components/ui/button';
 import { AdminShell } from '@admin/Layouts/AdminShell';
 import { PagePanel, FormCheckbox } from '@admin/Components/AdminPrimitives';
-import { Text } from '@admin/Components/ui/text';
 import { useEffect, useState } from 'react';
 import {
     BasicInfoSection, ImagesSection, MaterialSection, DimensionsSection,
     PricingSection, InventorySection, SpecsSection
 } from './ProductSections';
 import type { SelectOption } from '@admin/types';
+import type { ProductFormData, ProductPayload } from './ProductSections';
 
 type ProductsFormProps = {
     mode: 'create' | 'edit';
-    product: any | null;
+    product: ProductPayload | null;
     categories: SelectOption[];
 };
 
+const sections = [
+    { id: 'basic-info', label: 'Basic Info' },
+    { id: 'images', label: 'Images' },
+    { id: 'material', label: 'Material' },
+    { id: 'dimensions', label: 'Dimensions & Weight' },
+    { id: 'pricing', label: 'Pricing' },
+    { id: 'inventory', label: 'Inventory' },
+    { id: 'specifications', label: 'Dynamic Specs' },
+] as const;
+
+type SectionId = (typeof sections)[number]['id'];
+
 export default function ProductsForm({ mode, product, categories }: ProductsFormProps) {
-    const form = useForm({
+    const form = useForm<ProductFormData>({
         category_id: product?.categoryId ?? '',
         name: product?.name ?? '',
         slug: product?.slug ?? '',
@@ -54,20 +66,22 @@ export default function ProductsForm({ mode, product, categories }: ProductsForm
         is_featured: product?.isFeatured ?? false,
         is_best_selling: product?.isBestSelling ?? false,
         is_latest: product?.isLatest ?? false,
+        robots_index: product?.robotsIndex ?? true,
+        robots_follow: product?.robotsFollow ?? true,
     });
 
-    const submit = (statusOverride?: string) => {
-        const payload: Record<string, any> = {
-            ...form.data,
-            gallery_images: form.data.gallery_images_state.map((img: any) => img.id),
+    const submit = (statusOverride?: ProductFormData['status']) => {
+        const primaryImage = form.data.gallery_images_state.find((img) => img.isPrimary);
+        const { gallery_images_state: galleryImagesState, ...productData } = form.data;
+        const payload = {
+            ...productData,
+            gallery_images: galleryImagesState.map((img) => img.id),
+            featured_media_id: primaryImage?.id ?? null,
         };
 
         if (statusOverride) {
             payload.status = statusOverride;
         }
-
-        // Remove the gallery_images_state from the payload (not a DB field)
-        delete payload.gallery_images_state;
 
         if (mode === 'edit' && product?.id) {
             form.transform(() => payload);
@@ -79,17 +93,7 @@ export default function ProductsForm({ mode, product, categories }: ProductsForm
         form.post('/admin/products');
     };
 
-    const sections = [
-        { id: 'basic-info', label: 'Basic Info' },
-        { id: 'images', label: 'Images' },
-        { id: 'material', label: 'Material' },
-        { id: 'dimensions', label: 'Dimensions & Weight' },
-        { id: 'pricing', label: 'Pricing' },
-        { id: 'inventory', label: 'Inventory' },
-        { id: 'specifications', label: 'Dynamic Specs' },
-    ];
-
-    const [activeSection, setActiveSection] = useState(sections[0].id);
+    const [activeSection, setActiveSection] = useState<SectionId>(sections[0].id);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -121,11 +125,11 @@ export default function ProductsForm({ mode, product, categories }: ProductsForm
             <Head title={mode === 'edit' ? `Edit ${product?.name ?? 'Product'}` : 'Add Product'} />
             <AdminShell
                 title={mode === 'edit' ? 'Edit Product' : 'Add Product'}
-                description="Manage comprehensive product details."
+                description="Manage product page content, images, details, and active state."
                 actions={
                     <div className="flex gap-2">
-                        <Button outline type="button" onClick={() => submit('draft')} disabled={form.processing}>Save as Draft</Button>
-                        <Button type="button" onClick={() => submit('published')} disabled={form.processing}>Publish Product</Button>
+                        <Button outline type="button" onClick={() => submit('draft')} disabled={form.processing}>Save inactive</Button>
+                        <Button type="button" onClick={() => submit('published')} disabled={form.processing}>Save active</Button>
                     </div>
                 }
             >

@@ -3,8 +3,9 @@ import { Button } from '@admin/Components/ui/button';
 import { Field, Label } from '@admin/Components/ui/fieldset';
 import { Text } from '@admin/Components/ui/text';
 import { AdminShell } from '@admin/Layouts/AdminShell';
-import { EmptyState, FieldError, FormInput, FormSelect, FormTextarea, PagePanel, StatusBadge } from '@admin/Components/AdminPrimitives';
-import type { SelectOption } from '@admin/types';
+import { EmptyState, FieldError, FormInput, FormTextarea, PagePanel, StatusBadge } from '@admin/Components/AdminPrimitives';
+import { MediaDropSelect, type MediaOption as UploadMediaOption } from '@admin/Components/MediaDropSelect';
+import { useState } from 'react';
 
 type Banner = {
     id: number;
@@ -23,11 +24,26 @@ type Banner = {
 
 type BannersIndexProps = {
     banners: Banner[];
-    mediaOptions: SelectOption[];
+    mediaOptions: UploadMediaOption[];
+};
+
+type BannerForm = {
+    eyebrow: string;
+    headline: string;
+    body_text: string;
+    primary_cta_label: string;
+    primary_cta_url: string;
+    desktop_media_id: number | '';
+    mobile_media_id: number | '';
+    sort_order: number;
+    is_active: boolean;
+    starts_at: string;
+    ends_at: string;
 };
 
 export default function BannersIndex({ banners, mediaOptions }: BannersIndexProps) {
-    const form = useForm({
+    const [mediaChoices, setMediaChoices] = useState<UploadMediaOption[]>(mediaOptions);
+    const form = useForm<BannerForm>({
         eyebrow: '',
         headline: '',
         body_text: '',
@@ -40,6 +56,15 @@ export default function BannersIndex({ banners, mediaOptions }: BannersIndexProp
         starts_at: '',
         ends_at: '',
     });
+    const rememberUploadedMedia = (media: UploadMediaOption) => {
+        setMediaChoices((current) => [
+            media,
+            ...current.filter((item) => item.id !== media.id),
+        ]);
+    };
+    const selectedMedia = form.data.desktop_media_id === ''
+        ? null
+        : mediaChoices.find((option) => option.id === form.data.desktop_media_id) ?? null;
 
     return (
         <>
@@ -60,17 +85,14 @@ export default function BannersIndex({ banners, mediaOptions }: BannersIndexProp
                         </Field>
                         <Field>
                             <Label>Desktop media</Label>
-                            <FormSelect
+                            <MediaDropSelect
                                 value={form.data.desktop_media_id}
-                                onChange={(event) => form.setData('desktop_media_id', event.target.value)}
-                            >
-                                <option value="">Choose processed media</option>
-                                {mediaOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </FormSelect>
+                                options={mediaChoices}
+                                preview={selectedMedia}
+                                label="Banner image"
+                                onUploaded={rememberUploadedMedia}
+                                onChange={(desktop_media_id) => form.setData('desktop_media_id', desktop_media_id)}
+                            />
                             <FieldError message={form.errors.desktop_media_id} />
                         </Field>
                         <Field>

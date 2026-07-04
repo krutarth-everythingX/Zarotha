@@ -1,71 +1,65 @@
 import { Head } from '@inertiajs/react';
-import { Heading, Subheading } from '@admin/Components/ui/heading';
+import { Subheading } from '@admin/Components/ui/heading';
 import { Text } from '@admin/Components/ui/text';
 import { AdminShell } from '@admin/Layouts/AdminShell';
-import { EmptyState, PagePanel, TextLink } from '@admin/Components/AdminPrimitives';
+import { PagePanel, TextLink } from '@admin/Components/AdminPrimitives';
 
 type DashboardProps = {
-    metrics: {
-        products: number;
-        publishedProducts: number;
-        categories: number;
-        mediaAssets: number;
-        unreadInquiries: number;
-    };
-    recentActivity: Array<{
-        id: number;
-        action: string;
-        summary: string | null;
-        createdAt: string | null;
+    metrics: Array<{
+        label: string;
+        value: number;
+        href: string;
+        detail: string;
     }>;
+    inquiryStats: {
+        total: number;
+        unread: number;
+        read: number;
+        replied: number;
+        archived: number;
+    };
 };
 
-export default function Dashboard({ metrics, recentActivity }: DashboardProps) {
-    const metricCards = [
-        ['Products', metrics.products, '/admin/products'],
-        ['Published', metrics.publishedProducts, '/admin/products?status=published'],
-        ['Categories', metrics.categories, '/admin/categories'],
-        ['Media assets', metrics.mediaAssets, '/admin/media'],
-        ['Unread inquiries', metrics.unreadInquiries, '/admin/inquiries?status=unread'],
-    ] as const;
-
+export default function Dashboard({ metrics, inquiryStats }: DashboardProps) {
     return (
         <>
             <Head title="Dashboard" />
-            <AdminShell
-                title="Dashboard"
-                description="Safe CMS overview for the inquiry catalogue. No sales, order, cart, inventory, or customer-account metrics are shown."
-            >
-                <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
-                    {metricCards.map(([label, value, href]) => (
-                        <PagePanel key={label}>
-                            <Subheading>{label}</Subheading>
-                            <p className="mt-4 text-3xl font-semibold text-zinc-950 dark:text-white">{value}</p>
-                            <div className="mt-4">
-                                <TextLink href={href}>Open</TextLink>
+            <AdminShell title="Dashboard" description="CMS overview with counts for the active management sections.">
+                <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {metrics.map((metric) => (
+                        <PagePanel key={metric.label}>
+                            <div className="flex items-start justify-between gap-4">
+                                <Subheading>{metric.label}</Subheading>
+                                <TextLink href={metric.href}>Open</TextLink>
                             </div>
+                            <p className="mt-4 text-4xl font-semibold text-zinc-950 dark:text-white">{metric.value}</p>
+                            <Text className="mt-2">{metric.detail}</Text>
                         </PagePanel>
                     ))}
                 </section>
 
                 <PagePanel className="mt-8">
-                    <Heading level={2} className="text-lg/7 sm:text-lg/7">
-                        Recent activity
-                    </Heading>
-                    {recentActivity.length === 0 ? (
-                        <div className="mt-5">
-                            <EmptyState title="No activity yet" description="Admin activity appears here as workflows create audit records." />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <Subheading>Inquiry Stats</Subheading>
+                            <Text className="mt-2">Public website inquiries by status.</Text>
                         </div>
-                    ) : (
-                        <div className="mt-5 divide-y divide-zinc-950/8 dark:divide-white/10">
-                            {recentActivity.map((activity) => (
-                                <article key={activity.id} className="py-3">
-                                    <p className="font-medium text-zinc-950 dark:text-white">{activity.action}</p>
-                                    <Text>{activity.summary ?? 'No summary supplied.'}</Text>
-                                </article>
-                            ))}
-                        </div>
-                    )}
+                        <TextLink href="/admin/inquiries">View inquiries</TextLink>
+                    </div>
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                        {[
+                            ['Total', inquiryStats.total],
+                            ['Unread', inquiryStats.unread],
+                            ['Read', inquiryStats.read],
+                            ['Replied', inquiryStats.replied],
+                            ['Archived', inquiryStats.archived],
+                        ].map(([label, value]) => (
+                            <div key={label} className="rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
+                                <Text>{label}</Text>
+                                <p className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{value}</p>
+                            </div>
+                        ))}
+                    </div>
                 </PagePanel>
             </AdminShell>
         </>

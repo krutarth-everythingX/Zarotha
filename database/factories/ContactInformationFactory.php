@@ -20,6 +20,12 @@ class ContactInformationFactory extends Factory
             'show_phone' => true,
             'show_email' => true,
             'show_whatsapp' => true,
+            'inquiry_type_options' => [
+                'Home furniture',
+                'Office furniture',
+                'Custom wooden art',
+            ],
+            'contact_social_links' => [],
         ];
     }
 }

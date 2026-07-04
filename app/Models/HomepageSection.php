@@ -15,10 +15,14 @@ class HomepageSection extends Model
 
     protected $fillable = [
         'section_key',
+        'eyebrow',
         'section_title',
         'section_intro',
+        'section_body',
         'cta_label',
         'cta_url',
+        'secondary_cta_label',
+        'secondary_cta_url',
         'source_mode',
         'background_media_id',
         'background_color',

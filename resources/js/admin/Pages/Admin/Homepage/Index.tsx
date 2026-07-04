@@ -1,27 +1,16 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useMemo } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@admin/Components/ui/button';
 import { Field, Label } from '@admin/Components/ui/fieldset';
 import { Text } from '@admin/Components/ui/text';
 import { AdminShell } from '@admin/Layouts/AdminShell';
-import { FieldError, FormInput, FormSelect, FormTextarea, PagePanel, StatusBadge } from '@admin/Components/AdminPrimitives';
+import { FieldError, FormInput, FormTextarea, PagePanel } from '@admin/Components/AdminPrimitives';
 import { HeroSection } from './Components/HeroSection';
 import { LatestProducts } from './Components/LatestProducts';
 import { QuickInquiry } from './Components/QuickInquiry';
+import { MediaDropSelect, type MediaOption as UploadMediaOption } from '@admin/Components/MediaDropSelect';
 
-type MediaOption = {
-    id: number;
-    label: string;
-    altText: string | null;
-    url: string | null;
-    status: string;
-};
-
-type ProductOption = {
-    id: number;
-    label: string;
-    status: string;
-};
+type MediaOption = UploadMediaOption;
 
 type MediaReference = MediaOption | null;
 
@@ -37,74 +26,77 @@ type HeroPayload = {
     overlayOpacity: number;
     textTheme: 'light' | 'dark';
     isVisible: boolean;
-    desktopMedia: MediaReference;
-    mobileMedia: MediaReference;
-    items: Array<{
-        id: number;
-        imageMediaId: number | null;
-        sortOrder: number;
-        isVisible: boolean;
-        imageMedia: MediaReference;
-    }>;
+    items: BannerPayload[];
 };
 
-type FloatingProductPayload = {
+type BannerPayload = {
     id: number;
-    productId: number | null;
     imageMediaId: number | null;
-    altText: string | null;
-    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-    tiltPreset: 'soft' | 'medium' | 'full';
-    tapLabel: string | null;
+    sortOrder: number;
     isVisible: boolean;
-    productName: string | null;
     imageMedia: MediaReference;
 };
 
 type SectionPayload = {
+    eyebrow: string | null;
     title: string | null;
     subtitle: string | null;
+    body: string | null;
     viewAllLabel: string | null;
     viewAllUrl: string | null;
+    primaryButtonLabel: string | null;
+    primaryButtonUrl: string | null;
+    secondaryButtonLabel: string | null;
+    secondaryButtonUrl: string | null;
     buttonLabel: string | null;
     buttonUrl: string | null;
     maxItems: number;
     backgroundMediaId: number | null;
+    backgroundMedia: MediaReference;
     backgroundColor: string | null;
     isVisible: boolean;
-    products: Array<{
-        productId: number;
-        productName: string | null;
-    }>;
+};
+
+type ContentItemPayload = {
+    id: number;
+    heading: string;
+    bodyText: string | null;
+    sortOrder: number;
+    isActive: boolean;
+};
+
+type ContentSectionPayload = SectionPayload & {
+    items: ContentItemPayload[];
+};
+
+type HomepagePayload = {
+    hero: HeroPayload;
+    turnkey: ContentSectionPayload;
+    aboutPreview: ContentSectionPayload;
+    industryStats: ContentSectionPayload;
+    latest: SectionPayload;
+    quickInquiry: SectionPayload & {
+        banners: BannerPayload[];
+    };
 };
 
 type SettingsPayload = {
     whatsapp_text: string;
     whatsapp_number: string;
-    show_social_links_on_hero: boolean;
-};
-
-type HomepagePayload = {
-    hero: HeroPayload;
-    floatingProducts: FloatingProductPayload[];
-    featured: SectionPayload;
-    latest: SectionPayload;
-    quickInquiry: SectionPayload & {
-        banners: Array<{
-            id: number;
-            imageMediaId: number | null;
-            sortOrder: number;
-            isVisible: boolean;
-            imageMedia: MediaReference;
-        }>;
-    };
 };
 
 type HomepageIndexProps = {
     homepage: HomepagePayload;
     settings: SettingsPayload;
-    productOptions: ProductOption[];
     mediaOptions: MediaOption[];
+};
+
+type ContentItemForm = {
+    id?: number;
+    heading: string;
+    body_text: string;
+    sort_order: number;
+    is_active: boolean;
 };
 
 type HomepageForm = {
@@ -127,22 +119,39 @@ type HomepageForm = {
             isVisible: boolean;
         }>;
     };
-    floating_products: Array<{
-        product_id: number | '';
-        image_media_id: number | '';
-        alt_text: string;
-        position: FloatingProductPayload['position'];
-        tilt_preset: FloatingProductPayload['tiltPreset'];
-        tap_label: string;
-        is_visible: boolean;
-    }>;
-    featured: {
+    settings: SettingsPayload;
+    turnkey: {
+        eyebrow: string;
         title: string;
         subtitle: string;
-        view_all_label: string;
-        view_all_url: string;
+        button_url: string;
         is_visible: boolean;
-        products: Array<{ product_id: number | '' }>;
+        items: ContentItemForm[];
+    };
+    aboutPreview: {
+        eyebrow: string;
+        title: string;
+        subtitle: string;
+        body: string;
+        primary_button_label: string;
+        primary_button_url: string;
+        secondary_button_label: string;
+        secondary_button_url: string;
+        background_media_id: number | '';
+        is_visible: boolean;
+        points: ContentItemForm[];
+    };
+    industryStats: {
+        title: string;
+        highlight: string;
+        subtitle: string;
+        body: string;
+        contact_label: string;
+        contact_url: string;
+        more_label: string;
+        more_url: string;
+        is_visible: boolean;
+        items: ContentItemForm[];
     };
     latest: {
         title: string;
@@ -167,14 +176,7 @@ type HomepageForm = {
             isVisible: boolean;
         }>;
     };
-    settings: {
-        whatsapp_text: string;
-        whatsapp_number: string;
-        show_social_links_on_hero: boolean;
-    };
 };
-
-const positions: FloatingProductPayload['position'][] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
 
 function emptyToId(value: number | null): number | '' {
     return value ?? '';
@@ -182,26 +184,6 @@ function emptyToId(value: number | null): number | '' {
 
 function imageFor(mediaOptions: MediaOption[], id: number | '') {
     return id === '' ? null : mediaOptions.find((media) => media.id === id) ?? null;
-}
-
-function FieldHint({ children }: { children: React.ReactNode }) {
-    return <p className="mt-2 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{children}</p>;
-}
-
-function MediaPreview({ media }: { media: MediaReference }) {
-    if (!media) {
-        return <div className="mt-3 grid aspect-video place-items-center rounded-xl bg-zinc-100 text-xs text-zinc-500 dark:bg-zinc-800">No media selected</div>;
-    }
-
-    return (
-        <div className="mt-3 overflow-hidden rounded-xl border border-zinc-950/10 bg-zinc-100 dark:border-white/10 dark:bg-zinc-800">
-            {media.url ? <img src={media.url} alt={media.altText ?? ''} className="aspect-video w-full object-cover" /> : null}
-            <div className="p-3">
-                <p className="truncate text-xs font-medium text-zinc-950 dark:text-white">{media.label}</p>
-                <Text>{media.status}</Text>
-            </div>
-        </div>
-    );
 }
 
 function ToggleField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
@@ -213,90 +195,98 @@ function ToggleField({ label, checked, onChange }: { label: string; checked: boo
     );
 }
 
-function OptionList({
-    mediaOptions,
-    productOptions,
-    children,
-}: {
-    mediaOptions: MediaOption[];
-    productOptions: ProductOption[];
-    children: (helpers: {
-        productSelect: (value: number | '', onChange: (value: number | '') => void) => React.ReactNode;
-        mediaSelect: (value: number | '', onChange: (value: number | '') => void) => React.ReactNode;
-    }) => React.ReactNode;
-}) {
-    const productSelect = (value: number | '', onChange: (value: number | '') => void) => (
-        <FormSelect value={value} onChange={(event) => onChange(event.target.value === '' ? '' : Number(event.target.value))}>
-            <option value="">Choose product</option>
-            {productOptions.map((product) => (
-                <option key={product.id} value={product.id}>
-                    {product.label} ({product.status})
-                </option>
-            ))}
-        </FormSelect>
-    );
-
-    const mediaSelect = (value: number | '', onChange: (value: number | '') => void) => (
-        <FormSelect value={value} onChange={(event) => onChange(event.target.value === '' ? '' : Number(event.target.value))}>
-            <option value="">Choose media</option>
-            {mediaOptions.map((media) => (
-                <option key={media.id} value={media.id}>
-                    {media.label} ({media.status})
-                </option>
-            ))}
-        </FormSelect>
-    );
-
-    return <>{children({ productSelect, mediaSelect })}</>;
+function FieldHint({ children }: { children: ReactNode }) {
+    return <p className="mt-2 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{children}</p>;
 }
 
-export default function HomepageIndex({ homepage, settings, productOptions, mediaOptions }: HomepageIndexProps) {
-    const initialFloatingProducts = useMemo(
-        () =>
-            positions.map((position, index) => {
-                const item = homepage.floatingProducts[index];
+function contentItems(items: ContentItemPayload[], defaults: ContentItemForm[]): ContentItemForm[] {
+    if (items.length === 0) {
+        return defaults;
+    }
 
-                return {
-                    product_id: emptyToId(item?.productId ?? null),
-                    image_media_id: emptyToId(item?.imageMediaId ?? null),
-                    alt_text: item?.altText ?? '',
-                    position: item?.position ?? position,
-                    tilt_preset: item?.tiltPreset ?? 'full',
-                    tap_label: item?.tapLabel ?? 'Tap to View',
-                    is_visible: item?.isVisible ?? true,
-                };
-            }),
-        [homepage.floatingProducts],
-    );
+    return items.map((item) => ({
+        id: item.id,
+        heading: item.heading,
+        body_text: item.bodyText ?? '',
+        sort_order: item.sortOrder,
+        is_active: item.isActive,
+    }));
+}
+
+export default function HomepageIndex({ homepage, settings, mediaOptions }: HomepageIndexProps) {
+    const [mediaChoices, setMediaChoices] = useState<MediaOption[]>(mediaOptions);
 
     const form = useForm<HomepageForm>({
         hero: {
-            heading: homepage.hero.heading,
-            subtext: homepage.hero.subtext ?? '',
+            heading: homepage.hero.heading ?? 'Zarokha Wooden Arts',
+            subtext: homepage.hero.subtext ?? 'Custom wooden furniture and carved pieces for homes, workspaces, and hospitality interiors.',
             desktop_media_id: emptyToId(homepage.hero.desktopMediaId),
             mobile_media_id: emptyToId(homepage.hero.mobileMediaId),
             primary_button_label: homepage.hero.primaryButtonLabel ?? 'View Products',
             primary_button_url: homepage.hero.primaryButtonUrl ?? '/products',
             secondary_button_label: homepage.hero.secondaryButtonLabel ?? 'Contact',
             secondary_button_url: homepage.hero.secondaryButtonUrl ?? '/contact',
-            overlay_opacity: homepage.hero.overlayOpacity,
-            text_theme: homepage.hero.textTheme,
+            overlay_opacity: homepage.hero.overlayOpacity ?? 35,
+            text_theme: homepage.hero.textTheme ?? 'light',
             is_visible: homepage.hero.isVisible,
-            items: homepage.hero.items?.map((b) => ({
-                id: b.id,
-                imageMediaId: emptyToId(b.imageMediaId),
-                sortOrder: b.sortOrder,
-                isVisible: b.isVisible,
-            })) || [],
+            items: homepage.hero.items.map((banner) => ({
+                id: banner.id,
+                imageMediaId: emptyToId(banner.imageMediaId),
+                sortOrder: banner.sortOrder,
+                isVisible: banner.isVisible,
+            })),
         },
-        floating_products: initialFloatingProducts,
-        featured: {
-            title: homepage.featured.title ?? 'Featured Products',
-            subtitle: homepage.featured.subtitle ?? '',
-            view_all_label: homepage.featured.viewAllLabel ?? 'View All Products',
-            view_all_url: homepage.featured.viewAllUrl ?? '/products',
-            is_visible: homepage.featured.isVisible,
-            products: homepage.featured.products.length > 0 ? homepage.featured.products.map((item) => ({ product_id: item.productId })) : [{ product_id: '' }],
+        settings: {
+            whatsapp_text: settings.whatsapp_text ?? '',
+            whatsapp_number: settings.whatsapp_number ?? '',
+        },
+        turnkey: {
+            eyebrow: homepage.turnkey.eyebrow ?? 'A complete custom',
+            title: homepage.turnkey.title ?? 'furniture solution',
+            subtitle: homepage.turnkey.subtitle ?? 'Crafted for homes, workspaces, and hospitality interiors with careful material choices.',
+            button_url: homepage.turnkey.buttonUrl && homepage.turnkey.buttonUrl.includes('youtu') ? homepage.turnkey.buttonUrl : '',
+            is_visible: homepage.turnkey.isVisible,
+            items: contentItems(homepage.turnkey.items, [
+                { heading: 'Home Furniture', body_text: 'Wardrobes, consoles, tables, and storage pieces tailored to the way your rooms are used.', sort_order: 0, is_active: true },
+                { heading: 'Office Furniture', body_text: 'Desks, meeting tables, shelves, and focused storage for calm, efficient workspaces.', sort_order: 1, is_active: true },
+                { heading: 'Hospitality Pieces', body_text: 'Reception counters, room furniture, and display units designed for durable daily use.', sort_order: 2, is_active: true },
+                { heading: 'Institutional Work', body_text: 'Furniture and fixtures for studios, learning spaces, clinics, and public-facing interiors.', sort_order: 3, is_active: true },
+            ]),
+        },
+        aboutPreview: {
+            eyebrow: homepage.aboutPreview.eyebrow ?? 'About Zarokha',
+            title: homepage.aboutPreview.title ?? 'The leading furniture brand for thoughtful custom spaces.',
+            subtitle: homepage.aboutPreview.subtitle ?? 'Zarokha brings together measured design, material knowledge, and workshop discipline to create furniture that fits the room, the routine, and the people who use it every day.',
+            body: homepage.aboutPreview.body ?? 'From homes and workspaces to hospitality interiors, every project is shaped with practical details, careful finishing, and a clear conversation from idea to installation.',
+            primary_button_label: homepage.aboutPreview.primaryButtonLabel ?? 'View more',
+            primary_button_url: homepage.aboutPreview.primaryButtonUrl ?? '/about-us',
+            secondary_button_label: homepage.aboutPreview.secondaryButtonLabel ?? 'Contact us',
+            secondary_button_url: homepage.aboutPreview.secondaryButtonUrl ?? '/contact',
+            background_media_id: emptyToId(homepage.aboutPreview.backgroundMediaId),
+            is_visible: homepage.aboutPreview.isVisible,
+            points: contentItems(homepage.aboutPreview.items, [
+                { heading: 'Direct factory manufacturing', body_text: '', sort_order: 0, is_active: true },
+                { heading: 'Strict quality control', body_text: '', sort_order: 1, is_active: true },
+                { heading: 'Timely production', body_text: '', sort_order: 2, is_active: true },
+                { heading: 'Experienced team', body_text: '', sort_order: 3, is_active: true },
+            ]),
+        },
+        industryStats: {
+            title: homepage.industryStats.title ?? 'Furniture made at scale, finished with care.',
+            highlight: homepage.industryStats.eyebrow ?? 'finished with care',
+            subtitle: homepage.industryStats.subtitle ?? '',
+            body: homepage.industryStats.body ?? "Don't hesitate, :contact for better help and products. :more",
+            contact_label: homepage.industryStats.primaryButtonLabel ?? 'contact us',
+            contact_url: homepage.industryStats.primaryButtonUrl ?? '/contact',
+            more_label: homepage.industryStats.secondaryButtonLabel ?? 'View More',
+            more_url: homepage.industryStats.secondaryButtonUrl ?? '/products',
+            is_visible: homepage.industryStats.isVisible,
+            items: contentItems(homepage.industryStats.items, [
+                { heading: '6000', body_text: 'Residential Projects', sort_order: 0, is_active: true },
+                { heading: '4100', body_text: 'Commercial Projects', sort_order: 1, is_active: true },
+                { heading: '25000', body_text: 'Satisfied Customers', sort_order: 2, is_active: true },
+                { heading: '18', body_text: 'Years of Experience', sort_order: 3, is_active: true },
+            ]),
         },
         latest: {
             title: homepage.latest.title ?? 'Latest Products',
@@ -307,56 +297,59 @@ export default function HomepageIndex({ homepage, settings, productOptions, medi
             is_visible: homepage.latest.isVisible,
         },
         quickInquiry: {
-            title: homepage.quickInquiry.title ?? '',
-            subtitle: homepage.quickInquiry.subtitle ?? '',
-            button_label: homepage.quickInquiry.buttonLabel ?? '',
-            button_url: homepage.quickInquiry.buttonUrl ?? '',
+            title: homepage.quickInquiry.title ?? 'Custom Commissions',
+            subtitle: homepage.quickInquiry.subtitle ?? 'Have a vision for a specific space? We collaborate with architects, designers, and homeowners to bring unique wooden dreams to life. Your heritage, our hands.',
+            button_label: homepage.quickInquiry.buttonLabel ?? 'Start a Conversation',
+            button_url: homepage.quickInquiry.buttonUrl ?? '/contact',
             background_media_id: emptyToId(homepage.quickInquiry.backgroundMediaId),
             background_color: homepage.quickInquiry.backgroundColor ?? '',
             is_visible: homepage.quickInquiry.isVisible,
-            items: homepage.quickInquiry.banners.map((b) => ({
-                id: b.id,
-                imageMediaId: emptyToId(b.imageMediaId),
-                sortOrder: b.sortOrder,
-                isVisible: b.isVisible,
+            items: homepage.quickInquiry.banners.map((banner) => ({
+                id: banner.id,
+                imageMediaId: emptyToId(banner.imageMediaId),
+                sortOrder: banner.sortOrder,
+                isVisible: banner.isVisible,
             })),
-        },
-        settings: {
-            whatsapp_text: settings.whatsapp_text ?? '',
-            whatsapp_number: settings.whatsapp_number ?? '',
-            show_social_links_on_hero: settings.show_social_links_on_hero ?? false,
         },
     });
 
-    const setFloatingItem = (index: number, item: HomepageForm['floating_products'][number]) => {
-        form.setData(
-            'floating_products',
-            form.data.floating_products.map((current, currentIndex) => (currentIndex === index ? item : current)),
-        );
+    const rememberUploadedMedia = (media: UploadMediaOption) => {
+        const option: MediaOption = {
+            id: media.id,
+            label: media.label,
+            altText: media.altText ?? null,
+            url: media.url ?? null,
+            status: media.status ?? 'uploaded',
+        };
+
+        setMediaChoices((current) => [option, ...current.filter((item) => item.id !== option.id)]);
     };
 
-    const setFeaturedProduct = (index: number, product_id: number | '') => {
-        form.setData('featured', {
-            ...form.data.featured,
-            products: form.data.featured.products.map((current, currentIndex) => (currentIndex === index ? { product_id } : current)),
+    const addHeroBanner = () => {
+        form.setData('hero', {
+            ...form.data.hero,
+            items: [
+                ...form.data.hero.items,
+                {
+                    imageMediaId: '',
+                    sortOrder: form.data.hero.items.length,
+                    isVisible: true,
+                },
+            ],
         });
     };
 
-    const addFeaturedProduct = () => {
-        if (form.data.featured.products.length >= 10) {
-            return;
-        }
-
-        form.setData('featured', {
-            ...form.data.featured,
-            products: [...form.data.featured.products, { product_id: '' }],
+    const setHeroBanner = (index: number, item: HomepageForm['hero']['items'][number]) => {
+        form.setData('hero', {
+            ...form.data.hero,
+            items: form.data.hero.items.map((current, currentIndex) => (currentIndex === index ? item : current)),
         });
     };
 
-    const removeFeaturedProduct = (index: number) => {
-        form.setData('featured', {
-            ...form.data.featured,
-            products: form.data.featured.products.filter((_, currentIndex) => currentIndex !== index),
+    const removeHeroBanner = (index: number) => {
+        form.setData('hero', {
+            ...form.data.hero,
+            items: form.data.hero.items.filter((_, currentIndex) => currentIndex !== index),
         });
     };
 
@@ -368,20 +361,6 @@ export default function HomepageIndex({ homepage, settings, productOptions, medi
                 {
                     imageMediaId: '',
                     sortOrder: form.data.quickInquiry.items.length,
-                    isVisible: true,
-                },
-            ],
-        });
-    };
-
-    const addHeroBanner = () => {
-        form.setData('hero', {
-            ...form.data.hero,
-            items: [
-                ...(form.data.hero.items || []),
-                {
-                    imageMediaId: '',
-                    sortOrder: (form.data.hero.items || []).length,
                     isVisible: true,
                 },
             ],
@@ -402,12 +381,79 @@ export default function HomepageIndex({ homepage, settings, productOptions, medi
         });
     };
 
+    const setTurnkeyItem = (index: number, item: ContentItemForm) => {
+        form.setData('turnkey', {
+            ...form.data.turnkey,
+            items: form.data.turnkey.items.map((current, currentIndex) => (currentIndex === index ? item : current)),
+        });
+    };
+
+    const addTurnkeyItem = () => {
+        form.setData('turnkey', {
+            ...form.data.turnkey,
+            items: [...form.data.turnkey.items, { heading: '', body_text: '', sort_order: form.data.turnkey.items.length, is_active: true }],
+        });
+    };
+
+    const removeTurnkeyItem = (index: number) => {
+        form.setData('turnkey', {
+            ...form.data.turnkey,
+            items: form.data.turnkey.items.filter((_, currentIndex) => currentIndex !== index),
+        });
+    };
+
+    const setAboutPoint = (index: number, item: ContentItemForm) => {
+        form.setData('aboutPreview', {
+            ...form.data.aboutPreview,
+            points: form.data.aboutPreview.points.map((current, currentIndex) => (currentIndex === index ? item : current)),
+        });
+    };
+
+    const addAboutPoint = () => {
+        form.setData('aboutPreview', {
+            ...form.data.aboutPreview,
+            points: [...form.data.aboutPreview.points, { heading: '', body_text: '', sort_order: form.data.aboutPreview.points.length, is_active: true }],
+        });
+    };
+
+    const removeAboutPoint = (index: number) => {
+        form.setData('aboutPreview', {
+            ...form.data.aboutPreview,
+            points: form.data.aboutPreview.points.filter((_, currentIndex) => currentIndex !== index),
+        });
+    };
+
+    const setIndustryStat = (index: number, item: ContentItemForm) => {
+        form.setData('industryStats', {
+            ...form.data.industryStats,
+            items: form.data.industryStats.items.map((current, currentIndex) => (currentIndex === index ? item : current)),
+        });
+    };
+
+    const addIndustryStat = () => {
+        form.setData('industryStats', {
+            ...form.data.industryStats,
+            items: [...form.data.industryStats.items, { heading: '', body_text: '', sort_order: form.data.industryStats.items.length, is_active: true }],
+        });
+    };
+
+    const removeIndustryStat = (index: number) => {
+        form.setData('industryStats', {
+            ...form.data.industryStats,
+            items: form.data.industryStats.items.filter((_, currentIndex) => currentIndex !== index),
+        });
+    };
+
     const submit = () => {
         form.transform((data) => ({
             ...data,
-            featured: {
-                ...data.featured,
-                products: data.featured.products.filter((item) => item.product_id !== ''),
+            hero: {
+                ...data.hero,
+                items: data.hero.items.filter((item) => item.imageMediaId !== ''),
+            },
+            quickInquiry: {
+                ...data.quickInquiry,
+                items: data.quickInquiry.items.filter((item) => item.imageMediaId !== ''),
             },
         }));
         form.patch('/admin/homepage', { preserveScroll: true });
@@ -418,7 +464,7 @@ export default function HomepageIndex({ homepage, settings, productOptions, medi
             <Head title="Homepage" />
             <AdminShell
                 title="Homepage"
-                description="Manage the public homepage hero, product sliders, testimonials, and quick inquiry callout."
+                description="Manage only the homepage sections shown on the public homepage."
             >
                 <form
                     className="space-y-8"
@@ -427,74 +473,310 @@ export default function HomepageIndex({ homepage, settings, productOptions, medi
                         submit();
                     }}
                 >
-                    <OptionList mediaOptions={mediaOptions} productOptions={productOptions}>
-                        {({ productSelect, mediaSelect }) => (
-                            <>
-                                <HeroSection
-                                    form={form}
-                                    mediaSelect={mediaSelect}
-                                    mediaOptions={mediaOptions}
-                                    MediaPreview={MediaPreview}
-                                    imageFor={imageFor}
-                                    ToggleField={ToggleField}
-                                    FieldHint={FieldHint}
-                                    addBanner={addHeroBanner}
-                                />
-                                <LatestProducts
-                                    form={form}
-                                    ToggleField={ToggleField}
-                                />
-                                
-                                <PagePanel>
-                                    <div className="mb-5">
-                                        <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Contact & Social Settings</h2>
-                                        <Text>Manage WhatsApp inquiry and hero social links.</Text>
-                                    </div>
-                                    <div className="space-y-6">
-                                        <Field>
-                                            <Label>WhatsApp Number</Label>
-                                            <FormInput
-                                                type="text"
-                                                value={form.data.settings.whatsapp_number}
-                                                onChange={(e) => form.setData('settings', { ...form.data.settings, whatsapp_number: e.target.value })}
-                                                placeholder="e.g. +1234567890"
-                                            />
-                                        </Field>
-                                        <Field>
-                                            <Label>WhatsApp Text</Label>
-                                            <FormInput
-                                                type="text"
-                                                value={form.data.settings.whatsapp_text}
-                                                onChange={(e) => form.setData('settings', { ...form.data.settings, whatsapp_text: e.target.value })}
-                                                placeholder="e.g. Hello, I have an inquiry..."
-                                            />
-                                        </Field>
-                                        <ToggleField
-                                            label="Show social links on hero section"
-                                            checked={form.data.settings.show_social_links_on_hero}
-                                            onChange={(val) => form.setData('settings', { ...form.data.settings, show_social_links_on_hero: val })}
-                                        />
-                                    </div>
-                                </PagePanel>
+                    <HeroSection
+                        form={form}
+                        mediaOptions={mediaChoices}
+                        imageFor={imageFor}
+                        ToggleField={ToggleField}
+                        FieldHint={FieldHint}
+                        addBanner={addHeroBanner}
+                        setBanner={setHeroBanner}
+                        removeBanner={removeHeroBanner}
+                        onMediaUploaded={rememberUploadedMedia}
+                    />
 
-                                <QuickInquiry
-                                    form={form}
-                                    mediaSelect={mediaSelect}
-                                    ToggleField={ToggleField}
-                                    addBanner={addBanner}
-                                    removeBanner={removeBanner}
-                                    setBanner={setBanner}
+                    <PagePanel>
+                        <div className="mb-5">
+                            <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Left Side WhatsApp</h2>
+                            <Text>Controls the floating WhatsApp inquiry widget on the homepage hero.</Text>
+                        </div>
+                        <div className="grid gap-5 lg:grid-cols-2">
+                            <Field>
+                                <Label>WhatsApp Number</Label>
+                                <FormInput
+                                    type="text"
+                                    value={form.data.settings.whatsapp_number}
+                                    onChange={(event) => form.setData('settings', { ...form.data.settings, whatsapp_number: event.target.value })}
+                                    placeholder="e.g. +919876543210"
                                 />
-                            </>
-                        )}
-                    </OptionList>
+                            </Field>
+                            <Field>
+                                <Label>WhatsApp Text</Label>
+                                <FormInput
+                                    type="text"
+                                    value={form.data.settings.whatsapp_text}
+                                    onChange={(event) => form.setData('settings', { ...form.data.settings, whatsapp_text: event.target.value })}
+                                    placeholder="Hi Zarokha, I want to discuss a custom project."
+                                />
+                            </Field>
+                        </div>
+                    </PagePanel>
+
+                    <PagePanel>
+                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Turnkey Solutions</h2>
+                                <Text>Manage the complete custom furniture section, YouTube video, and service cards.</Text>
+                            </div>
+                            <ToggleField
+                                label="Visible"
+                                checked={form.data.turnkey.is_visible}
+                                onChange={(checked) => form.setData('turnkey', { ...form.data.turnkey, is_visible: checked })}
+                            />
+                        </div>
+                        <div className="grid gap-5 lg:grid-cols-2">
+                            <Field>
+                                <Label>Eyebrow</Label>
+                                <FormInput value={form.data.turnkey.eyebrow} onChange={(event) => form.setData('turnkey', { ...form.data.turnkey, eyebrow: event.target.value })} />
+                            </Field>
+                            <Field>
+                                <Label>Heading</Label>
+                                <FormInput value={form.data.turnkey.title} onChange={(event) => form.setData('turnkey', { ...form.data.turnkey, title: event.target.value })} />
+                            </Field>
+                            <Field className="lg:col-span-2">
+                                <Label>Caption</Label>
+                                <FormInput value={form.data.turnkey.subtitle} onChange={(event) => form.setData('turnkey', { ...form.data.turnkey, subtitle: event.target.value })} />
+                            </Field>
+                            <Field className="lg:col-span-2">
+                                <Label>YouTube video link</Label>
+                                <FormInput value={form.data.turnkey.button_url} onChange={(event) => form.setData('turnkey', { ...form.data.turnkey, button_url: event.target.value })} placeholder="https://www.youtube.com/watch?v=..." />
+                                <FieldError message={form.errors['turnkey.button_url']} />
+                                <FieldHint>Leave blank to show the default wooden-art media in this section.</FieldHint>
+                            </Field>
+                        </div>
+                        <div className="mt-6 space-y-5">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <h3 className="text-sm font-semibold text-zinc-950 dark:text-white">Service cards</h3>
+                                <Button type="button" color="light" onClick={addTurnkeyItem}>Add service</Button>
+                            </div>
+                            {form.data.turnkey.items.map((item, index) => (
+                                <div key={item.id ?? `turnkey-${index}`} className="rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
+                                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                        <p className="text-sm font-semibold text-zinc-950 dark:text-white">Service {index + 1}</p>
+                                        <Button type="button" color="light" onClick={() => removeTurnkeyItem(index)}>Remove</Button>
+                                    </div>
+                                    <div className="grid gap-4 lg:grid-cols-2">
+                                        <Field>
+                                            <Label>Title</Label>
+                                            <FormInput value={item.heading} onChange={(event) => setTurnkeyItem(index, { ...item, heading: event.target.value })} />
+                                            <FieldError message={form.errors[`turnkey.items.${index}.heading`]} />
+                                        </Field>
+                                        <Field>
+                                            <Label>Sort order</Label>
+                                            <FormInput type="number" min={0} value={item.sort_order} onChange={(event) => setTurnkeyItem(index, { ...item, sort_order: Number(event.target.value) })} />
+                                        </Field>
+                                        <Field className="lg:col-span-2">
+                                            <Label>Text</Label>
+                                            <FormTextarea rows={3} value={item.body_text} onChange={(event) => setTurnkeyItem(index, { ...item, body_text: event.target.value })} />
+                                        </Field>
+                                        <Field>
+                                            <Label>Visibility</Label>
+                                            <ToggleField label="Active" checked={item.is_active} onChange={(checked) => setTurnkeyItem(index, { ...item, is_active: checked })} />
+                                        </Field>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </PagePanel>
+
+                    <PagePanel>
+                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">About Zarokha</h2>
+                                <Text>Manage the homepage about preview section.</Text>
+                            </div>
+                            <ToggleField
+                                label="Visible"
+                                checked={form.data.aboutPreview.is_visible}
+                                onChange={(checked) => form.setData('aboutPreview', { ...form.data.aboutPreview, is_visible: checked })}
+                            />
+                        </div>
+                        <div className="grid gap-5 lg:grid-cols-2">
+                            <Field>
+                                <Label>Eyebrow</Label>
+                                <FormInput value={form.data.aboutPreview.eyebrow} onChange={(event) => form.setData('aboutPreview', { ...form.data.aboutPreview, eyebrow: event.target.value })} />
+                            </Field>
+                            <Field>
+                                <Label>Heading</Label>
+                                <FormInput value={form.data.aboutPreview.title} onChange={(event) => form.setData('aboutPreview', { ...form.data.aboutPreview, title: event.target.value })} />
+                            </Field>
+                            <Field className="lg:col-span-2">
+                                <Label>Intro</Label>
+                                <FormTextarea rows={3} value={form.data.aboutPreview.subtitle} onChange={(event) => form.setData('aboutPreview', { ...form.data.aboutPreview, subtitle: event.target.value })} />
+                            </Field>
+                            <Field className="lg:col-span-2">
+                                <Label>Body</Label>
+                                <FormTextarea rows={3} value={form.data.aboutPreview.body} onChange={(event) => form.setData('aboutPreview', { ...form.data.aboutPreview, body: event.target.value })} />
+                            </Field>
+                            <Field>
+                                <Label>Primary button label</Label>
+                                <FormInput value={form.data.aboutPreview.primary_button_label} onChange={(event) => form.setData('aboutPreview', { ...form.data.aboutPreview, primary_button_label: event.target.value })} />
+                            </Field>
+                            <Field>
+                                <Label>Primary button URL</Label>
+                                <FormInput value={form.data.aboutPreview.primary_button_url} onChange={(event) => form.setData('aboutPreview', { ...form.data.aboutPreview, primary_button_url: event.target.value })} />
+                                <FieldError message={form.errors['aboutPreview.primary_button_url']} />
+                            </Field>
+                            <Field>
+                                <Label>Secondary button label</Label>
+                                <FormInput value={form.data.aboutPreview.secondary_button_label} onChange={(event) => form.setData('aboutPreview', { ...form.data.aboutPreview, secondary_button_label: event.target.value })} />
+                            </Field>
+                            <Field>
+                                <Label>Secondary button URL</Label>
+                                <FormInput value={form.data.aboutPreview.secondary_button_url} onChange={(event) => form.setData('aboutPreview', { ...form.data.aboutPreview, secondary_button_url: event.target.value })} />
+                                <FieldError message={form.errors['aboutPreview.secondary_button_url']} />
+                            </Field>
+                            <Field className="lg:col-span-2">
+                                <Label>Section image</Label>
+                                <MediaDropSelect
+                                    value={form.data.aboutPreview.background_media_id}
+                                    options={mediaChoices}
+                                    preview={imageFor(mediaChoices, form.data.aboutPreview.background_media_id)}
+                                    label="About preview image"
+                                    onUploaded={rememberUploadedMedia}
+                                    onChange={(background_media_id) => form.setData('aboutPreview', { ...form.data.aboutPreview, background_media_id })}
+                                />
+                            </Field>
+                        </div>
+                        <div className="mt-6 space-y-5">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <h3 className="text-sm font-semibold text-zinc-950 dark:text-white">Strength points</h3>
+                                <Button type="button" color="light" onClick={addAboutPoint}>Add point</Button>
+                            </div>
+                            {form.data.aboutPreview.points.map((point, index) => (
+                                <div key={point.id ?? `about-point-${index}`} className="rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
+                                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                        <p className="text-sm font-semibold text-zinc-950 dark:text-white">Point {index + 1}</p>
+                                        <Button type="button" color="light" onClick={() => removeAboutPoint(index)}>Remove</Button>
+                                    </div>
+                                    <div className="grid gap-4 lg:grid-cols-2">
+                                        <Field>
+                                            <Label>Text</Label>
+                                            <FormInput value={point.heading} onChange={(event) => setAboutPoint(index, { ...point, heading: event.target.value })} />
+                                            <FieldError message={form.errors[`aboutPreview.points.${index}.heading`]} />
+                                        </Field>
+                                        <Field>
+                                            <Label>Sort order</Label>
+                                            <FormInput type="number" min={0} value={point.sort_order} onChange={(event) => setAboutPoint(index, { ...point, sort_order: Number(event.target.value) })} />
+                                        </Field>
+                                        <Field>
+                                            <Label>Visibility</Label>
+                                            <ToggleField label="Active" checked={point.is_active} onChange={(checked) => setAboutPoint(index, { ...point, is_active: checked })} />
+                                        </Field>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </PagePanel>
+
+                    <PagePanel>
+                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Stats of Zarokha</h2>
+                                <Text>Manage the homepage counter section.</Text>
+                            </div>
+                            <ToggleField
+                                label="Visible"
+                                checked={form.data.industryStats.is_visible}
+                                onChange={(checked) => form.setData('industryStats', { ...form.data.industryStats, is_visible: checked })}
+                            />
+                        </div>
+                        <div className="grid gap-5 lg:grid-cols-2">
+                            <Field>
+                                <Label>Title</Label>
+                                <FormInput value={form.data.industryStats.title} onChange={(event) => form.setData('industryStats', { ...form.data.industryStats, title: event.target.value })} />
+                            </Field>
+                            <Field>
+                                <Label>Highlighted word</Label>
+                                <FormInput value={form.data.industryStats.highlight} onChange={(event) => form.setData('industryStats', { ...form.data.industryStats, highlight: event.target.value })} />
+                            </Field>
+                            <Field className="lg:col-span-2">
+                                <Label>Subtitle</Label>
+                                <FormInput value={form.data.industryStats.subtitle} onChange={(event) => form.setData('industryStats', { ...form.data.industryStats, subtitle: event.target.value })} />
+                            </Field>
+                            <Field className="lg:col-span-2">
+                                <Label>Footer text</Label>
+                                <FormTextarea rows={3} value={form.data.industryStats.body} onChange={(event) => form.setData('industryStats', { ...form.data.industryStats, body: event.target.value })} />
+                                <FieldHint>Use :contact and :more where the links should appear.</FieldHint>
+                            </Field>
+                            <Field>
+                                <Label>Contact label</Label>
+                                <FormInput value={form.data.industryStats.contact_label} onChange={(event) => form.setData('industryStats', { ...form.data.industryStats, contact_label: event.target.value })} />
+                            </Field>
+                            <Field>
+                                <Label>Contact URL</Label>
+                                <FormInput value={form.data.industryStats.contact_url} onChange={(event) => form.setData('industryStats', { ...form.data.industryStats, contact_url: event.target.value })} />
+                                <FieldError message={form.errors['industryStats.contact_url']} />
+                            </Field>
+                            <Field>
+                                <Label>View more label</Label>
+                                <FormInput value={form.data.industryStats.more_label} onChange={(event) => form.setData('industryStats', { ...form.data.industryStats, more_label: event.target.value })} />
+                            </Field>
+                            <Field>
+                                <Label>View more URL</Label>
+                                <FormInput value={form.data.industryStats.more_url} onChange={(event) => form.setData('industryStats', { ...form.data.industryStats, more_url: event.target.value })} />
+                                <FieldError message={form.errors['industryStats.more_url']} />
+                            </Field>
+                        </div>
+                        <div className="mt-6 space-y-5">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <h3 className="text-sm font-semibold text-zinc-950 dark:text-white">Counters</h3>
+                                <Button type="button" color="light" onClick={addIndustryStat}>Add counter</Button>
+                            </div>
+                            {form.data.industryStats.items.map((item, index) => (
+                                <div key={item.id ?? `industry-stat-${index}`} className="rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
+                                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                        <p className="text-sm font-semibold text-zinc-950 dark:text-white">Counter {index + 1}</p>
+                                        <Button type="button" color="light" onClick={() => removeIndustryStat(index)}>Remove</Button>
+                                    </div>
+                                    <div className="grid gap-4 lg:grid-cols-2">
+                                        <Field>
+                                            <Label>Number</Label>
+                                            <FormInput value={item.heading} onChange={(event) => setIndustryStat(index, { ...item, heading: event.target.value })} />
+                                            <FieldError message={form.errors[`industryStats.items.${index}.heading`]} />
+                                        </Field>
+                                        <Field>
+                                            <Label>Label</Label>
+                                            <FormInput value={item.body_text} onChange={(event) => setIndustryStat(index, { ...item, body_text: event.target.value })} />
+                                            <FieldError message={form.errors[`industryStats.items.${index}.body_text`]} />
+                                        </Field>
+                                        <Field>
+                                            <Label>Sort order</Label>
+                                            <FormInput type="number" min={0} value={item.sort_order} onChange={(event) => setIndustryStat(index, { ...item, sort_order: Number(event.target.value) })} />
+                                        </Field>
+                                        <Field>
+                                            <Label>Visibility</Label>
+                                            <ToggleField label="Active" checked={item.is_active} onChange={(checked) => setIndustryStat(index, { ...item, is_active: checked })} />
+                                        </Field>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </PagePanel>
+
+                    <LatestProducts form={form} ToggleField={ToggleField} />
+
+                    <QuickInquiry
+                        form={form}
+                        ToggleField={ToggleField}
+                        addBanner={addBanner}
+                        removeBanner={removeBanner}
+                        setBanner={setBanner}
+                        mediaOptions={mediaChoices}
+                        onMediaUploaded={rememberUploadedMedia}
+                    />
 
                     <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-950/10 bg-white/95 p-4 shadow-lg backdrop-blur dark:border-white/10 dark:bg-zinc-900/95">
-                        <Text>Save writes all homepage CMS sections together.</Text>
+                        <div>
+                            <Text>Save writes the seven homepage CMS editors together.</Text>
+                            {Object.keys(form.errors).length > 0 ? (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                                    Homepage was not saved. Please fix the highlighted fields and save again.
+                                </p>
+                            ) : null}
+                        </div>
                         <div className="flex gap-3">
-                            <Button href="/" color="light">
-                                View homepage
-                            </Button>
+                            <Button href="/" color="light">View homepage</Button>
                             <Button type="submit" disabled={form.processing}>
                                 {form.processing ? 'Saving' : 'Save homepage'}
                             </Button>

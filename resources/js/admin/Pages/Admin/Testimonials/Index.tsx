@@ -5,11 +5,43 @@ import { AdminShell } from '@admin/Layouts/AdminShell';
 import { Field, Label } from '@admin/Components/ui/fieldset';
 import { Text } from '@admin/Components/ui/text';
 import { FieldError, FormInput, FormSelect, FormTextarea, PagePanel } from '@admin/Components/AdminPrimitives';
+import { MediaDropSelect, type MediaOption as UploadMediaOption } from '@admin/Components/MediaDropSelect';
+
+type TestimonialItem = {
+    id?: number;
+    customer_name: string;
+    location_or_role: string;
+    body_text: string;
+    image_media_id: number | '';
+    status: 'draft' | 'published';
+    sort_order: number;
+    is_visible: boolean;
+    previewUrl?: string | null;
+};
+
+type TestimonialsForm = {
+    title: string;
+    subtitle: string;
+    background_media_id: number | '';
+    background_color: string;
+    is_visible: boolean;
+    previewUrl?: string | null;
+    items: TestimonialItem[];
+};
 
 interface Props {
-    testimonials: any;
-    mediaOptions: any[];
+    testimonials: TestimonialsForm;
+    mediaOptions: MediaOption[];
 }
+
+type MediaOption = {
+    id: number;
+    label: string;
+    altText?: string | null;
+    url?: string | null;
+    previewUrl?: string | null;
+    status?: string;
+};
 
 function ToggleField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
     return (
@@ -21,7 +53,8 @@ function ToggleField({ label, checked, onChange }: { label: string; checked: boo
 }
 
 export default function TestimonialsIndex({ testimonials, mediaOptions }: Props) {
-    const { data, setData, put, processing, isDirty, errors } = useForm({
+    const [mediaChoices, setMediaChoices] = React.useState<MediaOption[]>(mediaOptions);
+    const { data, setData, put, processing, isDirty, errors } = useForm<TestimonialsForm>({
         ...testimonials,
     });
 
@@ -30,15 +63,15 @@ export default function TestimonialsIndex({ testimonials, mediaOptions }: Props)
         put('/admin/testimonials');
     };
 
-    const mediaSelect = (value: number | '', onChange: (value: number | '') => void) => (
-        <FormSelect value={value} onChange={(event) => onChange(event.target.value === '' ? '' : Number(event.target.value))}>
-            <option value="">Choose media</option>
-            {mediaOptions?.map((media) => (
-                <option key={media.id} value={media.id}>
-                    {media.label} ({media.status})
-                </option>
-            ))}
-        </FormSelect>
+    const rememberUploadedMedia = (media: UploadMediaOption) => {
+        setMediaChoices((current) => [
+            media,
+            ...current.filter((item) => item.id !== media.id),
+        ]);
+    };
+
+    const imageFor = (id: number | '') => (
+        id === '' ? null : mediaChoices.find((media) => media.id === id) ?? null
     );
 
     const addTestimonial = () => {
@@ -64,7 +97,7 @@ export default function TestimonialsIndex({ testimonials, mediaOptions }: Props)
         setData('items', newItems);
     };
 
-    const setTestimonial = (index: number, updatedItem: any) => {
+    const setTestimonial = (index: number, updatedItem: TestimonialItem) => {
         if (!Array.isArray(data.items)) return;
         const newItems = [...data.items];
         newItems[index] = updatedItem;
@@ -72,11 +105,11 @@ export default function TestimonialsIndex({ testimonials, mediaOptions }: Props)
     };
 
     return (
-        <AdminShell title="Testimonials" description="Manage customer testimonials and reviews.">
+        <AdminShell title="Testimonial" description="Manage testimonial lists, add testimonials, edit, remove, and switch them active or inactive.">
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex justify-end">
                     <Button type="submit" disabled={!isDirty || processing}>
-                        Save Changes
+                        Save testimonials
                     </Button>
                 </div>
 
@@ -95,24 +128,31 @@ export default function TestimonialsIndex({ testimonials, mediaOptions }: Props)
                     <div className="grid gap-5 lg:grid-cols-2">
                         <Field>
                             <Label>Section title</Label>
-                            <FormInput value={data.title} onChange={(event: any) => setData('title', event.target.value)} />
+                            <FormInput value={data.title} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setData('title', event.target.value)} />
                         </Field>
                         <Field>
                             <Label>Section subtitle</Label>
-                            <FormInput value={data.subtitle} onChange={(event: any) => setData('subtitle', event.target.value)} />
+                            <FormInput value={data.subtitle} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setData('subtitle', event.target.value)} />
                         </Field>
                         <Field>
                             <Label>Background image</Label>
-                            {mediaSelect(data.background_media_id, (background_media_id: any) => setData('background_media_id', background_media_id))}
+                            <MediaDropSelect
+                                value={data.background_media_id ?? ''}
+                                options={mediaChoices}
+                                preview={imageFor(data.background_media_id ?? '')}
+                                onUploaded={rememberUploadedMedia}
+                                onChange={(background_media_id) => setData('background_media_id', background_media_id)}
+                                label="Testimonials background"
+                            />
                         </Field>
                         <Field>
                             <Label>Background color</Label>
-                            <FormInput placeholder="#d7d4cf" value={data.background_color} onChange={(event: any) => setData('background_color', event.target.value)} />
+                            <FormInput placeholder="#d7d4cf" value={data.background_color} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setData('background_color', event.target.value)} />
                             <FieldError message={errors.background_color} />
                         </Field>
                     </div>
                     <div className="mt-6 space-y-5">
-                        {Array.isArray(data.items) && data.items.map((item: any, index: number) => (
+                        {Array.isArray(data.items) && data.items.map((item, index) => (
                             <div key={item.id ?? `new-${index}`} className="rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
                                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                                     <p className="text-sm font-semibold text-zinc-950 dark:text-white">Testimonial {index + 1}</p>
@@ -123,32 +163,39 @@ export default function TestimonialsIndex({ testimonials, mediaOptions }: Props)
                                 <div className="grid gap-4 lg:grid-cols-2">
                                     <Field>
                                         <Label>Customer name</Label>
-                                        <FormInput value={item.customer_name} onChange={(event: any) => setTestimonial(index, { ...item, customer_name: event.target.value })} />
+                                        <FormInput value={item.customer_name} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setTestimonial(index, { ...item, customer_name: event.target.value })} />
                                         <FieldError message={errors[`items.${index}.customer_name`]} />
                                     </Field>
                                     <Field>
                                         <Label>Location or role</Label>
-                                        <FormInput value={item.location_or_role} onChange={(event: any) => setTestimonial(index, { ...item, location_or_role: event.target.value })} />
+                                        <FormInput value={item.location_or_role} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setTestimonial(index, { ...item, location_or_role: event.target.value })} />
                                     </Field>
                                     <Field className="lg:col-span-2">
                                         <Label>Testimonial text</Label>
-                                        <FormTextarea rows={4} value={item.body_text} onChange={(event: any) => setTestimonial(index, { ...item, body_text: event.target.value })} />
+                                        <FormTextarea rows={4} value={item.body_text} onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setTestimonial(index, { ...item, body_text: event.target.value })} />
                                         <FieldError message={errors[`items.${index}.body_text`]} />
                                     </Field>
                                     <Field>
                                         <Label>Optional image</Label>
-                                        {mediaSelect(item.image_media_id, (image_media_id: any) => setTestimonial(index, { ...item, image_media_id }))}
+                                        <MediaDropSelect
+                                            value={item.image_media_id ?? ''}
+                                            options={mediaChoices}
+                                            preview={imageFor(item.image_media_id ?? '')}
+                                            onUploaded={rememberUploadedMedia}
+                                            onChange={(image_media_id) => setTestimonial(index, { ...item, image_media_id })}
+                                            label={`Testimonial image ${index + 1}`}
+                                        />
                                     </Field>
                                     <Field>
                                         <Label>Status</Label>
-                                        <FormSelect value={item.status} onChange={(event: any) => setTestimonial(index, { ...item, status: event.target.value as 'draft' | 'published' })}>
+                                        <FormSelect value={item.status} onChange={(event: React.ChangeEvent<HTMLSelectElement>) => setTestimonial(index, { ...item, status: event.target.value as 'draft' | 'published' })}>
                                             <option value="draft">Draft</option>
                                             <option value="published">Published</option>
                                         </FormSelect>
                                     </Field>
                                     <Field>
                                         <Label>Sort order</Label>
-                                        <FormInput type="number" min={0} value={item.sort_order} onChange={(event: any) => setTestimonial(index, { ...item, sort_order: Number(event.target.value) })} />
+                                        <FormInput type="number" min={0} value={item.sort_order} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setTestimonial(index, { ...item, sort_order: Number(event.target.value) })} />
                                     </Field>
                                     <Field>
                                         <Label>Visibility</Label>

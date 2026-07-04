@@ -112,6 +112,13 @@
         </div>
     </section>
 
+    @if ($quickInquirySection?->is_visible ?? true)
+        <x-public.home.quick-inquiry
+            :section="$quickInquirySection"
+            :contactInformation="$contactInformation"
+        />
+    @endif
+
     <template data-product-card-template>
         <article class="products-gallery-item" data-product-card>
             <a class="products-gallery-item__link">

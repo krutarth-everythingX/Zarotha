@@ -36,14 +36,17 @@ class ProductGalleryController extends Controller
                 ]),
             ],
             'mediaOptions' => MediaAsset::query()
+                ->with('variants')
                 ->where('status', 'processed')
                 ->orderByDesc('created_at')
                 ->limit(50)
-                ->get(['id', 'original_filename', 'alt_text'])
+                ->get()
                 ->map(fn (MediaAsset $asset) => [
                     'id' => $asset->id,
                     'label' => $asset->original_filename,
                     'altText' => $asset->alt_text,
+                    'url' => $asset->responsiveImage('25vw')['src'] ?? null,
+                    'status' => $asset->status,
                 ]),
         ]);
     }

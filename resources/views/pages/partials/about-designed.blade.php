@@ -1,125 +1,212 @@
 @php
-    $aboutTitle = $page?->title ?: 'About Us';
-    $introTitle = $page?->intro_title ?: 'The philosophy of quiet industry';
-    $introBody = $page?->intro_body ?: 'Zarokha Wooden Arts is shaped around calm material choices, patient handwork, and pieces that feel settled in the spaces they inhabit.';
-    $ctaLabel = $page?->cta_label ?: 'Explore Products';
-    $ctaUrl = $page?->cta_url ?: route('public.products.index');
+    $details = is_array($aboutDetails ?? null) ? $aboutDetails : [];
+    $mediaById = collect($aboutMedia ?? []);
+    $mediaFor = fn ($id) => is_numeric($id) ? $mediaById->get((int) $id) : null;
 
-    $aboutImages = [
-        asset('storage/media/fake.webp'),
-        asset('storage/media/inquiry-banner-1.jpg'),
-        asset('storage/media/inquiry-banner-2.jpg'),
-        asset('storage/media/inquiry-banner-0.jpg'),
-    ];
-
-    $pillars = [
-        [
-            'title' => 'Material Honesty',
-            'body' => 'Natural grains, tactility, and visible character guide every selection before form begins.',
-            'image' => $aboutImages[0],
-        ],
-        [
-            'title' => 'Measured Making',
-            'body' => 'Each piece moves through careful proportioning, finishing, and review before it is presented.',
-            'image' => $aboutImages[1],
-        ],
-        [
-            'title' => 'Graceful Utility',
-            'body' => 'Objects are designed to feel decorative, useful, and quietly present in everyday rooms.',
-            'image' => $aboutImages[2],
-        ],
-        [
-            'title' => 'Cultural Warmth',
-            'body' => 'Traditional craft cues are interpreted with restraint for contemporary homes and hospitality spaces.',
-            'image' => $aboutImages[3],
-        ],
-        [
-            'title' => 'Timeless Repair',
-            'body' => 'Durability, upkeep, and long-term use matter more than short-lived trends.',
-            'image' => $aboutImages[0],
-        ],
-    ];
+    $heroMedia = $mediaFor($page?->hero_media_id);
+    $catalogMedia = $mediaFor($details['catalog_media_id'] ?? null);
+    $certificateMedia = $mediaFor($details['certificate_media_id'] ?? null);
+    $strengthMedia = $mediaFor($details['strength_media_id'] ?? null);
+    $galleryMedia = collect($details['gallery_media_ids'] ?? [])
+        ->map(fn ($id) => $mediaFor($id))
+        ->filter()
+        ->values();
+    $whyItems = collect($details['why_items'] ?? [])
+        ->map(fn ($item) => trim((string) $item))
+        ->filter()
+        ->values();
+    $stats = collect($details['stats'] ?? [])
+        ->filter(fn ($item) => trim((string) ($item['value'] ?? '')) !== '' && trim((string) ($item['label'] ?? '')) !== '')
+        ->values();
+    $skills = collect($details['skills'] ?? [])
+        ->filter(fn ($item) => trim((string) ($item['label'] ?? '')) !== '')
+        ->values();
+    $clientTitle = trim((string) ($details['client_title'] ?? ''));
+    $hasStoryMedia = (bool) ($aboutYoutubeEmbedUrl || $heroMedia);
+    $hasProofMedia = $galleryMedia->isNotEmpty();
+    $hasCertificateMedia = (bool) $certificateMedia;
+    $hasStats = $stats->isNotEmpty();
+    $hasStrengthMedia = (bool) $strengthMedia;
 @endphp
 
-<section class="about-hero" aria-labelledby="about-hero-title">
-    <div class="about-hero__inner">
-        <div class="about-hero__media">
-            <img src="{{ $aboutImages[0] }}" alt="Sunlit woodland landscape representing natural material origins" loading="eager" decoding="async">
-            <aside class="about-hero__note" aria-label="Brand note">
-                <p>Handcrafted decor for spaces that value warmth, texture, and permanence.</p>
-                <span>Zarokha Wooden Arts</span>
-            </aside>
-        </div>
+<section @class(['about-story', 'about-story--with-media' => $hasStoryMedia, 'about-story--text-only' => ! $hasStoryMedia]) aria-labelledby="about-story-title">
+    <div class="about-story__inner">
+        @if ($hasStoryMedia)
+            <div class="about-story__video">
+                @if ($aboutYoutubeEmbedUrl)
+                <iframe
+                    src="{{ $aboutYoutubeEmbedUrl }}"
+                    title="{{ $details['video_title'] ?? $page?->title ?? config('app.name') }}"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                ></iframe>
+                @elseif ($heroMedia)
+                    <x-public.image :media="$heroMedia" sizes="(min-width: 1024px) 42vw, 100vw" class="about-story__image" loading="eager" />
+                @endif
+            </div>
+        @endif
 
-        <div class="about-hero__copy">
-            <p class="about-kicker">About Zarokha</p>
-            <h1 id="about-hero-title">{{ $introTitle }}</h1>
-            <p>{{ $introBody }}</p>
-            <p>Our approach begins with the character of the wood, then moves through proportion, finish, and the small decisions that make an object feel grounded.</p>
-            <a href="{{ $ctaUrl }}" class="about-button">{{ $ctaLabel }}</a>
+        <div class="about-story__copy">
+            @if (! empty($details['who_we_are_kicker']))
+                <p class="about-kicker">{{ $details['who_we_are_kicker'] }}</p>
+            @endif
+            <h1 id="about-story-title">{{ $details['who_we_are_title'] ?? $page?->intro_title ?? $page?->title }}</h1>
+            @if (! empty($details['who_we_are_body']) || $page?->intro_body)
+                <p>{{ $details['who_we_are_body'] ?? $page->intro_body }}</p>
+            @endif
+            @if (! empty($details['hero_note']))
+                <p class="about-story__note">{{ $details['hero_note'] }}</p>
+            @endif
+            @if ($page?->cta_label && $page?->cta_url)
+                <a href="{{ $page->cta_url }}" class="about-button">{{ $page->cta_label }}</a>
+            @endif
         </div>
     </div>
 </section>
 
-<section class="about-pillars" aria-labelledby="about-pillars-title">
-    <div class="about-section-heading">
-        <h2 id="about-pillars-title">Five columns of permanence</h2>
-    </div>
+@if ($whyItems->isNotEmpty() || $galleryMedia->isNotEmpty() || $catalogMedia)
+    <section @class(['about-proof', 'about-proof--with-media' => $hasProofMedia, 'about-proof--text-only' => ! $hasProofMedia]) aria-labelledby="about-proof-title">
+        <div class="about-proof__inner">
+            <div class="about-proof__copy">
+                @if (! empty($details['why_title']))
+                    <h2 id="about-proof-title">{{ $details['why_title'] }}</h2>
+                @endif
 
-    <div class="about-pillars__grid">
-        @foreach ($pillars as $pillar)
-            <article class="about-pillar">
-                <span class="about-pillar__number">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
-                <h3>{{ $pillar['title'] }}</h3>
-                <p>{{ $pillar['body'] }}</p>
-                <img src="{{ $pillar['image'] }}" alt="" loading="lazy" decoding="async">
-            </article>
-        @endforeach
-    </div>
-</section>
+                @if ($whyItems->isNotEmpty())
+                    <ul class="about-check-list">
+                        @foreach ($whyItems as $item)
+                            <li>{{ $item }}</li>
+                        @endforeach
+                    </ul>
+                @endif
 
-<section class="about-sanctuary" aria-labelledby="about-sanctuary-title">
-    <div class="about-sanctuary__inner">
-        <div class="about-sanctuary__copy">
-            <p class="about-kicker">Studio Ethos</p>
-            <h2 id="about-sanctuary-title">A sanctuary of quiet industry</h2>
-            <p>Layered craft, considered material, and a slower design rhythm come together in a studio language that favors presence over noise.</p>
-            <a href="{{ route('public.contact.show') }}" class="about-button about-button--light">Make an Inquiry</a>
-        </div>
-        <img src="{{ $aboutImages[1] }}" alt="Quiet green valley landscape expressing calm studio rhythm" loading="lazy" decoding="async">
-    </div>
-</section>
-
-<section class="about-visit" aria-labelledby="about-visit-title">
-    <div class="about-visit__inner">
-        <div class="about-visit__copy">
-            <p class="about-kicker">Visit the Studio</p>
-            <h2 id="about-visit-title">{{ $aboutTitle }}</h2>
-            <p>Visits are arranged by appointment so every conversation can be personal, unhurried, and focused on the piece or space you are imagining.</p>
-
-            <dl class="about-visit__details">
-                <div>
-                    <dt>Location</dt>
-                    <dd>{{ $contactInformation?->show_address && $contactInformation?->address_line_1 ? $contactInformation->address_line_1 : 'Available by appointment' }}</dd>
-                </div>
-                <div>
-                    <dt>Contact</dt>
-                    <dd>
-                        @if ($contactInformation?->show_email && $contactInformation->email_primary)
-                            <a href="mailto:{{ $contactInformation->email_primary }}">{{ $contactInformation->email_primary }}</a>
-                        @else
-                            Send an inquiry to begin
+                @if (! empty($details['catalog_title']) || ! empty($details['catalog_body']) || $catalogMedia)
+                    <div @class(['about-catalog', 'about-catalog--with-media' => $catalogMedia, 'about-catalog--text-only' => ! $catalogMedia])>
+                        @if ($catalogMedia)
+                            <x-public.image :media="$catalogMedia" sizes="96px" class="about-catalog__image" />
                         @endif
-                    </dd>
+                        <div>
+                            @if (! empty($details['catalog_title']))
+                                <h3>{{ $details['catalog_title'] }}</h3>
+                            @endif
+                            @if (! empty($details['catalog_body']))
+                                <p>{{ $details['catalog_body'] }}</p>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            @if ($galleryMedia->isNotEmpty())
+                <div class="about-proof__gallery" aria-label="About page image gallery">
+                    @foreach ($galleryMedia as $media)
+                        <x-public.image :media="$media" sizes="(min-width: 1024px) 23vw, 50vw" class="about-proof__image" />
+                    @endforeach
                 </div>
-            </dl>
-
-            <a href="{{ route('public.contact.show') }}" class="about-button">Request a Studio Visit</a>
+            @endif
         </div>
+    </section>
+@endif
 
-        <div class="about-map" aria-label="Decorative map placeholder">
-            <span class="about-map__pin"></span>
-            <span class="about-map__label">Zarokha Studio</span>
+@if (! empty($details['vision_title']) || ! empty($details['vision_body']) || ! empty($details['mission_title']) || ! empty($details['mission_body']) || $certificateMedia)
+    <section @class(['about-vision', 'about-vision--with-media' => $hasCertificateMedia, 'about-vision--text-only' => ! $hasCertificateMedia]) aria-labelledby="about-vision-title">
+        <div class="about-vision__inner">
+            <div class="about-vision__copy">
+                @if (! empty($details['vision_title']))
+                    <h2 id="about-vision-title">{{ $details['vision_title'] }}</h2>
+                @endif
+                @if (! empty($details['vision_body']))
+                    <p>{{ $details['vision_body'] }}</p>
+                @endif
+
+                @if (! empty($details['mission_title']) || ! empty($details['mission_body']))
+                    <div class="about-mission">
+                        @if (! empty($details['mission_title']))
+                            <h3>{{ $details['mission_title'] }}</h3>
+                        @endif
+                        @if (! empty($details['mission_body']))
+                            <p>{{ $details['mission_body'] }}</p>
+                        @endif
+                    </div>
+                @endif
+            </div>
+
+            @if ($certificateMedia)
+                <div class="about-certificate">
+                    <x-public.image :media="$certificateMedia" sizes="(min-width: 1024px) 34vw, 90vw" class="about-certificate__image" />
+                </div>
+            @endif
         </div>
-    </div>
-</section>
+    </section>
+@endif
+
+@if (! empty($details['aim_title']) || ! empty($details['aim_body']) || $stats->isNotEmpty())
+    <section @class(['about-aim', 'about-aim--with-stats' => $hasStats, 'about-aim--text-only' => ! $hasStats]) aria-labelledby="about-aim-title">
+        <div class="about-aim__inner">
+            <div class="about-aim__copy">
+                @if (! empty($details['aim_title']))
+                    <h2 id="about-aim-title">{{ $details['aim_title'] }}</h2>
+                @endif
+                @if (! empty($details['aim_body']))
+                    <p>{{ $details['aim_body'] }}</p>
+                @endif
+            </div>
+
+            @if ($stats->isNotEmpty())
+                <div class="about-stats">
+                    @foreach ($stats as $stat)
+                        <article>
+                            <strong>{{ $stat['value'] }}</strong>
+                            <span>{{ $stat['label'] }}</span>
+                        </article>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </section>
+@endif
+
+@if (! empty($details['strength_title']) || ! empty($details['strength_body']) || $skills->isNotEmpty() || $strengthMedia)
+    <section @class(['about-strength', 'about-strength--with-media' => $hasStrengthMedia, 'about-strength--text-only' => ! $hasStrengthMedia]) aria-labelledby="about-strength-title">
+        <div class="about-strength__panel">
+            <div class="about-strength__copy">
+                @if (! empty($details['strength_kicker']))
+                    <p class="about-kicker">{{ $details['strength_kicker'] }}</p>
+                @endif
+                @if (! empty($details['strength_title']))
+                    <h2 id="about-strength-title">{{ $details['strength_title'] }}</h2>
+                @endif
+                @if (! empty($details['strength_body']))
+                    <p>{{ $details['strength_body'] }}</p>
+                @endif
+
+                @if ($skills->isNotEmpty())
+                    <div class="about-skill-list">
+                        @foreach ($skills as $skill)
+                            @php
+                                $percent = min(max((int) ($skill['percent'] ?? 0), 0), 100);
+                            @endphp
+                            <div class="about-skill">
+                                <div>
+                                    <span>{{ $skill['label'] }}</span>
+                                    <strong>{{ $percent }}%</strong>
+                                </div>
+                                <i style="--about-skill-width: {{ $percent }}%"></i>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            @if ($strengthMedia)
+                <x-public.image :media="$strengthMedia" sizes="(min-width: 1024px) 48vw, 100vw" class="about-strength__image" />
+            @endif
+        </div>
+    </section>
+@endif
+
+<x-public.home.clients
+    :clients="$clients"
+    :title="$clientTitle"
+/>

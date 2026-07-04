@@ -28,7 +28,7 @@ class StoreProductRequest extends FormRequest
             'material' => ['nullable', 'string', 'max:150'],
             'finish' => ['nullable', 'string', 'max:150'],
             'featured_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
-            'status' => ['required', Rule::in(['draft', 'published', 'archived', 'out-of-stock'])],
+            'status' => ['required', Rule::in(['draft', 'published', 'archived'])],
             'published_at' => ['nullable', 'date'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'is_featured' => ['required', 'boolean'],

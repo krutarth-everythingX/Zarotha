@@ -43,4 +43,20 @@ class SiteSetting extends Model
     {
         return $this->belongsTo(User::class, 'updated_by_user_id');
     }
+
+    /**
+     * @return BelongsTo<MediaAsset, $this>
+     */
+    public function lightLogo(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'light_logo_media_id');
+    }
+
+    /**
+     * @return BelongsTo<MediaAsset, $this>
+     */
+    public function darkLogo(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'dark_logo_media_id');
+    }
 }

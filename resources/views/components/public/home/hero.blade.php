@@ -22,6 +22,14 @@
                                         loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                                     >
                                 @endif
+                            @else
+                                <img
+                                    src="{{ $banner->fallback_image_url ?? asset('images/default-hero-wooden-art-1.svg') }}"
+                                    width="1600"
+                                    height="900"
+                                    alt="{{ $banner->fallback_image_alt ?? '' }}"
+                                    loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
+                                >
                             @endif
                         </picture>
                     @endforeach

@@ -2,28 +2,52 @@ import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@admin/Components/ui/button';
 import { Field, Label } from '@admin/Components/ui/fieldset';
 import { AdminShell } from '@admin/Layouts/AdminShell';
-import { FormInput, FormSelect, PagePanel } from '@admin/Components/AdminPrimitives';
+import { FormInput, PagePanel } from '@admin/Components/AdminPrimitives';
+import { Text } from '@admin/Components/ui/text';
+import { MediaDropSelect, type MediaOption as UploadMediaOption } from '@admin/Components/MediaDropSelect';
+import { useState } from 'react';
 
 type SettingsGeneralProps = {
     settings: {
         siteName: string;
         lightLogoMediaId: number | null;
         darkLogoMediaId: number | null;
+        lightLogo: UploadMediaOption | null;
+        darkLogo: UploadMediaOption | null;
     };
-    mediaOptions: { id: number; label: string; status: string }[];
+    mediaOptions: UploadMediaOption[];
+};
+
+type SettingsForm = {
+    site_name: string;
+    light_logo_media_id: number | '';
+    dark_logo_media_id: number | '';
 };
 
 export default function SettingsGeneral({ settings, mediaOptions }: SettingsGeneralProps) {
-    const form = useForm({
+    const [mediaChoices, setMediaChoices] = useState<UploadMediaOption[]>(mediaOptions);
+    const form = useForm<SettingsForm>({
         site_name: settings.siteName ?? '',
         light_logo_media_id: settings.lightLogoMediaId ?? '',
         dark_logo_media_id: settings.darkLogoMediaId ?? '',
     });
 
+    const rememberUploadedMedia = (media: UploadMediaOption) => {
+        setMediaChoices((current) => [media, ...current.filter((item) => item.id !== media.id)]);
+    };
+
+    const removeLogos = () => {
+        form.setData({
+            ...form.data,
+            light_logo_media_id: '',
+            dark_logo_media_id: '',
+        });
+    };
+
     return (
         <>
             <Head title="Settings" />
-            <AdminShell title="Settings" description="Manage singleton site-wide operational settings without creating duplicate records.">
+            <AdminShell title="Settings" description="Keep one company name and logo set for the CMS and public website.">
                 <PagePanel>
                     <form
                         className="space-y-6"
@@ -32,42 +56,46 @@ export default function SettingsGeneral({ settings, mediaOptions }: SettingsGene
                             form.patch('/admin/settings');
                         }}
                     >
-                        <Field>
-                            <Label>Site name</Label>
-                            <FormInput value={form.data.site_name} onChange={(event) => form.setData('site_name', event.target.value)} />
-                        </Field>
+                        <div>
+                            <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Company identity</h2>
+                            <Text className="mt-2">There is one settings record. Editing here updates the existing company name and logo instead of creating duplicates.</Text>
+                        </div>
 
-                        <Field>
-                            <Label>Light Theme Logo</Label>
-                            <FormSelect
-                                value={form.data.light_logo_media_id}
-                                onChange={(event) => form.setData('light_logo_media_id', event.target.value === '' ? '' : Number(event.target.value))}
-                            >
-                                <option value="">Choose media</option>
-                                {mediaOptions.map((media) => (
-                                    <option key={media.id} value={media.id}>
-                                        {media.label}
-                                    </option>
-                                ))}
-                            </FormSelect>
-                        </Field>
+                        <div className="grid gap-6 lg:grid-cols-2">
+                            <Field className="lg:col-span-2">
+                                <Label>Company name</Label>
+                                <FormInput value={form.data.site_name} onChange={(event) => form.setData('site_name', event.target.value)} />
+                            </Field>
 
-                        <Field>
-                            <Label>Dark Theme Logo</Label>
-                            <FormSelect
-                                value={form.data.dark_logo_media_id}
-                                onChange={(event) => form.setData('dark_logo_media_id', event.target.value === '' ? '' : Number(event.target.value))}
-                            >
-                                <option value="">Choose media</option>
-                                {mediaOptions.map((media) => (
-                                    <option key={media.id} value={media.id}>
-                                        {media.label}
-                                    </option>
-                                ))}
-                            </FormSelect>
-                        </Field>
+                            <Field>
+                                <Label>Main logo</Label>
+                                <MediaDropSelect
+                                    value={form.data.light_logo_media_id}
+                                    options={mediaChoices}
+                                    preview={settings.lightLogo}
+                                    onUploaded={rememberUploadedMedia}
+                                    onChange={(val) => form.setData('light_logo_media_id', val)}
+                                    label="Main logo"
+                                />
+                            </Field>
 
-                        <div className="flex justify-end pt-4">
+                            <Field>
+                                <Label>Mobile/sidebar logo</Label>
+                                <MediaDropSelect
+                                    value={form.data.dark_logo_media_id}
+                                    options={mediaChoices}
+                                    preview={settings.darkLogo}
+                                    onUploaded={rememberUploadedMedia}
+                                    onChange={(val) => form.setData('dark_logo_media_id', val)}
+                                    label="Mobile/sidebar logo"
+                                />
+                            </Field>
+                        </div>
+
+                        <div className="flex flex-wrap justify-end gap-3 pt-4">
+                            <Button type="button" color="light" onClick={removeLogos}>
+                                Remove logo
+                            </Button>
                             <Button type="submit">Save settings</Button>
                         </div>
                     </form>

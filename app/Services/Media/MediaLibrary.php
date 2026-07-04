@@ -6,6 +6,7 @@ use App\Jobs\GenerateMediaVariants;
 use App\Models\MediaAsset;
 use App\Models\Product;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -38,33 +39,53 @@ class MediaLibrary
             throw new RuntimeException('Uploaded image could not be stored.');
         }
 
-        return DB::transaction(function () use ($contents, $directory, $disk, $filename, $file, $imageSize, $mimeType, $path, $userId, $metadata): MediaAsset {
-            Storage::disk($disk)->put($path, $contents);
+        $sha256 = hash('sha256', $contents);
 
-            /** @var MediaAsset $mediaAsset */
-            $mediaAsset = MediaAsset::query()->create([
-                'disk' => $disk,
-                'directory' => $directory,
-                'filename' => $filename,
-                'original_filename' => $file->getClientOriginalName(),
-                'mime_type' => $mimeType,
-                'extension' => $this->extensionForMimeType($mimeType),
-                'bytes' => $file->getSize(),
-                'width' => $imageSize[0],
-                'height' => $imageSize[1],
-                'alt_text' => $metadata['alt_text'] ?? null,
-                'caption' => $metadata['caption'] ?? null,
-                'sha256' => hash('sha256', $contents),
-                'status' => 'uploaded',
-                'visibility' => 'public',
-                'created_by_user_id' => $userId,
-                'updated_by_user_id' => $userId,
-            ]);
+        if ($existing = $this->reuseExistingUpload($sha256, $contents, $file, $imageSize, $mimeType, $userId, $metadata)) {
+            return $existing;
+        }
 
-            GenerateMediaVariants::dispatch($mediaAsset->id);
+        try {
+            return DB::transaction(function () use ($contents, $directory, $disk, $extension, $filename, $file, $imageSize, $mimeType, $path, $sha256, $userId, $metadata): MediaAsset {
+                Storage::disk($disk)->put($path, $contents);
 
-            return $mediaAsset;
-        });
+                /** @var MediaAsset $mediaAsset */
+                $mediaAsset = MediaAsset::query()->create([
+                    'disk' => $disk,
+                    'directory' => $directory,
+                    'filename' => $filename,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'mime_type' => $mimeType,
+                    'extension' => $extension,
+                    'bytes' => $file->getSize(),
+                    'width' => $imageSize[0],
+                    'height' => $imageSize[1],
+                    'alt_text' => $metadata['alt_text'] ?? null,
+                    'caption' => $metadata['caption'] ?? null,
+                    'sha256' => $sha256,
+                    'status' => 'uploaded',
+                    'visibility' => 'public',
+                    'created_by_user_id' => $userId,
+                    'updated_by_user_id' => $userId,
+                ]);
+
+                GenerateMediaVariants::dispatch($mediaAsset->id);
+
+                return $mediaAsset;
+            });
+        } catch (QueryException $exception) {
+            if (! $this->isDuplicateShaException($exception)) {
+                throw $exception;
+            }
+
+            Storage::disk($disk)->delete($path);
+
+            if ($existing = $this->reuseExistingUpload($sha256, $contents, $file, $imageSize, $mimeType, $userId, $metadata)) {
+                return $existing;
+            }
+
+            throw $exception;
+        }
     }
 
     public function replaceUpload(MediaAsset $mediaAsset, UploadedFile $file, int $userId): MediaAsset
@@ -133,14 +154,60 @@ class MediaLibrary
     {
         return Product::query()->where('featured_media_id', $mediaAsset->id)->count()
             + Product::query()->where('og_image_media_id', $mediaAsset->id)->count()
-            + DB::table('product_media')->where('media_asset_id', $mediaAsset->id)->count()
-            + DB::table('pages')->where('hero_media_id', $mediaAsset->id)->orWhere('og_image_media_id', $mediaAsset->id)->count()
-            + DB::table('hero_banners')->where('desktop_media_id', $mediaAsset->id)->orWhere('mobile_media_id', $mediaAsset->id)->count()
-            + DB::table('homepage_sections')->where('background_media_id', $mediaAsset->id)->orWhere('mobile_media_id', $mediaAsset->id)->count()
+            + DB::table('product_media')
+                ->where('media_asset_id', $mediaAsset->id)
+                ->count()
+            + DB::table('pages')
+                ->where(function ($query) use ($mediaAsset): void {
+                    $query->where('hero_media_id', $mediaAsset->id)
+                        ->orWhere('og_image_media_id', $mediaAsset->id);
+                })
+                ->count()
+            + $this->aboutDetailsReferenceCount($mediaAsset->id)
+            + DB::table('hero_banners')
+                ->where(function ($query) use ($mediaAsset): void {
+                    $query->where('desktop_media_id', $mediaAsset->id)
+                        ->orWhere('mobile_media_id', $mediaAsset->id);
+                })
+                ->count()
+            + DB::table('homepage_sections')
+                ->where(function ($query) use ($mediaAsset): void {
+                    $query->where('background_media_id', $mediaAsset->id)
+                        ->orWhere('mobile_media_id', $mediaAsset->id);
+                })
+                ->count()
+            + DB::table('homepage_section_banners')->where('media_asset_id', $mediaAsset->id)->count()
             + DB::table('homepage_floating_product_items')->where('image_media_id', $mediaAsset->id)->count()
             + DB::table('homepage_testimonials')->where('image_media_id', $mediaAsset->id)->count()
+            + DB::table('clients')->where('logo_media_id', $mediaAsset->id)->count()
             + DB::table('why_choose_us_items')->where('icon_media_id', $mediaAsset->id)->count()
             + DB::table('site_settings')->where('default_og_image_media_id', $mediaAsset->id)->count();
+    }
+
+    private function aboutDetailsReferenceCount(int $mediaAssetId): int
+    {
+        return DB::table('pages')
+            ->whereNotNull('about_details')
+            ->get(['about_details'])
+            ->filter(function (object $page) use ($mediaAssetId): bool {
+                $details = json_decode((string) $page->about_details, true);
+
+                if (! is_array($details)) {
+                    return false;
+                }
+
+                $referencedIds = collect([
+                    $details['catalog_media_id'] ?? null,
+                    $details['certificate_media_id'] ?? null,
+                    $details['strength_media_id'] ?? null,
+                ])
+                    ->merge($details['gallery_media_ids'] ?? [])
+                    ->filter(fn ($id): bool => is_numeric($id))
+                    ->map(fn ($id): int => (int) $id);
+
+                return $referencedIds->contains($mediaAssetId);
+            })
+            ->count();
     }
 
     public function pruneOrphanUploads(int $olderThanHours = 24): int
@@ -185,5 +252,77 @@ class MediaLibrary
         }
 
         return $extensions[$mimeType];
+    }
+
+    /**
+     * @param  array{0:int,1:int}  $imageSize
+     * @param  array{alt_text?:string|null,caption?:string|null}  $metadata
+     */
+    private function reuseExistingUpload(string $sha256, string $contents, UploadedFile $file, array $imageSize, ?string $mimeType, int $userId, array $metadata): ?MediaAsset
+    {
+        /** @var MediaAsset|null $mediaAsset */
+        $mediaAsset = MediaAsset::withTrashed()
+            ->where('sha256', $sha256)
+            ->first();
+
+        if (! $mediaAsset) {
+            return null;
+        }
+
+        $shouldGenerateVariants = false;
+
+        DB::transaction(function () use ($contents, $file, $imageSize, $mediaAsset, $metadata, $mimeType, &$shouldGenerateVariants, $userId): void {
+            if ($mediaAsset->trashed()) {
+                $mediaAsset->restore();
+            }
+
+            $updates = [
+                'updated_by_user_id' => $userId,
+            ];
+
+            if (($metadata['alt_text'] ?? null) && trim((string) $mediaAsset->alt_text) === '') {
+                $updates['alt_text'] = $metadata['alt_text'];
+            }
+
+            if (($metadata['caption'] ?? null) && trim((string) $mediaAsset->caption) === '') {
+                $updates['caption'] = $metadata['caption'];
+            }
+
+            $originalMissing = ! Storage::disk($mediaAsset->disk)->exists($mediaAsset->path());
+
+            if ($originalMissing) {
+                Storage::disk($mediaAsset->disk)->put($mediaAsset->path(), $contents);
+                $updates = [
+                    ...$updates,
+                    'original_filename' => $mediaAsset->original_filename ?: $file->getClientOriginalName(),
+                    'mime_type' => $mimeType,
+                    'extension' => $this->extensionForMimeType($mimeType),
+                    'bytes' => $file->getSize(),
+                    'width' => $imageSize[0],
+                    'height' => $imageSize[1],
+                    'status' => 'uploaded',
+                ];
+                $shouldGenerateVariants = true;
+            }
+
+            if ($mediaAsset->status !== 'processed' || ! $mediaAsset->variants()->exists()) {
+                $updates['status'] = 'uploaded';
+                $shouldGenerateVariants = true;
+            }
+
+            $mediaAsset->update($updates);
+        });
+
+        if ($shouldGenerateVariants) {
+            GenerateMediaVariants::dispatch($mediaAsset->id);
+        }
+
+        return $mediaAsset->refresh();
+    }
+
+    private function isDuplicateShaException(QueryException $exception): bool
+    {
+        return ($exception->errorInfo[1] ?? null) === 1062
+            || str_contains((string) $exception->getMessage(), 'media_assets_sha256_unique');
     }
 }

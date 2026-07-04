@@ -35,6 +35,7 @@ class PageFactory extends Factory
             'intro_title' => fake()->sentence(2),
             'intro_body' => fake()->paragraph(),
             'body_html' => '<p>'.fake()->paragraph().'</p>',
+            'about_details' => null,
             'status' => PublishStatus::Draft,
             'robots_index' => true,
             'robots_follow' => true,

@@ -3,14 +3,120 @@
 namespace App\Http\Requests\Admin\Homepage;
 
 use App\Models\Product;
+use App\Support\YoutubeVideo;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateHomepageRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return $this->user()?->can('viewAny', Product::class) ?? false;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('quick_inquiry') && ! $this->has('quickInquiry')) {
+            $quickInquiry = $this->input('quick_inquiry', []);
+
+            $this->merge([
+                'quickInquiry' => [
+                    'title' => $quickInquiry['title'] ?? $quickInquiry['heading'] ?? null,
+                    'subtitle' => $quickInquiry['subtitle'] ?? $quickInquiry['subtext'] ?? null,
+                    'button_label' => $quickInquiry['button_label'] ?? null,
+                    'button_url' => $quickInquiry['button_url'] ?? null,
+                    'background_media_id' => $quickInquiry['background_media_id'] ?? null,
+                    'background_color' => $quickInquiry['background_color'] ?? null,
+                    'is_visible' => $quickInquiry['is_visible'] ?? true,
+                    'items' => $quickInquiry['items'] ?? [],
+                ],
+            ]);
+        }
+
+        $normalized = [];
+
+        if (is_array($this->input('hero'))) {
+            $hero = $this->input('hero');
+            $hero['items'] = $this->filledBannerItems($hero['items'] ?? []);
+            $normalized['hero'] = $hero;
+        }
+
+        if (is_array($this->input('quickInquiry'))) {
+            $quickInquiry = $this->input('quickInquiry');
+            $quickInquiry['items'] = $this->filledBannerItems($quickInquiry['items'] ?? []);
+            $normalized['quickInquiry'] = $quickInquiry;
+        }
+
+        if (is_array($this->input('turnkey'))) {
+            $turnkey = $this->input('turnkey');
+            $turnkey['items'] = $this->filledContentItems($turnkey['items'] ?? []);
+            $normalized['turnkey'] = $turnkey;
+        }
+
+        if (is_array($this->input('aboutPreview'))) {
+            $aboutPreview = $this->input('aboutPreview');
+            $aboutPreview['points'] = $this->filledContentItems($aboutPreview['points'] ?? []);
+            $normalized['aboutPreview'] = $aboutPreview;
+        }
+
+        if (is_array($this->input('industryStats'))) {
+            $industryStats = $this->input('industryStats');
+            $industryStats['items'] = $this->filledContentItems($industryStats['items'] ?? []);
+            $normalized['industryStats'] = $industryStats;
+        }
+
+        if ($normalized !== []) {
+            $this->merge($normalized);
+        }
+    }
+
+    /**
+     * @param  mixed  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function filledBannerItems(mixed $items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(function (mixed $item): ?array {
+            if (! is_array($item)) {
+                return null;
+            }
+
+            $imageMediaId = $item['imageMediaId'] ?? $item['image_media_id'] ?? null;
+
+            if ($this->blankValue($imageMediaId)) {
+                return null;
+            }
+
+            $item['imageMediaId'] = $imageMediaId;
+            $item['sortOrder'] = $item['sortOrder'] ?? $item['sort_order'] ?? 0;
+            $item['isVisible'] = $item['isVisible'] ?? $item['is_visible'] ?? true;
+
+            return $item;
+        }, $items)));
+    }
+
+    /**
+     * @param  mixed  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function filledContentItems(mixed $items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+
+        return array_values(array_filter($items, fn (mixed $item): bool => is_array($item)
+            && (! $this->blankValue($item['heading'] ?? null) || ! $this->blankValue($item['body_text'] ?? null))));
+    }
+
+    private function blankValue(mixed $value): bool
+    {
+        return $value === null || (is_string($value) && trim($value) === '');
     }
 
     /**
@@ -36,22 +142,53 @@ class UpdateHomepageRequest extends FormRequest
             'hero.items.*.sortOrder' => ['required', 'integer', 'min:0', 'max:100000'],
             'hero.items.*.isVisible' => ['required', 'boolean'],
 
-            'floating_products' => ['required', 'array', 'size:4'],
-            'floating_products.*.product_id' => ['nullable', 'integer', 'exists:products,id'],
-            'floating_products.*.image_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
-            'floating_products.*.alt_text' => ['nullable', 'string', 'max:255'],
-            'floating_products.*.position' => ['required', Rule::in(['top-left', 'top-right', 'bottom-left', 'bottom-right'])],
-            'floating_products.*.tilt_preset' => ['required', Rule::in(['soft', 'medium', 'full'])],
-            'floating_products.*.tap_label' => ['nullable', 'string', 'max:40'],
-            'floating_products.*.is_visible' => ['required', 'boolean'],
+            'turnkey' => ['sometimes', 'array'],
+            'turnkey.eyebrow' => ['nullable', 'string', 'max:120'],
+            'turnkey.title' => ['nullable', 'string', 'max:255'],
+            'turnkey.subtitle' => ['nullable', 'string', 'max:1200'],
+            'turnkey.button_url' => ['nullable', 'string', 'max:2048', 'not_regex:/^\s*javascript:/i'],
+            'turnkey.is_visible' => ['required_with:turnkey', 'boolean'],
+            'turnkey.items' => ['nullable', 'array', 'max:8'],
+            'turnkey.items.*.id' => ['nullable', 'integer', 'exists:why_choose_us_items,id'],
+            'turnkey.items.*.heading' => ['required', 'string', 'max:150'],
+            'turnkey.items.*.body_text' => ['nullable', 'string', 'max:1200'],
+            'turnkey.items.*.sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
+            'turnkey.items.*.is_active' => ['required', 'boolean'],
 
-            'featured.title' => ['nullable', 'string', 'max:255'],
-            'featured.subtitle' => ['nullable', 'string', 'max:1200'],
-            'featured.view_all_label' => ['nullable', 'string', 'max:80'],
-            'featured.view_all_url' => ['nullable', 'string', 'max:2048', 'not_regex:/^\s*javascript:/i'],
-            'featured.is_visible' => ['required', 'boolean'],
-            'featured.products' => ['nullable', 'array', 'max:10'],
-            'featured.products.*.product_id' => ['required', 'integer', 'distinct', 'exists:products,id'],
+            'aboutPreview' => ['sometimes', 'array'],
+            'aboutPreview.eyebrow' => ['nullable', 'string', 'max:120'],
+            'aboutPreview.title' => ['nullable', 'string', 'max:255'],
+            'aboutPreview.subtitle' => ['nullable', 'string', 'max:1200'],
+            'aboutPreview.body' => ['nullable', 'string', 'max:2000'],
+            'aboutPreview.primary_button_label' => ['nullable', 'string', 'max:80'],
+            'aboutPreview.primary_button_url' => ['nullable', 'string', 'max:2048', 'not_regex:/^\s*javascript:/i'],
+            'aboutPreview.secondary_button_label' => ['nullable', 'string', 'max:80'],
+            'aboutPreview.secondary_button_url' => ['nullable', 'string', 'max:2048', 'not_regex:/^\s*javascript:/i'],
+            'aboutPreview.background_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
+            'aboutPreview.is_visible' => ['required_with:aboutPreview', 'boolean'],
+            'aboutPreview.points' => ['nullable', 'array', 'max:8'],
+            'aboutPreview.points.*.id' => ['nullable', 'integer', 'exists:why_choose_us_items,id'],
+            'aboutPreview.points.*.heading' => ['required', 'string', 'max:150'],
+            'aboutPreview.points.*.body_text' => ['nullable', 'string', 'max:1200'],
+            'aboutPreview.points.*.sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
+            'aboutPreview.points.*.is_active' => ['required', 'boolean'],
+
+            'industryStats' => ['sometimes', 'array'],
+            'industryStats.title' => ['nullable', 'string', 'max:255'],
+            'industryStats.highlight' => ['nullable', 'string', 'max:120'],
+            'industryStats.subtitle' => ['nullable', 'string', 'max:1200'],
+            'industryStats.body' => ['nullable', 'string', 'max:1200'],
+            'industryStats.contact_label' => ['nullable', 'string', 'max:80'],
+            'industryStats.contact_url' => ['nullable', 'string', 'max:2048', 'not_regex:/^\s*javascript:/i'],
+            'industryStats.more_label' => ['nullable', 'string', 'max:80'],
+            'industryStats.more_url' => ['nullable', 'string', 'max:2048', 'not_regex:/^\s*javascript:/i'],
+            'industryStats.is_visible' => ['required_with:industryStats', 'boolean'],
+            'industryStats.items' => ['nullable', 'array', 'max:8'],
+            'industryStats.items.*.id' => ['nullable', 'integer', 'exists:why_choose_us_items,id'],
+            'industryStats.items.*.heading' => ['required', 'string', 'max:150'],
+            'industryStats.items.*.body_text' => ['required', 'string', 'max:1200'],
+            'industryStats.items.*.sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
+            'industryStats.items.*.is_active' => ['required', 'boolean'],
 
             'latest.title' => ['nullable', 'string', 'max:255'],
             'latest.subtitle' => ['nullable', 'string', 'max:1200'],
@@ -75,7 +212,17 @@ class UpdateHomepageRequest extends FormRequest
 
             'settings.whatsapp_text' => ['nullable', 'string', 'max:255'],
             'settings.whatsapp_number' => ['nullable', 'string', 'max:50'],
-            'settings.show_social_links_on_hero' => ['required', 'boolean'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $turnkeyVideo = $this->input('turnkey.button_url');
+
+            if (is_string($turnkeyVideo) && trim($turnkeyVideo) !== '' && ! YoutubeVideo::isYoutubeUrl($turnkeyVideo)) {
+                $validator->errors()->add('turnkey.button_url', 'The Turnkey video must be a YouTube URL.');
+            }
+        });
     }
 }

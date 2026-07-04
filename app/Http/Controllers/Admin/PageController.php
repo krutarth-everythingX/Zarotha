@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\PublishStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Page\UpdatePageRequest;
+use App\Models\MediaAsset;
 use App\Models\Page;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
@@ -15,9 +16,6 @@ class PageController extends Controller
 {
     private const PAGE_MAP = [
         'about-us' => ['key' => 'about_us', 'title' => 'About Us'],
-        'our-craftsmanship' => ['key' => 'our_craftsmanship', 'title' => 'Our Craftsmanship'],
-        'privacy-policy' => ['key' => 'privacy_policy', 'title' => 'Privacy Policy'],
-        'terms-and-conditions' => ['key' => 'terms_and_conditions', 'title' => 'Terms and Conditions'],
     ];
 
     public function edit(string $pageSlug): Response
@@ -35,6 +33,7 @@ class PageController extends Controller
                 'introTitle' => $page->intro_title,
                 'introBody' => $page->intro_body,
                 'bodyHtml' => $page->body_html,
+                'aboutDetails' => $page->about_details,
                 'heroMediaId' => $page->hero_media_id,
                 'ctaLabel' => $page->cta_label,
                 'ctaUrl' => $page->cta_url,
@@ -50,6 +49,12 @@ class PageController extends Controller
                 'robotsIndex' => $page->robots_index,
                 'robotsFollow' => $page->robots_follow,
             ],
+            'mediaOptions' => MediaAsset::query()
+                ->with('variants')
+                ->orderByDesc('created_at')
+                ->limit(250)
+                ->get()
+                ->map(fn (MediaAsset $media): array => $this->mediaPayload($media)),
             'pageOptions' => array_keys(self::PAGE_MAP),
         ]);
     }
@@ -86,5 +91,23 @@ class PageController extends Controller
         );
 
         return $page;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mediaPayload(MediaAsset $media): array
+    {
+        $image = $media->responsiveImage('320px');
+
+        return [
+            'id' => $media->id,
+            'label' => $media->original_filename,
+            'altText' => $media->alt_text,
+            'url' => $image['src'] ?? null,
+            'status' => $media->status,
+            'width' => $image['width'] ?? $media->width,
+            'height' => $image['height'] ?? $media->height,
+        ];
     }
 }

@@ -22,6 +22,18 @@ class ContactInformation extends Model
         'email_secondary',
         'whatsapp_number',
         'whatsapp_text',
+        'page_title',
+        'page_intro',
+        'form_title',
+        'submit_label',
+        'inquiry_type_options',
+        'location_kicker',
+        'location_title',
+        'location_body',
+        'address_label',
+        'map_embed_url',
+        'map_link_url',
+        'contact_social_links',
         'address_line_1',
         'address_line_2',
         'city',
@@ -46,6 +58,8 @@ class ContactInformation extends Model
             'show_phone' => 'boolean',
             'show_email' => 'boolean',
             'show_whatsapp' => 'boolean',
+            'inquiry_type_options' => 'array',
+            'contact_social_links' => 'array',
         ];
     }
 

@@ -28,23 +28,16 @@ function GridIcon() {
 
 const navigation = [
     { label: 'Dashboard', href: '/admin' },
-    { label: 'Product', href: '/admin/products' },
     { label: 'Homepage', href: '/admin/homepage' },
+    { label: 'Product Page', href: '/admin/products' },
     { label: 'About Page', href: '/admin/pages/about-us' },
     { label: 'Contact Page', href: '/admin/pages/contact' },
-    { label: 'Inquiries', href: '/admin/inquiries' },
+    { label: 'Socials', href: '/admin/social-links' },
+    { label: 'Contact & Socials', href: '/admin/contact-socials' },
     { label: 'Testimonial', href: '/admin/testimonials' },
-    { label: 'Social', href: '/admin/social-links' },
+    { label: 'Our Client', href: '/admin/clients' },
     { label: 'Setting', href: '/admin/settings' },
-] as const;
-
-const systemNavigation = [
-    { label: 'Categories', href: '/admin/categories' },
-    { label: 'Media', href: '/admin/media' },
-    { label: 'SEO', href: '/admin/seo' },
-    { label: 'Redirects', href: '/admin/redirects' },
-    { label: 'Users', href: '/admin/users' },
-    { label: 'Activity', href: '/admin/activity' },
+    { label: 'Inquiries', href: '/admin/inquiries' },
 ] as const;
 
 type AdminShellProps = {
@@ -78,19 +71,6 @@ export function AdminShell({ title, description, children, actions }: AdminShell
                             key={item.href}
                             href={item.href}
                             current={item.href === '/admin' ? page.url === '/admin' : page.url.startsWith(item.href)}
-                        >
-                            <GridIcon />
-                            <SidebarLabel>{item.label}</SidebarLabel>
-                        </SidebarItem>
-                    ))}
-                </SidebarSection>
-                <SidebarSection>
-                    <SidebarHeading>System</SidebarHeading>
-                    {systemNavigation.map((item) => (
-                        <SidebarItem
-                            key={item.href}
-                            href={item.href}
-                            current={page.url.startsWith(item.href)}
                         >
                             <GridIcon />
                             <SidebarLabel>{item.label}</SidebarLabel>

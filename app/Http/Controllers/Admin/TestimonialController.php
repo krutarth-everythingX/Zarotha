@@ -18,6 +18,7 @@ class TestimonialController extends Controller
     public function index(): Response
     {
         $this->authorize('viewAny', Product::class);
+        $this->ensureSection();
 
         $section = HomepageSection::query()
             ->with(['backgroundMedia.variants', 'testimonials.imageMedia.variants'])
@@ -34,13 +35,14 @@ class TestimonialController extends Controller
                 'previewUrl' => $section->backgroundMedia?->responsiveImage('25vw')['src'],
                 'items' => $section->testimonials->map(fn (HomepageTestimonial $t) => [
                     'id' => $t->id,
-                    'client_name' => $t->client_name,
-                    'quote' => $t->quote,
-                    'rating' => $t->rating,
+                    'customer_name' => $t->customer_name,
+                    'location_or_role' => $t->location_or_role,
+                    'body_text' => $t->body_text,
                     'image_media_id' => $t->image_media_id,
+                    'status' => $t->status,
                     'previewUrl' => $t->imageMedia?->responsiveImage('100px')['src'],
                     'sort_order' => $t->sort_order,
-                    'is_active' => $t->is_active,
+                    'is_visible' => $t->is_visible,
                 ]),
             ],
             'mediaOptions' => MediaAsset::query()
@@ -51,13 +53,18 @@ class TestimonialController extends Controller
                 ->map(fn (MediaAsset $media) => [
                     'id' => $media->id,
                     'label' => $media->original_filename,
+                    'altText' => $media->alt_text,
+                    'url' => $media->responsiveImage('100px')['src'] ?? null,
                     'previewUrl' => $media->responsiveImage('100px')['src'] ?? null,
+                    'status' => $media->status,
                 ]),
         ]);
     }
 
     public function update(Request $request): RedirectResponse
     {
+        $this->ensureSection();
+
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'subtitle' => 'nullable|string',
@@ -66,12 +73,13 @@ class TestimonialController extends Controller
             'is_visible' => 'boolean',
             'items' => 'array',
             'items.*.id' => 'nullable|integer',
-            'items.*.client_name' => 'required|string|max:255',
-            'items.*.quote' => 'required|string',
-            'items.*.rating' => 'required|integer|min:1|max:5',
+            'items.*.customer_name' => 'required|string|max:150',
+            'items.*.location_or_role' => 'nullable|string|max:150',
+            'items.*.body_text' => 'required|string',
             'items.*.image_media_id' => 'nullable|exists:media_assets,id',
+            'items.*.status' => 'required|in:draft,published',
             'items.*.sort_order' => 'required|integer',
-            'items.*.is_active' => 'boolean',
+            'items.*.is_visible' => 'boolean',
         ]);
 
         $userId = $request->user()->id;
@@ -89,7 +97,10 @@ class TestimonialController extends Controller
             ]);
 
             $existingIds = collect($validated['items'] ?? [])->pluck('id')->filter()->toArray();
-            HomepageTestimonial::query()->whereNotIn('id', $existingIds)->delete();
+            HomepageTestimonial::query()
+                ->where('homepage_section_id', $section->id)
+                ->when($existingIds !== [], fn ($query) => $query->whereNotIn('id', $existingIds))
+                ->delete();
 
             foreach ($validated['items'] ?? [] as $item) {
                 if (!empty($item['id'])) {
@@ -109,5 +120,19 @@ class TestimonialController extends Controller
         });
 
         return redirect()->back()->with('status', 'Testimonials updated.');
+    }
+
+    private function ensureSection(): void
+    {
+        HomepageSection::query()->firstOrCreate(
+            ['section_key' => 'testimonials'],
+            [
+                'section_title' => 'Testimonials',
+                'section_intro' => 'What customers are saying.',
+                'source_mode' => 'manual',
+                'sort_order' => 60,
+                'is_visible' => true,
+            ],
+        );
     }
 }

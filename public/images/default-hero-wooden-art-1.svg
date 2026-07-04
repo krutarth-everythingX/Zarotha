@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Handcrafted wooden art and furniture detail">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f1e13"/>
+      <stop offset="0.46" stop-color="#8a5730"/>
+      <stop offset="1" stop-color="#e1bc86"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="72%" cy="38%" r="48%">
+      <stop offset="0" stop-color="#fff1d2" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#fff1d2" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grain" width="220" height="70" patternUnits="userSpaceOnUse">
+      <path d="M-20 36c70-32 118 30 197-8 34-16 61-16 88 1" fill="none" stroke="#f3d6a2" stroke-opacity="0.16" stroke-width="7"/>
+      <path d="M-10 58c48-18 87 11 127 4 54-10 77-42 129-28" fill="none" stroke="#2b170d" stroke-opacity="0.2" stroke-width="4"/>
+      <path d="M0 14c52 14 84-9 133-4 37 4 57 20 94 7" fill="none" stroke="#fff4d8" stroke-opacity="0.12" stroke-width="3"/>
+    </pattern>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#grain)" opacity="0.9"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g opacity="0.22" filter="url(#soft)">
+    <path d="M1025 98c178 88 286 241 318 416 23 126-12 229-77 297H919c87-61 136-157 126-288-9-127-61-246-20-425Z" fill="#fff6dc"/>
+  </g>
+  <g transform="translate(795 142)">
+    <path d="M120 590h418c-34-64-50-140-45-228 4-81 27-161 70-242-123 43-223 114-298 212-62 82-106 168-145 258Z" fill="#2a180f" opacity="0.32"/>
+    <path d="M172 598c42-108 96-203 162-284 76-94 169-161 281-201-47 90-72 178-74 263-2 82 18 154 60 222H172Z" fill="#4c2d19"/>
+    <path d="M242 553c47-101 99-179 157-234 52-50 113-89 183-117-36 73-54 146-55 218-1 55 11 100 35 133H242Z" fill="#b36b36"/>
+    <path d="M310 524c60-122 135-208 225-259-26 64-40 126-41 185-1 30 5 55 17 74H310Z" fill="#d69a57"/>
+    <path d="M184 598c94-44 178-97 253-161 82-70 142-148 180-234" fill="none" stroke="#f3d198" stroke-width="18" stroke-linecap="round" opacity="0.45"/>
+    <path d="M275 595c69-36 130-80 183-133 58-57 96-118 113-183" fill="none" stroke="#2b160b" stroke-width="10" stroke-linecap="round" opacity="0.34"/>
+    <circle cx="256" cy="486" r="22" fill="#2d190e" opacity="0.55"/>
+    <circle cx="258" cy="486" r="8" fill="#e8b878" opacity="0.75"/>
+  </g>
+  <g transform="translate(138 180)" fill="none" stroke="#f7dfae" stroke-linecap="round" opacity="0.52">
+    <path d="M0 332c140-74 256-73 350 3 77 62 156 68 237 17" stroke-width="18"/>
+    <path d="M18 390c130-56 236-50 317 18 69 58 142 65 218 21" stroke-width="9" opacity="0.72"/>
+    <path d="M10 267c126-52 232-43 319 26 74 59 158 62 251 5" stroke-width="8" opacity="0.5"/>
+  </g>
+</svg>
