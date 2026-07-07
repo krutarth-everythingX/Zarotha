@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\Page\UpdatePageRequest;
 use App\Models\MediaAsset;
 use App\Models\Page;
 use App\Models\Product;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -62,8 +63,11 @@ class PageController extends Controller
     public function update(UpdatePageRequest $request, string $pageSlug): RedirectResponse
     {
         $page = $this->pageForSlug($pageSlug);
+        $validated = $request->validated();
+
         $page->update([
-            ...$request->validated(),
+            ...$validated,
+            'body_html' => HtmlSanitizer::sanitize($validated['body_html'] ?? null),
             'updated_by_user_id' => $request->user()->id,
         ]);
 

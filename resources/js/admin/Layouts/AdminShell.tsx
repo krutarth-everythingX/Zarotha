@@ -54,10 +54,6 @@ export function AdminShell({ title, description, children, actions }: AdminShell
     const user = page.props.auth.user;
     const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-    const handleSignOut = () => {
-        window.location.assign('/admin/logout');
-    };
-
     const sidebar = (
         <Sidebar>
             <SidebarHeader>
@@ -139,7 +135,7 @@ export function AdminShell({ title, description, children, actions }: AdminShell
                         </h2>
                         <Text className="mt-2">Are you sure you want to sign out from the CMS?</Text>
 
-                        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <form method="get" action="/admin/logout" className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                             <Button
                                 type="button"
                                 plain
@@ -148,10 +144,10 @@ export function AdminShell({ title, description, children, actions }: AdminShell
                             >
                                 Cancel
                             </Button>
-                            <Button type="button" className="justify-center" onClick={handleSignOut}>
+                            <Button type="submit" className="justify-center">
                                 Yes, sign out
                             </Button>
-                        </div>
+                        </form>
                     </div>
                 </div>
             ) : null}

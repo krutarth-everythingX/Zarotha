@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\Product\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\Product;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -91,6 +92,7 @@ class ProductController extends Controller
         /** @var Product $product */
         $product = Product::query()->create([
             ...$validated,
+            'full_description' => HtmlSanitizer::sanitize($validated['full_description'] ?? null),
             'published_at' => ($validated['status'] ?? null) === PublishStatus::Published->value
                 ? ($validated['published_at'] ?? now())
                 : ($validated['published_at'] ?? null),
@@ -121,6 +123,7 @@ class ProductController extends Controller
 
         $product->update([
             ...$validated,
+            'full_description' => HtmlSanitizer::sanitize($validated['full_description'] ?? null),
             'published_at' => ($validated['status'] ?? null) === PublishStatus::Published->value
                 ? ($validated['published_at'] ?? $product->published_at ?? now())
                 : ($validated['published_at'] ?? null),
