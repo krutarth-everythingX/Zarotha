@@ -111,12 +111,12 @@
                         <input name="project_location" value="{{ old('project_location') }}" required autocomplete="address-level2">
                     </label>
 
-                    <label class="contact-field">
+                    <label class="contact-field contact-field--pair-mobile">
                         <span>State *</span>
                         <input name="project_state" value="{{ old('project_state') }}" required autocomplete="address-level1" pattern="[A-Za-z][A-Za-z .-]*" title="Use letters only for state name">
                     </label>
 
-                    <label class="contact-field">
+                    <label class="contact-field contact-field--pair-mobile">
                         <span>Country *</span>
                         <input name="project_country" value="{{ old('project_country', 'India') }}" required autocomplete="country-name" pattern="[A-Za-z][A-Za-z .-]*" title="Use letters only for country name">
                     </label>

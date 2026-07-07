@@ -9075,11 +9075,14 @@ body.contact-page .home-clients__item img {
     }
 
     .budget-range-inputs {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        gap: 0.5rem;
     }
 
     .budget-range-separator {
-        display: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .contact-form-grid {
@@ -9092,6 +9095,22 @@ body.contact-page .home-clients__item img {
     .contact-field--full,
     .contact-consent {
         grid-column: 1;
+    }
+
+    .contact-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .contact-field--pair-mobile {
+        grid-column: span 1;
+    }
+
+    .contact-field:not(.contact-field--pair-mobile),
+    .contact-field--wide,
+    .contact-field--half:not(.contact-field--pair-mobile),
+    .contact-field--full,
+    .contact-consent {
+        grid-column: 1 / -1;
     }
 
     .contact-form-panel {
