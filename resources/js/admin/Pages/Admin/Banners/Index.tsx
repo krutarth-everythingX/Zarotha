@@ -121,29 +121,55 @@ export default function BannersIndex({ banners, mediaOptions }: BannersIndexProp
                             <EmptyState title="No banners yet" description="Add a banner after uploading approved hero media." />
                         </div>
                     ) : (
-                        <div className="divide-y divide-zinc-950/8 dark:divide-white/10">
-                            {banners.map((banner) => (
-                                <article key={banner.id} className="grid gap-4 p-5 lg:grid-cols-[120px_1fr_120px_auto] lg:items-center">
-                                    <div className="aspect-[4/3] overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                                        {banner.previewUrl ? <img src={banner.previewUrl} alt="" className="h-full w-full object-cover" /> : null}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-zinc-950 dark:text-white">{banner.headline}</p>
-                                        <Text>{banner.bodyText ?? 'No supporting text supplied.'}</Text>
-                                    </div>
-                                    <StatusBadge tone={banner.isActive ? 'green' : 'amber'}>{banner.isActive ? 'Active' : 'Inactive'}</StatusBadge>
-                                    <Button
-                                        color="light"
-                                        onClick={() => {
-                                            if (window.confirm(`Delete banner "${banner.headline}"?`)) {
-                                                router.delete(`/admin/banners/${banner.id}`, { preserveScroll: true });
-                                            }
-                                        }}
-                                    >
-                                        Delete
-                                    </Button>
-                                </article>
-                            ))}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full table-fixed border-collapse">
+                                <colgroup>
+                                    <col className="w-[140px]" />
+                                    <col />
+                                    <col className="w-[140px]" />
+                                    <col className="w-[140px]" />
+                                </colgroup>
+                                <thead>
+                                    <tr className="border-b border-zinc-950/8 dark:border-white/10">
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Preview</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Banner</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Status</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-950/8 dark:divide-white/10">
+                                    {banners.map((banner) => (
+                                        <tr key={banner.id} className="align-middle">
+                                            <td className="px-4 py-2.5">
+                                                <div className="mx-auto aspect-[4/3] w-24 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                                                    {banner.previewUrl ? <img src={banner.previewUrl} alt="" className="h-full w-full object-cover" /> : null}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <p className="font-medium text-zinc-950 dark:text-white">{banner.headline}</p>
+                                                <Text>{banner.bodyText ?? 'No supporting text supplied.'}</Text>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <div className="flex justify-center">
+                                                    <StatusBadge tone={banner.isActive ? 'green' : 'amber'}>{banner.isActive ? 'Active' : 'Inactive'}</StatusBadge>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <Button
+                                                    color="light"
+                                                    onClick={() => {
+                                                        if (window.confirm(`Delete banner "${banner.headline}"?`)) {
+                                                            router.delete(`/admin/banners/${banner.id}`, { preserveScroll: true });
+                                                        }
+                                                    }}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>

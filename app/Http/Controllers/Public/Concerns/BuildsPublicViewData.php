@@ -16,7 +16,9 @@ trait BuildsPublicViewData
     protected function sharedPublicData(bool $includeQuickInquirySection = true): array
     {
         $data = [
-            'siteSettings' => SiteSetting::query()->first(),
+            'siteSettings' => SiteSetting::query()
+                ->with(['darkLogo.variants', 'defaultOgImage.variants'])
+                ->first(),
             'contactInformation' => ContactInformation::query()->first(),
             'socialLinks' => SocialLink::query()
                 ->where('is_active', true)

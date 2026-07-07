@@ -472,6 +472,241 @@ if (inquiryModal && inquiryOpenButtons.length > 0) {
     });
 }
 
+const inquiryUploadViewer = (() => {
+    const modal = document.createElement('div');
+    modal.className = 'inquiry-upload-modal';
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+
+    const dialog = document.createElement('div');
+    dialog.className = 'inquiry-upload-modal__dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-label', 'File preview');
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'inquiry-upload-modal__close';
+    closeButton.textContent = 'Close';
+
+    const body = document.createElement('div');
+    body.className = 'inquiry-upload-modal__body';
+
+    dialog.append(closeButton, body);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+
+    const close = () => {
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        body.replaceChildren();
+        document.documentElement.classList.remove('has-inquiry-upload-modal-open');
+    };
+
+    const open = (file: File, url: string) => {
+        body.replaceChildren();
+
+        if (file.type.startsWith('video/')) {
+            const video = document.createElement('video');
+            video.src = url;
+            video.controls = true;
+            video.autoplay = true;
+            video.playsInline = true;
+            body.appendChild(video);
+        } else {
+            const image = document.createElement('img');
+            image.src = url;
+            image.alt = file.name;
+            body.appendChild(image);
+        }
+
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('has-inquiry-upload-modal-open');
+        closeButton.focus();
+    };
+
+    closeButton.addEventListener('click', close);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            close();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (!modal.hidden && event.key === 'Escape') {
+            close();
+        }
+    });
+
+    return { open };
+})();
+
+document.querySelectorAll<HTMLElement>('[data-inquiry-upload]').forEach((upload) => {
+    const input = upload.querySelector<HTMLInputElement>('[data-inquiry-upload-input]');
+    const preview = upload.querySelector<HTMLElement>('[data-inquiry-upload-preview]');
+
+    if (!input || !preview) {
+        return;
+    }
+
+    let selectedFiles: File[] = [];
+    const objectUrls = new Set<string>();
+
+    const syncInputFiles = () => {
+        const transfer = new DataTransfer();
+        selectedFiles.forEach((file) => transfer.items.add(file));
+        input.files = transfer.files;
+    };
+
+    const clearObjectUrls = () => {
+        objectUrls.forEach((url) => URL.revokeObjectURL(url));
+        objectUrls.clear();
+    };
+
+    const fileSizeLabel = (bytes: number) => {
+        if (bytes >= 1024 * 1024) {
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    };
+
+    const renderPreview = () => {
+        clearObjectUrls();
+        preview.replaceChildren();
+
+        selectedFiles.forEach((file, index) => {
+            const item = document.createElement('article');
+            item.className = 'inquiry-upload__item';
+
+            const mediaUrl = URL.createObjectURL(file);
+            objectUrls.add(mediaUrl);
+
+            const trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'inquiry-upload__media';
+            trigger.setAttribute('aria-label', `Preview ${file.name}`);
+            trigger.addEventListener('click', () => {
+                inquiryUploadViewer.open(file, mediaUrl);
+            });
+
+            if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = mediaUrl;
+                video.muted = true;
+                video.playsInline = true;
+                video.preload = 'metadata';
+                trigger.appendChild(video);
+            } else {
+                const image = document.createElement('img');
+                image.src = mediaUrl;
+                image.alt = file.name;
+                trigger.appendChild(image);
+            }
+
+            item.appendChild(trigger);
+
+            const details = document.createElement('div');
+            details.className = 'inquiry-upload__item-details';
+
+            const name = document.createElement('strong');
+            name.textContent = file.name;
+            details.appendChild(name);
+
+            const meta = document.createElement('span');
+            meta.textContent = fileSizeLabel(file.size);
+            details.appendChild(meta);
+
+            const actions = document.createElement('div');
+            actions.className = 'inquiry-upload__item-actions';
+
+            const viewButton = document.createElement('button');
+            viewButton.type = 'button';
+            viewButton.textContent = 'View';
+            viewButton.addEventListener('click', () => {
+                inquiryUploadViewer.open(file, mediaUrl);
+            });
+            actions.appendChild(viewButton);
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.textContent = 'Remove';
+            removeButton.addEventListener('click', () => {
+                selectedFiles = selectedFiles.filter((_, fileIndex) => fileIndex !== index);
+                syncInputFiles();
+                renderPreview();
+            });
+            actions.appendChild(removeButton);
+
+            details.appendChild(actions);
+
+            item.appendChild(details);
+            preview.appendChild(item);
+        });
+    };
+
+    input.addEventListener('change', () => {
+        const incomingFiles = Array.from(input.files ?? []);
+
+        if (incomingFiles.length === 0) {
+            return;
+        }
+
+        const existingKeys = new Set(
+            selectedFiles.map((file) => `${file.name}:${file.size}:${file.lastModified}`),
+        );
+
+        incomingFiles.forEach((file) => {
+            const key = `${file.name}:${file.size}:${file.lastModified}`;
+
+            if (!existingKeys.has(key)) {
+                selectedFiles.push(file);
+                existingKeys.add(key);
+            }
+        });
+
+        syncInputFiles();
+        renderPreview();
+    });
+});
+
+const formatIndianDigits = (value: string) => {
+    const digits = value.replace(/\D+/g, '').replace(/^0+(?=\d)/, '');
+
+    if (digits === '') {
+        return '';
+    }
+
+    if (digits.length <= 3) {
+        return digits;
+    }
+
+    const lastThree = digits.slice(-3);
+    let remaining = digits.slice(0, -3);
+    const parts: string[] = [];
+
+    while (remaining.length > 2) {
+        parts.unshift(remaining.slice(-2));
+        remaining = remaining.slice(0, -2);
+    }
+
+    if (remaining !== '') {
+        parts.unshift(remaining);
+    }
+
+    return `${parts.join(',')},${lastThree}`;
+};
+
+document.querySelectorAll<HTMLInputElement>('input[name="budget_range_start"], input[name="budget_range_end"]').forEach((input) => {
+    const applyBudgetFormat = () => {
+        input.value = formatIndianDigits(input.value);
+    };
+
+    applyBudgetFormat();
+    input.addEventListener('input', applyBudgetFormat);
+    input.addEventListener('blur', applyBudgetFormat);
+});
+
 const galleryRoot = document.querySelector<HTMLElement>('[data-products-gallery]');
 const galleryFeed = document.querySelector<HTMLElement>('[data-products-feed]');
 const gallerySentinel = document.querySelector<HTMLElement>('[data-products-sentinel]');

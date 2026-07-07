@@ -105,27 +105,47 @@ export default function MediaIndex({ media, limits }: MediaIndexProps) {
                             <EmptyState title="No media yet" description="Upload approved product or CMS imagery to begin." />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 divide-y divide-zinc-950/8 dark:divide-white/10">
-                            {media.data.map((item) => (
-                                <article key={item.id} className="grid gap-4 p-5 md:grid-cols-[96px_1fr_auto]">
-                                    <div className="aspect-square overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                                        {item.url ? <img src={item.url} alt={item.altText ?? ''} className="h-full w-full object-cover" /> : null}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-zinc-950 dark:text-white">{item.originalFilename}</p>
-                                        <Text>
-                                            {item.mimeType} / {item.width ?? '-'} x {item.height ?? '-'} / {Math.round(item.bytes / 1024)} KB
-                                        </Text>
-                                        <Text>{item.variantCount} variants / {item.referenceCount} references</Text>
-                                        <div className="mt-2">
-                                            <StatusBadge tone={item.status === 'processed' ? 'green' : item.status === 'failed' ? 'red' : 'amber'}>
-                                                {item.status}
-                                            </StatusBadge>
-                                        </div>
-                                    </div>
-                                    <Text>{item.caption ?? 'No caption'}</Text>
-                                </article>
-                            ))}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full table-fixed border-collapse">
+                                <colgroup>
+                                    <col className="w-[112px]" />
+                                    <col />
+                                    <col className="w-[220px]" />
+                                </colgroup>
+                                <thead>
+                                    <tr className="border-b border-zinc-950/8 dark:border-white/10">
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Preview</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">File</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Caption</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-950/8 dark:divide-white/10">
+                                    {media.data.map((item) => (
+                                        <tr key={item.id} className="align-middle">
+                                            <td className="px-4 py-2.5">
+                                                <div className="mx-auto aspect-square w-20 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                                                    {item.url ? <img src={item.url} alt={item.altText ?? ''} className="h-full w-full object-cover" /> : null}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <p className="font-medium text-zinc-950 dark:text-white">{item.originalFilename}</p>
+                                                <Text>
+                                                    {item.mimeType} / {item.width ?? '-'} x {item.height ?? '-'} / {Math.round(item.bytes / 1024)} KB
+                                                </Text>
+                                                <Text>{item.variantCount} variants / {item.referenceCount} references</Text>
+                                                <div className="mt-2 flex justify-center">
+                                                    <StatusBadge tone={item.status === 'processed' ? 'green' : item.status === 'failed' ? 'red' : 'amber'}>
+                                                        {item.status}
+                                                    </StatusBadge>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <Text>{item.caption ?? 'No caption'}</Text>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </section>

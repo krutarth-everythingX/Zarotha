@@ -99,9 +99,10 @@ class ProductController extends Controller
         ]);
 
         $this->syncGalleryImages($product, $request->input('gallery_images', []));
+        $this->enforceLatestProductLimit($product);
 
         return redirect()
-            ->route('admin.products.edit', $product)
+            ->route('admin.products.index')
             ->with('status', 'Product created.');
     }
 
@@ -127,9 +128,10 @@ class ProductController extends Controller
         ]);
 
         $this->syncGalleryImages($product, $request->input('gallery_images', []));
+        $this->enforceLatestProductLimit($product);
 
         return redirect()
-            ->route('admin.products.edit', $product)
+            ->route('admin.products.index')
             ->with('status', 'Product updated.');
     }
 
@@ -291,5 +293,25 @@ class ProductController extends Controller
         }
 
         $product->media()->sync($galleryData);
+    }
+
+    private function enforceLatestProductLimit(Product $product): void
+    {
+        if (! $product->is_latest) {
+            return;
+        }
+
+        $latestProductIdsToKeep = Product::query()
+            ->where('is_latest', true)
+            ->orderByDesc('published_at')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->pluck('id');
+
+        Product::query()
+            ->where('is_latest', true)
+            ->whereNotIn('id', $latestProductIdsToKeep)
+            ->update(['is_latest' => false]);
     }
 }

@@ -164,8 +164,6 @@ export default function ProductsForm({ mode, product, categories }: ProductsForm
                             <div className="mt-8 border-t border-zinc-950/8 dark:border-white/10 pt-4 px-2 space-y-4">
                                 <p className="font-semibold text-zinc-950 dark:text-white">Visibility flags</p>
                                 <div className="space-y-3">
-                                    <FormCheckbox checked={form.data.is_featured} onChange={(e) => form.setData('is_featured', e.target.checked)} label="Featured Product" />
-                                    <FormCheckbox checked={form.data.is_best_selling} onChange={(e) => form.setData('is_best_selling', e.target.checked)} label="Best Selling" />
                                     <FormCheckbox checked={form.data.is_latest} onChange={(e) => form.setData('is_latest', e.target.checked)} label="Latest Collection" />
                                 </div>
                             </div>

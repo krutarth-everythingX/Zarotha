@@ -342,7 +342,7 @@ export default function ClientsIndex({
                         <StatusBadge>{clients.length} total</StatusBadge>
                     </div>
 
-                    <div className="divide-y divide-zinc-950/8 dark:divide-white/10">
+                    <div className="overflow-x-auto">
                         {clients.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-zinc-950/15 p-8 text-center dark:border-white/15">
                                 <p className="text-sm font-semibold text-zinc-950 dark:text-white">
@@ -354,97 +354,81 @@ export default function ClientsIndex({
                                 </Text>
                             </div>
                         ) : (
-                            clients.map((client) => (
-                                <div
-                                    key={client.id}
-                                    className="grid gap-4 py-4 lg:grid-cols-[7rem_1fr_auto] lg:items-center"
-                                >
-                                    <div className="flex h-20 items-center justify-center overflow-hidden rounded-xl border border-zinc-950/10 bg-zinc-50 p-3 dark:border-white/10 dark:bg-white/5">
-                                        {client.logoMedia?.url || client.externalLogoUrl ? (
-                                            <img
-                                                src={client.logoMedia?.url ?? client.externalLogoUrl ?? ""}
-                                                alt={
-                                                    client.logoMedia?.altText ??
-                                                    client.name
-                                                }
-                                                className="max-h-full max-w-full object-contain"
-                                            />
-                                        ) : (
-                                            <div className="grid h-full w-full place-items-center rounded-lg bg-zinc-100 text-center dark:bg-white/5">
-                                                <span className="text-lg font-semibold text-zinc-600 dark:text-zinc-300">
-                                                    {fallbackInitials(client.name)}
-                                                </span>
-                                                <span className="sr-only">{client.name}</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="min-w-0">
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            <p className="truncate text-sm font-semibold text-zinc-950 dark:text-white">
-                                                {client.name}
-                                            </p>
-                                            <StatusBadge
-                                                tone={
-                                                    client.isActive
-                                                        ? "green"
-                                                        : "neutral"
-                                                }
-                                            >
-                                                {client.isActive
-                                                    ? "Active"
-                                                    : "Inactive"}
-                                            </StatusBadge>
-                                        </div>
-                                        {client.websiteUrl ? (
-                                            <a
-                                                href={client.websiteUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-sm text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-950 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-white"
-                                            >
-                                                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                                                <span className="truncate">
-                                                    {client.websiteUrl}
-                                                </span>
-                                            </a>
-                                        ) : (
-                                            <Text className="mt-1">
-                                                No website link
-                                            </Text>
-                                        )}
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2 lg:justify-end">
-                                        <Button
-                                            type="button"
-                                            color="light"
-                                            onClick={() => editClient(client)}
-                                        >
-                                            <Edit3 data-slot="icon" />
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            color="light"
-                                            onClick={() => toggleClient(client)}
-                                        >
-                                            <Power data-slot="icon" />
-                                            {client.isActive
-                                                ? "Inactive"
-                                                : "Active"}
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            plain
-                                            onClick={() => removeClient(client)}
-                                        >
-                                            <Trash2 data-slot="icon" />
-                                            Remove
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))
+                            <table className="min-w-full table-fixed border-collapse">
+                                <colgroup>
+                                    <col className="w-[120px]" />
+                                    <col />
+                                    <col className="w-[220px]" />
+                                </colgroup>
+                                <thead>
+                                    <tr className="border-b border-zinc-950/8 dark:border-white/10">
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Logo</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Client</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-950/8 dark:divide-white/10">
+                                    {clients.map((client) => (
+                                        <tr key={client.id} className="align-middle">
+                                            <td className="px-4 py-2.5">
+                                                <div className="mx-auto flex h-20 w-24 items-center justify-center overflow-hidden rounded-xl border border-zinc-950/10 bg-zinc-50 p-3 dark:border-white/10 dark:bg-white/5">
+                                                    {client.logoMedia?.url || client.externalLogoUrl ? (
+                                                        <img
+                                                            src={client.logoMedia?.url ?? client.externalLogoUrl ?? ""}
+                                                            alt={client.logoMedia?.altText ?? client.name}
+                                                            className="max-h-full max-w-full object-contain"
+                                                        />
+                                                    ) : (
+                                                        <div className="grid h-full w-full place-items-center rounded-lg bg-zinc-100 text-center dark:bg-white/5">
+                                                            <span className="text-lg font-semibold text-zinc-600 dark:text-zinc-300">
+                                                                {fallbackInitials(client.name)}
+                                                            </span>
+                                                            <span className="sr-only">{client.name}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <p className="truncate text-sm font-semibold text-zinc-950 dark:text-white">{client.name}</p>
+                                                    <StatusBadge tone={client.isActive ? "green" : "neutral"}>
+                                                        {client.isActive ? "Active" : "Inactive"}
+                                                    </StatusBadge>
+                                                </div>
+                                                {client.websiteUrl ? (
+                                                    <a
+                                                        href={client.websiteUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-sm text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-950 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-white"
+                                                    >
+                                                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                                                        <span className="truncate">{client.websiteUrl}</span>
+                                                    </a>
+                                                ) : (
+                                                    <Text className="mt-1">No website link</Text>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-2.5">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Button type="button" color="light" onClick={() => editClient(client)}>
+                                                        <Edit3 data-slot="icon" />
+                                                        Edit
+                                                    </Button>
+                                                    <Button type="button" color="light" onClick={() => toggleClient(client)}>
+                                                        <Power data-slot="icon" />
+                                                        {client.isActive ? "Inactive" : "Active"}
+                                                    </Button>
+                                                    <Button type="button" plain onClick={() => removeClient(client)}>
+                                                        <Trash2 data-slot="icon" />
+                                                        Remove
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         )}
                     </div>
                 </PagePanel>

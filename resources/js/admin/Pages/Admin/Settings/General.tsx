@@ -47,7 +47,20 @@ export default function SettingsGeneral({ settings, mediaOptions }: SettingsGene
     return (
         <>
             <Head title="Settings" />
-            <AdminShell title="Settings" description="Keep one company name and logo set for the CMS and public website.">
+            <AdminShell
+                title="Settings"
+                description="Keep one company name, logo, and favicon set for the CMS and public website."
+                actions={
+                    <div className="flex flex-wrap gap-3">
+                        <Button type="button" color="light" onClick={removeLogos}>
+                            Remove logo
+                        </Button>
+                        <Button type="button" onClick={() => form.patch('/admin/settings')} disabled={form.processing}>
+                            Save settings
+                        </Button>
+                    </div>
+                }
+            >
                 <PagePanel>
                     <form
                         className="space-y-6"
@@ -58,7 +71,7 @@ export default function SettingsGeneral({ settings, mediaOptions }: SettingsGene
                     >
                         <div>
                             <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Company identity</h2>
-                            <Text className="mt-2">There is one settings record. Editing here updates the existing company name and logo instead of creating duplicates.</Text>
+                            <Text className="mt-2">There is one settings record. Editing here updates the existing company name, logo, and favicon instead of creating duplicates.</Text>
                         </div>
 
                         <div className="grid gap-6 lg:grid-cols-2">
@@ -80,24 +93,18 @@ export default function SettingsGeneral({ settings, mediaOptions }: SettingsGene
                             </Field>
 
                             <Field>
-                                <Label>Mobile/sidebar logo</Label>
+                                <Label>Favicon icon</Label>
                                 <MediaDropSelect
                                     value={form.data.dark_logo_media_id}
                                     options={mediaChoices}
                                     preview={settings.darkLogo}
                                     onUploaded={rememberUploadedMedia}
                                     onChange={(val) => form.setData('dark_logo_media_id', val)}
-                                    label="Mobile/sidebar logo"
+                                    label="Favicon icon"
                                 />
                             </Field>
                         </div>
 
-                        <div className="flex flex-wrap justify-end gap-3 pt-4">
-                            <Button type="button" color="light" onClick={removeLogos}>
-                                Remove logo
-                            </Button>
-                            <Button type="submit">Save settings</Button>
-                        </div>
                     </form>
                 </PagePanel>
             </AdminShell>

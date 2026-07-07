@@ -6,9 +6,9 @@
 @section('content')
     @php
         $pageTitle = trim((string) ($contactInformation?->page_title ?? '')) ?: 'Contact Form';
-        $pageIntro = trim((string) ($contactInformation?->page_intro ?? '')) ?: 'Feel free to contact us through Instagram, Facebook, or WhatsApp if you prefer.';
+        $pageIntro = trim((string) ($contactInformation?->page_intro ?? '')) ?: 'Visit us to view our collection, discuss ideas, and plan custom wooden work.';
         $formTitle = trim((string) ($contactInformation?->form_title ?? '')) ?: 'Tell us about your project';
-        $submitLabel = trim((string) ($contactInformation?->submit_label ?? '')) ?: 'Send now';
+        $submitLabel = trim((string) ($contactInformation?->submit_label ?? '')) ?: 'Send Inquiry';
         $phone = $contactInformation?->show_phone && $contactInformation?->phone_primary
             ? $contactInformation->phone_primary
             : '+91 98765 43210';
@@ -69,7 +69,7 @@
                 <p>{{ $pageIntro }}</p>
             </div>
 
-            <form id="contact-inquiry-form" class="contact-form-panel" method="post" action="{{ route('public.contact.submit') }}">
+            <form id="contact-inquiry-form" class="contact-form-panel" method="post" action="{{ route('public.contact.submit') }}" enctype="multipart/form-data">
                 @csrf
                 <input type="text" name="website" tabindex="-1" autocomplete="off" class="honeypot" aria-hidden="true">
 
@@ -82,27 +82,22 @@
 
                 <div class="contact-form-grid">
                     <label class="contact-field">
-                        <span>Your Name*</span>
+                        <span>Full Name *</span>
                         <input name="name" value="{{ old('name') }}" required autocomplete="name">
                     </label>
 
                     <label class="contact-field">
-                        <span>Your Email*</span>
+                        <span>Email Address *</span>
                         <input name="email" value="{{ old('email') }}" type="email" required autocomplete="email">
                     </label>
 
                     <label class="contact-field">
-                        <span>Phone Number*</span>
+                        <span>Phone Number *</span>
                         <input name="phone" value="{{ old('phone') }}" required autocomplete="tel">
                     </label>
 
-                    <label class="contact-field contact-field--wide">
-                        <span>Company Name</span>
-                        <input name="company_name" value="{{ old('company_name') }}" autocomplete="organization">
-                    </label>
-
-                    <label class="contact-field contact-field--wide contact-field--select">
-                        <span>Subject*</span>
+                    <label class="contact-field contact-field--select">
+                        <span>Inquiry Type *</span>
                         <select name="subject" required>
                             <option value="">Select an inquiry type</option>
                             @foreach ($inquiryOptions as $subjectOption)
@@ -111,16 +106,73 @@
                         </select>
                     </label>
 
+                    <label class="contact-field">
+                        <span>Project Location *</span>
+                        <input name="project_location" value="{{ old('project_location') }}" required autocomplete="address-level2">
+                    </label>
+
+                    <label class="contact-field">
+                        <span>State *</span>
+                        <input name="project_state" value="{{ old('project_state') }}" required autocomplete="address-level1" pattern="[A-Za-z][A-Za-z .-]*" title="Use letters only for state name">
+                    </label>
+
+                    <label class="contact-field">
+                        <span>Country *</span>
+                        <input name="project_country" value="{{ old('project_country', 'India') }}" required autocomplete="country-name" pattern="[A-Za-z][A-Za-z .-]*" title="Use letters only for country name">
+                    </label>
+
+                    <div class="contact-field">
+                        <span>Budget Range (Optional)</span>
+                        <div class="budget-range-inputs">
+                            <label class="budget-range-input">
+                                <span>Rs.</span>
+                                <input
+                                    name="budget_range_start"
+                                    value="{{ old('budget_range_start') }}"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    placeholder="1,00,000"
+                                >
+                            </label>
+                            <span class="budget-range-separator">-</span>
+                            <label class="budget-range-input">
+                                <span>Rs.</span>
+                                <input
+                                    name="budget_range_end"
+                                    value="{{ old('budget_range_end') }}"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    placeholder="3,00,000"
+                                >
+                            </label>
+                        </div>
+                        <input type="hidden" name="budget_range" value="{{ old('budget_range') }}">
+                    </div>
+
+                    <label class="contact-field">
+                        <span>Expected Project Start (Optional)</span>
+                        <input name="expected_project_start" value="{{ old('expected_project_start') }}" type="date">
+                    </label>
+
                     <label class="contact-field contact-field--full">
-                        <span>Message</span>
+                        <span>Message / Project Details *</span>
                         <textarea name="message" rows="6" required>{{ old('message') }}</textarea>
                     </label>
+
+                    <div class="contact-field contact-field--full inquiry-upload" data-inquiry-upload>
+                        <span>Upload Images / Videos (Optional)</span>
+                        <label class="inquiry-upload__dropzone">
+                            <input name="uploaded_images[]" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" multiple data-inquiry-upload-input>
+                            <span class="inquiry-upload__button">Choose files</span>
+                        </label>
+                        <div class="inquiry-upload__preview" data-inquiry-upload-preview aria-live="polite"></div>
+                    </div>
 
                     <input type="hidden" name="whatsapp_number" value="{{ old('whatsapp_number') }}">
 
                     <label class="contact-consent contact-field--full">
                         <input type="checkbox" name="consent_confirmed" value="1" required @checked(old('consent_confirmed'))>
-                        <span>{{ $contactInformation?->consent_text ?? 'I consent to being contacted about this inquiry.' }}</span>
+                        <span>{{ $contactInformation?->consent_text ?? 'I consent to being contacted regarding my inquiry.' }}</span>
                     </label>
                 </div>
 

@@ -110,7 +110,7 @@ class Stage9BackendCmsTest extends TestCase
 
         $product = Product::query()->where('slug', 'hand-carved-panel')->firstOrFail();
 
-        $response->assertRedirect(route('admin.products.edit', $product));
+        $response->assertRedirect(route('admin.products.index'));
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'category_id' => $category->id,
@@ -151,6 +151,44 @@ class Stage9BackendCmsTest extends TestCase
 
         $response->assertOk();
         $this->assertSame(0, InquiryActivity::query()->count());
+    }
+
+    public function test_inquiry_export_includes_project_fields_and_uploaded_images(): void
+    {
+        $manager = $this->userFor(UserRole::InquiryManager);
+
+        Inquiry::factory()->create([
+            'name' => 'Project Lead',
+            'email' => 'lead@example.com',
+            'phone' => '9999999999',
+            'subject' => 'Office furniture',
+            'project_location' => 'Surat, Gujarat',
+            'project_state' => 'Gujarat',
+            'project_country' => 'India',
+            'budget_range' => 'Rs. 3 lakh+',
+            'expected_project_start' => '2026-09-15',
+            'uploaded_images' => [
+                [
+                    'name' => 'floor-plan.png',
+                    'path' => 'inquiries/2026/07/floor-plan.png',
+                    'url' => '/storage/inquiries/2026/07/floor-plan.png',
+                    'mime_type' => 'image/png',
+                    'size' => 12345,
+                ],
+            ],
+        ]);
+
+        $response = $this->actingAs($manager)->post(route('admin.inquiries.export'));
+
+        $response->assertOk();
+
+        ob_start();
+        $response->sendContent();
+        $csv = (string) ob_get_clean();
+
+        $this->assertStringContainsString('"Inquiry Type","Project Location","Project State","Project Country","Budget Range","Expected Project Start",Message,"Uploaded Images"', $csv);
+        $this->assertStringContainsString('"Office furniture","Surat, Gujarat",Gujarat,India,"Rs. 3 lakh+",2026-09-15', $csv);
+        $this->assertStringContainsString('floor-plan.png', $csv);
     }
 
     public function test_redirect_self_and_two_hop_loops_are_rejected(): void

@@ -181,7 +181,13 @@ class MediaLibrary
             + DB::table('homepage_testimonials')->where('image_media_id', $mediaAsset->id)->count()
             + DB::table('clients')->where('logo_media_id', $mediaAsset->id)->count()
             + DB::table('why_choose_us_items')->where('icon_media_id', $mediaAsset->id)->count()
-            + DB::table('site_settings')->where('default_og_image_media_id', $mediaAsset->id)->count();
+            + DB::table('site_settings')
+                ->where(function ($query) use ($mediaAsset): void {
+                    $query->where('default_og_image_media_id', $mediaAsset->id)
+                        ->orWhere('light_logo_media_id', $mediaAsset->id)
+                        ->orWhere('dark_logo_media_id', $mediaAsset->id);
+                })
+                ->count();
     }
 
     private function aboutDetailsReferenceCount(int $mediaAssetId): int

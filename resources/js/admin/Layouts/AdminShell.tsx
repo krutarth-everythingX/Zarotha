@@ -30,6 +30,7 @@ const navigation = [
     { label: 'Dashboard', href: '/admin' },
     { label: 'Homepage', href: '/admin/homepage' },
     { label: 'Product Page', href: '/admin/products' },
+    { label: 'Category', href: '/admin/categories' },
     { label: 'About Page', href: '/admin/pages/about-us' },
     { label: 'Contact Page', href: '/admin/pages/contact' },
     { label: 'Socials', href: '/admin/social-links' },

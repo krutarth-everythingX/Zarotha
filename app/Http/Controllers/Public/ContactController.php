@@ -14,6 +14,7 @@ use App\Models\ContactInformation;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ContactController extends Controller
@@ -44,10 +45,13 @@ class ContactController extends Controller
                 ->whereNotNull('published_at')
                 ->firstOrFail();
 
-        DB::transaction(function () use ($request, $product): void {
+        $uploadedImages = $this->storeInquiryImages($request);
+
+        DB::transaction(function () use ($request, $product, $uploadedImages): void {
             /** @var Inquiry $inquiry */
             $inquiry = Inquiry::query()->create([
-                ...$request->safe()->except('website'),
+                ...$request->safe()->except('website', 'uploaded_images'),
+                'uploaded_images' => $uploadedImages,
                 'product_id' => $product?->id,
                 'source_page_key' => $product === null ? 'contact' : 'product',
                 'source_url' => $request->headers->get('referer'),
@@ -66,5 +70,33 @@ class ContactController extends Controller
         return redirect()
             ->back()
             ->with('status', ContactInformation::query()->first()?->success_message ?: 'Your inquiry has been received.');
+    }
+
+    /**
+     * @return array<int, array{name:string,path:string,url:string,mime_type:string|null,size:int|null}>
+     */
+    private function storeInquiryImages(SubmitInquiryRequest $request): array
+    {
+        $files = $request->file('uploaded_images', []);
+
+        if (! is_array($files)) {
+            return [];
+        }
+
+        return collect($files)
+            ->filter()
+            ->values()
+            ->map(function ($file): array {
+                $path = $file->store('inquiries/'.now()->format('Y/m'), 'public');
+
+                return [
+                    'name' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'url' => Storage::disk('public')->url($path),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                ];
+            })
+            ->all();
     }
 }

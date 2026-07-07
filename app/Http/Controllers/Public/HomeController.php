@@ -65,7 +65,9 @@ class HomeController extends Controller
         $latestProducts = Product::query()
             ->with(['category', 'featuredMedia.variants'])
             ->wherePublished()
+            ->where('is_latest', true)
             ->orderByDesc('published_at')
+            ->orderByDesc('id')
             ->limit($latestLimit)
             ->get();
         if ($latestProducts->isEmpty()) {

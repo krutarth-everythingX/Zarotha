@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Button } from '@admin/Components/ui/button';
 import { Field, Label } from '@admin/Components/ui/fieldset';
 import { Text } from '@admin/Components/ui/text';
@@ -213,8 +213,21 @@ function contentItems(items: ContentItemPayload[], defaults: ContentItemForm[]):
     }));
 }
 
+const sections = [
+    { id: 'hero-section', label: 'Hero Section' },
+    { id: 'whatsapp-section', label: 'WhatsApp' },
+    { id: 'turnkey-section', label: 'Turnkey Solutions' },
+    { id: 'about-preview-section', label: 'About Zarokha' },
+    { id: 'stats-section', label: 'Stats of Zarokha' },
+    { id: 'latest-products-section', label: 'Latest Products' },
+    { id: 'quick-inquiry-section', label: 'Quick Inquiry' },
+] as const;
+
+type SectionId = (typeof sections)[number]['id'];
+
 export default function HomepageIndex({ homepage, settings, mediaOptions }: HomepageIndexProps) {
     const [mediaChoices, setMediaChoices] = useState<MediaOption[]>(mediaOptions);
+    const [activeSection, setActiveSection] = useState<SectionId>(sections[0].id);
 
     const form = useForm<HomepageForm>({
         hero: {
@@ -459,32 +472,92 @@ export default function HomepageIndex({ homepage, settings, mediaOptions }: Home
         form.patch('/admin/homepage', { preserveScroll: true });
     };
 
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollPosition = window.scrollY + 150;
+
+            for (let i = sections.length - 1; i >= 0; i -= 1) {
+                const sectionId = sections[i].id;
+                const element = document.getElementById(sectionId);
+                if (element && element.offsetTop <= scrollPosition) {
+                    setActiveSection(sectionId);
+                    break;
+                }
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToSection = (id: SectionId) => {
+        const element = document.getElementById(id);
+        if (element) {
+            const y = element.getBoundingClientRect().top + window.scrollY - 100;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+    };
+
     return (
         <>
             <Head title="Homepage" />
             <AdminShell
                 title="Homepage"
                 description="Manage only the homepage sections shown on the public homepage."
+                actions={
+                    <div className="flex gap-3">
+                        <Button href="/" color="light">View homepage</Button>
+                        <Button type="button" onClick={submit} disabled={form.processing}>
+                            {form.processing ? 'Saving' : 'Save homepage'}
+                        </Button>
+                    </div>
+                }
             >
                 <form
-                    className="space-y-8"
+                    className="grid grid-cols-1 gap-8 xl:grid-cols-[250px_1fr] xl:items-start"
                     onSubmit={(event) => {
                         event.preventDefault();
                         submit();
                     }}
                 >
-                    <HeroSection
-                        form={form}
-                        mediaOptions={mediaChoices}
-                        imageFor={imageFor}
-                        ToggleField={ToggleField}
-                        FieldHint={FieldHint}
-                        addBanner={addHeroBanner}
-                        setBanner={setHeroBanner}
-                        removeBanner={removeHeroBanner}
-                        onMediaUploaded={rememberUploadedMedia}
-                    />
+                    <div className="hidden xl:block xl:sticky xl:top-24">
+                        <PagePanel className="p-4">
+                            <p className="mb-4 px-2 font-semibold text-zinc-950 dark:text-white">Sections</p>
+                            <nav className="flex flex-col space-y-1">
+                                {sections.map((section) => (
+                                    <button
+                                        key={section.id}
+                                        type="button"
+                                        onClick={() => scrollToSection(section.id)}
+                                        className={`rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                                            activeSection === section.id
+                                                ? 'bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950'
+                                                : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 dark:hover:bg-zinc-800 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        {section.label}
+                                    </button>
+                                ))}
+                            </nav>
+                        </PagePanel>
+                    </div>
 
+                    <div className="space-y-8 min-w-0">
+                    <div id="hero-section">
+                        <HeroSection
+                            form={form}
+                            mediaOptions={mediaChoices}
+                            imageFor={imageFor}
+                            ToggleField={ToggleField}
+                            FieldHint={FieldHint}
+                            addBanner={addHeroBanner}
+                            setBanner={setHeroBanner}
+                            removeBanner={removeHeroBanner}
+                            onMediaUploaded={rememberUploadedMedia}
+                        />
+                    </div>
+
+                    <div id="whatsapp-section">
                     <PagePanel>
                         <div className="mb-5">
                             <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Left Side WhatsApp</h2>
@@ -511,7 +584,9 @@ export default function HomepageIndex({ homepage, settings, mediaOptions }: Home
                             </Field>
                         </div>
                     </PagePanel>
+                    </div>
 
+                    <div id="turnkey-section">
                     <PagePanel>
                         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -578,7 +653,9 @@ export default function HomepageIndex({ homepage, settings, mediaOptions }: Home
                             ))}
                         </div>
                     </PagePanel>
+                    </div>
 
+                    <div id="about-preview-section">
                     <PagePanel>
                         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -668,7 +745,9 @@ export default function HomepageIndex({ homepage, settings, mediaOptions }: Home
                             ))}
                         </div>
                     </PagePanel>
+                    </div>
 
+                    <div id="stats-section">
                     <PagePanel>
                         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -753,34 +832,31 @@ export default function HomepageIndex({ homepage, settings, mediaOptions }: Home
                             ))}
                         </div>
                     </PagePanel>
+                    </div>
 
-                    <LatestProducts form={form} ToggleField={ToggleField} />
+                    <div id="latest-products-section">
+                        <LatestProducts form={form} ToggleField={ToggleField} />
+                    </div>
 
-                    <QuickInquiry
-                        form={form}
-                        ToggleField={ToggleField}
-                        addBanner={addBanner}
-                        removeBanner={removeBanner}
-                        setBanner={setBanner}
-                        mediaOptions={mediaChoices}
-                        onMediaUploaded={rememberUploadedMedia}
-                    />
+                    <div id="quick-inquiry-section">
+                        <QuickInquiry
+                            form={form}
+                            ToggleField={ToggleField}
+                            addBanner={addBanner}
+                            removeBanner={removeBanner}
+                            setBanner={setBanner}
+                            mediaOptions={mediaChoices}
+                            onMediaUploaded={rememberUploadedMedia}
+                        />
+                    </div>
 
-                    <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-950/10 bg-white/95 p-4 shadow-lg backdrop-blur dark:border-white/10 dark:bg-zinc-900/95">
-                        <div>
-                            <Text>Save writes the seven homepage CMS editors together.</Text>
-                            {Object.keys(form.errors).length > 0 ? (
-                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                                    Homepage was not saved. Please fix the highlighted fields and save again.
-                                </p>
-                            ) : null}
-                        </div>
-                        <div className="flex gap-3">
-                            <Button href="/" color="light">View homepage</Button>
-                            <Button type="submit" disabled={form.processing}>
-                                {form.processing ? 'Saving' : 'Save homepage'}
-                            </Button>
-                        </div>
+                    {Object.keys(form.errors).length > 0 ? (
+                        <PagePanel className="border-red-500/40">
+                            <p className="text-sm text-red-600 dark:text-red-400">
+                                Homepage was not saved. Please fix the highlighted fields and save again.
+                            </p>
+                        </PagePanel>
+                    ) : null}
                     </div>
                 </form>
             </AdminShell>

@@ -105,13 +105,16 @@ export default function TestimonialsIndex({ testimonials, mediaOptions }: Props)
     };
 
     return (
-        <AdminShell title="Testimonial" description="Manage testimonial lists, add testimonials, edit, remove, and switch them active or inactive.">
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex justify-end">
-                    <Button type="submit" disabled={!isDirty || processing}>
-                        Save testimonials
-                    </Button>
-                </div>
+        <AdminShell
+            title="Testimonial"
+            description="Manage testimonial lists, add testimonials, edit, remove, and switch them active or inactive."
+            actions={
+                <Button type="submit" form="testimonials-form" disabled={!isDirty || processing}>
+                    Save testimonials
+                </Button>
+            }
+        >
+            <form id="testimonials-form" onSubmit={handleSubmit} className="space-y-6">
 
                 <PagePanel>
                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

@@ -262,7 +262,15 @@ export default function ContactSocials({ contact, links, settings }: Props) {
     return (
         <>
             <Head title="Contact & Socials" />
-            <AdminShell title="Contact & Socials" description="Manage footer contact details, contact page information, and public social links.">
+            <AdminShell
+                title="Contact & Socials"
+                description="Manage footer contact details, contact page information, and public social links."
+                actions={
+                    <Button type="button" onClick={() => contactForm.patch('/admin/contact-socials/contact')} disabled={contactForm.processing}>
+                        Save contact info
+                    </Button>
+                }
+            >
                 <div className="grid gap-8 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
                     <form
                         className="space-y-8"
@@ -309,10 +317,10 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                                 <Field><Label>Page title</Label><FormInput value={contactForm.data.page_title} onChange={(event) => contactForm.setData('page_title', event.target.value)} /><FieldError message={contactForm.errors.page_title} /></Field>
                                 <Field><Label>Form title</Label><FormInput value={contactForm.data.form_title} onChange={(event) => contactForm.setData('form_title', event.target.value)} /><FieldError message={contactForm.errors.form_title} /></Field>
                                 <Field className="lg:col-span-2"><Label>Page intro</Label><FormTextarea rows={3} value={contactForm.data.page_intro} onChange={(event) => contactForm.setData('page_intro', event.target.value)} /><FieldError message={contactForm.errors.page_intro} /></Field>
-                                <Field><Label>Submit button label</Label><FormInput value={contactForm.data.submit_label} onChange={(event) => contactForm.setData('submit_label', event.target.value)} /><FieldError message={contactForm.errors.submit_label} /></Field>
+                                <Field><Label>Submit button label</Label><FormInput value={contactForm.data.submit_label} onChange={(event) => contactForm.setData('submit_label', event.target.value)} placeholder="Send Inquiry" /><FieldError message={contactForm.errors.submit_label} /></Field>
                                 <Field><Label>Success message</Label><FormInput value={contactForm.data.success_message} onChange={(event) => contactForm.setData('success_message', event.target.value)} /><FieldError message={contactForm.errors.success_message} /></Field>
                                 <Field className="lg:col-span-2"><Label>Form helper text</Label><FormTextarea rows={3} value={contactForm.data.form_helper_text} onChange={(event) => contactForm.setData('form_helper_text', event.target.value)} /><FieldError message={contactForm.errors.form_helper_text} /></Field>
-                                <Field className="lg:col-span-2"><Label>Consent text</Label><FormTextarea rows={3} value={contactForm.data.consent_text} onChange={(event) => contactForm.setData('consent_text', event.target.value)} /><FieldError message={contactForm.errors.consent_text} /></Field>
+                                <Field className="lg:col-span-2"><Label>Consent text</Label><FormTextarea rows={3} value={contactForm.data.consent_text} onChange={(event) => contactForm.setData('consent_text', event.target.value)} placeholder="I consent to being contacted regarding my inquiry." /><FieldError message={contactForm.errors.consent_text} /></Field>
                                 <Field><Label>Location kicker</Label><FormInput value={contactForm.data.location_kicker} onChange={(event) => contactForm.setData('location_kicker', event.target.value)} /></Field>
                                 <Field><Label>Location title</Label><FormInput value={contactForm.data.location_title} onChange={(event) => contactForm.setData('location_title', event.target.value)} /></Field>
                                 <Field className="lg:col-span-2"><Label>Location body</Label><FormTextarea rows={3} value={contactForm.data.location_body} onChange={(event) => contactForm.setData('location_body', event.target.value)} /></Field>
@@ -354,8 +362,6 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                                 ))}
                             </div>
                         </PagePanel>
-
-                        <Button type="submit" disabled={contactForm.processing}>Save contact info</Button>
                     </form>
 
                     <div className="space-y-8">

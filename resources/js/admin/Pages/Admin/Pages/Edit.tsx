@@ -282,14 +282,24 @@ export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditPr
     return (
         <>
             <Head title={`Edit ${page.title}`} />
-            <AdminShell title={`Edit ${page.title}`} description="Manage fixed public page content. Missing client facts should remain empty until approved.">
-                <div className="mb-6 flex flex-wrap gap-2">
-                    {pageOptions.map((option) => (
-                        <Button key={option} href={`/admin/pages/${option}`} color={option === page.slug ? undefined : 'light'}>
-                            {option.replaceAll('-', ' ')}
+            <AdminShell
+                title={`Edit ${page.title}`}
+                description="Manage fixed public page content. Missing client facts should remain empty until approved."
+                actions={
+                    <div className="flex flex-wrap gap-3">
+                        {pageOptions
+                            .filter((option) => option !== page.slug)
+                            .map((option) => (
+                                <Button key={option} href={`/admin/pages/${option}`} color="light">
+                                    {option.replaceAll('-', ' ')}
+                                </Button>
+                            ))}
+                        <Button type="button" onClick={submit} disabled={form.processing}>
+                            Save page
                         </Button>
-                    ))}
-                </div>
+                    </div>
+                }
+            >
                 <form
                     className="space-y-6"
                     onSubmit={(event) => {
@@ -641,9 +651,6 @@ export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditPr
                     </PagePanel>
 
                     <div className="flex flex-wrap gap-3">
-                        <Button type="submit" disabled={form.processing}>
-                            Save page
-                        </Button>
                         <Button href="/admin" color="light">
                             Back to dashboard
                         </Button>

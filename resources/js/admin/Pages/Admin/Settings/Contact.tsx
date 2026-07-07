@@ -123,7 +123,15 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
     return (
         <>
             <Head title="Contact Settings" />
-            <AdminShell title="Contact Settings" description="Manage the public contact page form, location, map, and social links.">
+            <AdminShell
+                title="Contact Settings"
+                description="Manage the public contact page form, location, map, and social links."
+                actions={
+                    <Button type="button" onClick={() => form.patch('/admin/pages/contact')} disabled={form.processing}>
+                        Save contact settings
+                    </Button>
+                }
+            >
                 <form
                     className="space-y-8"
                     onSubmit={(event) => {
@@ -154,7 +162,7 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                             </Field>
                             <Field>
                                 <Label>Submit button label</Label>
-                                <FormInput value={form.data.submit_label} onChange={(event) => form.setData('submit_label', event.target.value)} placeholder="Send now" />
+                                <FormInput value={form.data.submit_label} onChange={(event) => form.setData('submit_label', event.target.value)} placeholder="Send Inquiry" />
                                 <FieldError message={form.errors.submit_label} />
                             </Field>
                             <Field>
@@ -179,7 +187,7 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                             <div>
                                 <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Inquiry type options</h2>
-                                <Text>Options shown in the contact form subject dropdown.</Text>
+                                <Text>Options shown in the contact form inquiry type dropdown.</Text>
                             </div>
                             <Button type="button" color="light" onClick={() => form.setData('inquiry_type_options', [...form.data.inquiry_type_options, ''])}>
                                 <Plus data-slot="icon" />
@@ -266,8 +274,6 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                             ))}
                         </div>
                     </PagePanel>
-
-                    <Button type="submit" disabled={form.processing}>Save contact settings</Button>
                 </form>
             </AdminShell>
         </>

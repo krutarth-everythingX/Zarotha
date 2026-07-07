@@ -12,8 +12,11 @@ use App\Models\MediaAsset;
 use App\Models\MediaVariant;
 use App\Models\Page;
 use App\Models\Product;
+use App\Models\SiteSetting;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Tests\TestCase;
 
@@ -38,6 +41,7 @@ class PublicPresentationTest extends TestCase
             'status' => PublishStatus::Published,
             'published_at' => now(),
             'is_featured' => true,
+            'is_latest' => true,
             'featured_media_id' => $this->processedMedia()->id,
         ]);
 
@@ -87,6 +91,31 @@ class PublicPresentationTest extends TestCase
             ->assertDontSee('Inactive Client');
     }
 
+    public function test_public_layout_uses_settings_favicon_for_browser_and_social_metadata(): void
+    {
+        $favicon = $this->processedMedia('favicon-icon.png');
+        $defaultOgImage = $this->processedMedia('default-og-image.png');
+
+        SiteSetting::factory()->create([
+            'site_name' => 'Zarokha Wooden Arts',
+            'default_meta_title' => 'Zarokha Wooden Arts',
+            'default_meta_description' => 'Handcrafted wooden decor.',
+            'default_og_image_media_id' => $defaultOgImage->id,
+            'dark_logo_media_id' => $favicon->id,
+        ]);
+
+        $faviconUrl = url('/storage/media/favicon-icon.png');
+        $shareImageUrl = url('/storage/media/variants/favicon-icon.webp');
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('<link rel="icon" href="'.$faviconUrl.'">', false)
+            ->assertSee('<link rel="apple-touch-icon" href="'.$faviconUrl.'">', false)
+            ->assertSee('<meta property="og:image" content="'.$shareImageUrl.'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.$shareImageUrl.'">', false)
+            ->assertDontSee('default-og-image.webp', false);
+    }
+
     public function test_homepage_latest_products_render_as_six_item_gallery_with_products_cta(): void
     {
         $category = Category::factory()->create(['name' => 'Wooden Art', 'slug' => 'wooden-art']);
@@ -101,6 +130,7 @@ class PublicPresentationTest extends TestCase
                 'status' => PublishStatus::Published,
                 'published_at' => now()->subMinutes($sequence->index),
                 'featured_media_id' => $media->id,
+                'is_latest' => $sequence->index < 6,
             ])
             ->create();
 
@@ -366,12 +396,27 @@ class PublicPresentationTest extends TestCase
 
     public function test_contact_inquiry_submission_creates_workflow_records(): void
     {
+        Storage::fake('public');
+
         $response = $this->post('/contact', [
             'name' => 'Inquiry Sender',
             'email' => 'sender@example.com',
             'phone' => '1234567890',
-            'subject' => 'Catalogue question',
-            'message' => 'Please share more information.',
+            'subject' => 'Custom furniture',
+            'project_location' => 'Ahmedabad, Gujarat',
+            'project_state' => 'Gujarat',
+            'project_country' => 'India',
+            'budget_range_start' => '100000',
+            'budget_range_end' => '300000',
+            'expected_project_start' => now()->addMonth()->toDateString(),
+            'message' => 'Please share more information about this project.',
+            'uploaded_images' => [
+                UploadedFile::fake()->createWithContent(
+                    'room-reference.png',
+                    base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='),
+                ),
+                UploadedFile::fake()->createWithContent('walkthrough.mp4', 'fake-video-content')->mimeType('video/mp4'),
+            ],
             'consent_confirmed' => '1',
         ]);
 
@@ -380,8 +425,21 @@ class PublicPresentationTest extends TestCase
             'name' => 'Inquiry Sender',
             'email' => 'sender@example.com',
             'source_page_key' => 'contact',
+            'subject' => 'Custom furniture',
+            'project_location' => 'Ahmedabad, Gujarat',
+            'project_state' => 'Gujarat',
+            'project_country' => 'India',
+            'budget_range' => 'Rs. 1,00,000 - Rs. 3,00,000',
         ]);
-        $this->assertSame(1, Inquiry::query()->firstOrFail()->activities()->count());
+
+        $inquiry = Inquiry::query()->firstOrFail();
+
+        $this->assertSame(now()->addMonth()->toDateString(), $inquiry->expected_project_start?->toDateString());
+        $this->assertSame('room-reference.png', $inquiry->uploaded_images[0]['name'] ?? null);
+        $this->assertSame('walkthrough.mp4', $inquiry->uploaded_images[1]['name'] ?? null);
+        Storage::disk('public')->assertExists($inquiry->uploaded_images[0]['path']);
+        Storage::disk('public')->assertExists($inquiry->uploaded_images[1]['path']);
+        $this->assertSame(1, $inquiry->activities()->count());
     }
 
     public function test_sitemap_excludes_collections_and_collection_urls_redirect(): void

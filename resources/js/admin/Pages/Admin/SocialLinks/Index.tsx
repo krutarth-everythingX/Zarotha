@@ -248,12 +248,15 @@ export default function SocialLinksIndex({ links, settings }: Props) {
     };
 
     return (
-        <AdminShell title="Socials" description="Add social links, edit existing links, remove links, and switch them active or inactive.">
-            <div className="mb-6 flex flex-wrap items-center justify-end gap-3">
+        <AdminShell
+            title="Socials"
+            description="Add social links, edit existing links, remove links, and switch them active or inactive."
+            actions={
                 <Button onClick={handleSaveAll} disabled={isSaving}>
                     Save socials
                 </Button>
-            </div>
+            }
+        >
 
             <PagePanel className="mb-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">

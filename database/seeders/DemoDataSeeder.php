@@ -35,7 +35,7 @@ class DemoDataSeeder extends Seeder
             'whatsapp_number' => '+919876543210',
             'whatsapp_text' => 'Hi Zarokha, I want to discuss a custom project.',
             'page_title' => 'Contact Form',
-            'page_intro' => 'Feel free to contact us through Instagram, Facebook, or WhatsApp if you prefer.',
+            'page_intro' => 'Visit us to view our collection, discuss ideas, and plan custom wooden work.',
             'form_title' => 'Tell us about your project',
             'submit_label' => 'Send now',
             'inquiry_type_options' => ['Home Furniture', 'Office Furniture', 'Custom Wooden Art', 'Commercial Project'],

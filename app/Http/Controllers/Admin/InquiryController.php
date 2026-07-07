@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -35,7 +36,11 @@ class InquiryController extends Controller
             ->when($search !== '', fn ($query) => $query->where(function ($builder) use ($search): void {
                 $builder->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('subject', 'like', "%{$search}%");
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('subject', 'like', "%{$search}%")
+                    ->orWhere('project_location', 'like', "%{$search}%")
+                    ->orWhere('project_state', 'like', "%{$search}%")
+                    ->orWhere('project_country', 'like', "%{$search}%");
             }))
             ->when($status !== null && $status !== '', fn ($query) => $query->where('status', $status))
             ->when($assignedUserId !== null && $assignedUserId !== '', fn ($query) => $query->where('assigned_user_id', (int) $assignedUserId))
@@ -58,7 +63,6 @@ class InquiryController extends Controller
                 'replied' => Inquiry::query()->where('status', 'replied')->count(),
                 'archived' => Inquiry::query()->where('status', 'archived')->count(),
             ],
-            'assignableUsers' => $this->assignableUsers(),
             'inquiries' => [
                 'data' => $inquiries->getCollection()->map(fn (Inquiry $inquiry) => $this->inquiryListItem($inquiry)),
                 'meta' => [
@@ -85,6 +89,12 @@ class InquiryController extends Controller
                 ...$this->inquiryListItem($inquiry),
                 'message' => $inquiry->message,
                 'whatsappNumber' => $inquiry->whatsapp_number,
+                'projectLocation' => $inquiry->project_location,
+                'projectState' => $inquiry->project_state,
+                'projectCountry' => $inquiry->project_country,
+                'budgetRange' => $inquiry->budget_range,
+                'expectedProjectStart' => $inquiry->expected_project_start?->toDateString(),
+                'uploadedImages' => $this->normalizeUploadedImages($inquiry),
                 'referrerUrl' => $inquiry->referrer_url,
                 'utm' => [
                     'source' => $inquiry->utm_source,
@@ -258,8 +268,14 @@ class InquiryController extends Controller
                 'Phone',
                 'Company Name',
                 'WhatsApp Number',
-                'Subject',
+                'Inquiry Type',
+                'Project Location',
+                'Project State',
+                'Project Country',
+                'Budget Range',
+                'Expected Project Start',
                 'Message',
+                'Uploaded Images',
                 'Product Reference',
                 'Source Page Key',
                 'Source URL',
@@ -286,7 +302,13 @@ class InquiryController extends Controller
                     $this->safeCsv($inquiry->company_name),
                     $this->safeCsv($inquiry->whatsapp_number),
                     $this->safeCsv($inquiry->subject),
+                    $this->safeCsv($inquiry->project_location),
+                    $this->safeCsv($inquiry->project_state),
+                    $this->safeCsv($inquiry->project_country),
+                    $this->safeCsv($inquiry->budget_range),
+                    $inquiry->expected_project_start?->toDateString(),
                     $this->safeCsv($inquiry->message),
+                    $this->safeCsv($this->uploadedImageNames($inquiry)),
                     $this->safeCsv($inquiry->product?->name),
                     $this->safeCsv($inquiry->source_page_key),
                     $this->safeCsv($inquiry->source_url),
@@ -336,6 +358,12 @@ class InquiryController extends Controller
             'phone' => $inquiry->phone,
             'companyName' => $inquiry->company_name,
             'subject' => $inquiry->subject,
+            'projectLocation' => $inquiry->project_location,
+            'projectState' => $inquiry->project_state,
+            'projectCountry' => $inquiry->project_country,
+            'budgetRange' => $inquiry->budget_range,
+            'expectedProjectStart' => $inquiry->expected_project_start?->toDateString(),
+            'uploadedImages' => $this->normalizeUploadedImages($inquiry),
             'product' => $inquiry->product === null ? null : [
                 'id' => $inquiry->product->id,
                 'name' => $inquiry->product->name,
@@ -353,6 +381,45 @@ class InquiryController extends Controller
             'consentConfirmed' => $inquiry->consent_confirmed,
             'createdAt' => $inquiry->created_at?->toAtomString(),
         ];
+    }
+
+    /**
+     * @return array<int, array{name:string,url:string,path:?string,mime_type:?string,size:?int}>
+     */
+    private function normalizeUploadedImages(Inquiry $inquiry): array
+    {
+        return collect($inquiry->uploaded_images ?? [])
+            ->map(function (array $image): array {
+                $path = isset($image['path']) && is_string($image['path']) ? $image['path'] : null;
+                $url = isset($image['url']) && is_string($image['url']) ? $image['url'] : null;
+
+                if (($url === null || $url === '') && $path) {
+                    $url = Storage::disk('public')->url($path);
+                }
+
+                if ($url !== null && ! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://') && ! str_starts_with($url, '/')) {
+                    $url = '/'.$url;
+                }
+
+                return [
+                    'name' => isset($image['name']) && is_string($image['name']) ? $image['name'] : '',
+                    'url' => $url ?? '',
+                    'path' => $path,
+                    'mime_type' => isset($image['mime_type']) && is_string($image['mime_type']) ? $image['mime_type'] : null,
+                    'size' => isset($image['size']) && is_numeric($image['size']) ? (int) $image['size'] : null,
+                ];
+            })
+            ->filter(fn (array $image): bool => $image['url'] !== '')
+            ->values()
+            ->all();
+    }
+
+    private function uploadedImageNames(Inquiry $inquiry): string
+    {
+        return collect($inquiry->uploaded_images ?? [])
+            ->map(fn (array $image): string => (string) ($image['name'] ?? $image['url'] ?? ''))
+            ->filter()
+            ->implode(', ');
     }
 
     private function safeCsv(?string $value): ?string

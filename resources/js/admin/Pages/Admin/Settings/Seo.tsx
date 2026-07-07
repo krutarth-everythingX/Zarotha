@@ -26,7 +26,15 @@ export default function SettingsSeo({ settings }: SettingsSeoProps) {
     return (
         <>
             <Head title="SEO Defaults" />
-            <AdminShell title="SEO Defaults" description="Manage safe fallback metadata and robots defaults for public pages.">
+            <AdminShell
+                title="SEO Defaults"
+                description="Manage safe fallback metadata and robots defaults for public pages."
+                actions={
+                    <Button type="button" onClick={() => form.patch('/admin/seo')} disabled={form.processing}>
+                        Save SEO defaults
+                    </Button>
+                }
+            >
                 <PagePanel>
                     <form
                         className="grid gap-4 lg:grid-cols-2"
@@ -47,9 +55,6 @@ export default function SettingsSeo({ settings }: SettingsSeoProps) {
                             <Label>Default meta description</Label>
                             <FormInput value={form.data.default_meta_description} onChange={(event) => form.setData('default_meta_description', event.target.value)} />
                         </Field>
-                        <div className="lg:col-span-2">
-                            <Button type="submit">Save SEO defaults</Button>
-                        </div>
                     </form>
                 </PagePanel>
             </AdminShell>

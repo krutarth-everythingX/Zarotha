@@ -79,22 +79,42 @@ export default function RedirectsIndex({ redirects, filters }: RedirectsIndexPro
                             <EmptyState title="No redirects found" description="Create redirects for slug history or manual path changes." />
                         </div>
                     ) : (
-                        <div className="divide-y divide-zinc-950/8 dark:divide-white/10">
-                            {redirects.data.map((redirect) => (
-                                <article key={redirect.id} className="grid gap-4 p-5 lg:grid-cols-[1fr_1fr_140px] lg:items-center">
-                                    <div>
-                                        <p className="font-medium text-zinc-950 dark:text-white">{redirect.sourcePath}</p>
-                                        <Text>{redirect.redirectType}</Text>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-zinc-950 dark:text-white">{redirect.targetPath}</p>
-                                        <Text>{redirect.httpStatus}</Text>
-                                    </div>
-                                    <StatusBadge tone={redirect.isActive ? 'green' : 'amber'}>
-                                        {redirect.isActive ? 'Active' : 'Inactive'}
-                                    </StatusBadge>
-                                </article>
-                            ))}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full table-fixed border-collapse">
+                                <colgroup>
+                                    <col />
+                                    <col />
+                                    <col className="w-[140px]" />
+                                </colgroup>
+                                <thead>
+                                    <tr className="border-b border-zinc-950/8 dark:border-white/10">
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Source</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Target</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-950/8 dark:divide-white/10">
+                                    {redirects.data.map((redirect) => (
+                                        <tr key={redirect.id} className="align-middle">
+                                            <td className="px-4 py-2.5 text-center">
+                                                <p className="font-medium text-zinc-950 dark:text-white">{redirect.sourcePath}</p>
+                                                <Text>{redirect.redirectType}</Text>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <p className="font-medium text-zinc-950 dark:text-white">{redirect.targetPath}</p>
+                                                <Text>{redirect.httpStatus}</Text>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <div className="flex justify-center">
+                                                    <StatusBadge tone={redirect.isActive ? 'green' : 'amber'}>
+                                                        {redirect.isActive ? 'Active' : 'Inactive'}
+                                                    </StatusBadge>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                     <PaginationLinks meta={redirects.meta} baseUrl="/admin/redirects" />

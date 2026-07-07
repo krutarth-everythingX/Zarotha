@@ -59,4 +59,12 @@ class SiteSetting extends Model
     {
         return $this->belongsTo(MediaAsset::class, 'dark_logo_media_id');
     }
+
+    /**
+     * @return BelongsTo<MediaAsset, $this>
+     */
+    public function defaultOgImage(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'default_og_image_media_id');
+    }
 }

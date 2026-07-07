@@ -75,22 +75,48 @@ export default function UsersIndex({ users, roleOptions }: UsersIndexProps) {
                             <EmptyState title="No users found" description="Create CMS users here when additional administrators are needed." />
                         </div>
                     ) : (
-                        <div className="divide-y divide-zinc-950/8 dark:divide-white/10">
-                            {users.data.map((user) => (
-                                <article key={user.id} className="grid gap-4 p-5 lg:grid-cols-[1fr_160px_140px_auto] lg:items-center">
-                                    <div>
-                                        <p className="font-medium text-zinc-950 dark:text-white">{user.name}</p>
-                                        <Text>{user.email}</Text>
-                                    </div>
-                                    <Text>{user.roleSlug}</Text>
-                                    <StatusBadge tone={user.isActive ? 'green' : 'amber'}>{user.isActive ? 'Active' : 'Inactive'}</StatusBadge>
-                                    {user.isActive ? (
-                                        <Button href={`/admin/users/${user.id}/deactivate`} method="post" color="light">
-                                            Deactivate
-                                        </Button>
-                                    ) : null}
-                                </article>
-                            ))}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full table-fixed border-collapse">
+                                <colgroup>
+                                    <col />
+                                    <col className="w-[160px]" />
+                                    <col className="w-[140px]" />
+                                    <col className="w-[150px]" />
+                                </colgroup>
+                                <thead>
+                                    <tr className="border-b border-zinc-950/8 dark:border-white/10">
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">User</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Role</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Status</th>
+                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-950/8 dark:divide-white/10">
+                                    {users.data.map((user) => (
+                                        <tr key={user.id} className="align-middle">
+                                            <td className="px-4 py-2.5 text-center">
+                                                <p className="font-medium text-zinc-950 dark:text-white">{user.name}</p>
+                                                <Text>{user.email}</Text>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <Text>{user.roleSlug}</Text>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <div className="flex justify-center">
+                                                    <StatusBadge tone={user.isActive ? 'green' : 'amber'}>{user.isActive ? 'Active' : 'Inactive'}</StatusBadge>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                {user.isActive ? (
+                                                    <Button href={`/admin/users/${user.id}/deactivate`} method="post" color="light">
+                                                        Deactivate
+                                                    </Button>
+                                                ) : null}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                     <PaginationLinks meta={users.meta} baseUrl="/admin/users" />

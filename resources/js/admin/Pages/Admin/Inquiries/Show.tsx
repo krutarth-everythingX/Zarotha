@@ -6,6 +6,14 @@ import { AdminShell } from '@admin/Layouts/AdminShell';
 import { FormSelect, FormTextarea, PagePanel, StatusBadge } from '@admin/Components/AdminPrimitives';
 import type { InquiryStatus, SelectOption } from '@admin/types';
 
+type InquiryUploadedImage = {
+    name: string;
+    url: string;
+    path?: string;
+    mime_type?: string | null;
+    size?: number | null;
+};
+
 type InquiryDetailProps = {
     inquiry: {
         id: number;
@@ -15,6 +23,12 @@ type InquiryDetailProps = {
         phone: string;
         companyName: string | null;
         subject: string | null;
+        projectLocation: string | null;
+        projectState: string | null;
+        projectCountry: string | null;
+        budgetRange: string | null;
+        expectedProjectStart: string | null;
+        uploadedImages: InquiryUploadedImage[];
         message: string;
         product: { id: number; name: string; slug: string } | null;
         assignedUser: { id: number; name: string } | null;
@@ -58,11 +72,34 @@ export default function InquiriesShow({ inquiry, assignableUsers }: InquiryDetai
                             {inquiry.companyName ? <Text>{inquiry.companyName}</Text> : null}
                             {inquiry.whatsappNumber ? <Text>{inquiry.whatsappNumber}</Text> : null}
                             <Text>{inquiry.product?.name ?? 'General inquiry'}</Text>
-                            <Text>{inquiry.subject ?? 'No subject'}</Text>
+                            <Text>Inquiry type: {inquiry.subject ?? 'No subject'}</Text>
+                            <Text>Project location: {inquiry.projectLocation ?? 'Not provided'}</Text>
+                            <Text>State: {inquiry.projectState ?? 'Not provided'}</Text>
+                            <Text>Country: {inquiry.projectCountry ?? 'Not provided'}</Text>
+                            <Text>Budget range: {inquiry.budgetRange ?? 'Not provided'}</Text>
+                            <Text>Expected start: {inquiry.expectedProjectStart ?? 'Not provided'}</Text>
                         </div>
                         <div className="mt-6 rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
                             <Text>{inquiry.message}</Text>
                         </div>
+                        {inquiry.uploadedImages.length > 0 ? (
+                            <div className="mt-6 rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
+                                <Text>Uploaded Images</Text>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {inquiry.uploadedImages.map((image, index) => (
+                                        <a
+                                            key={`${image.url}-${index}`}
+                                            href={image.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="rounded-lg border border-zinc-950/10 px-3 py-2 text-sm font-medium text-zinc-950 hover:bg-zinc-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
+                                        >
+                                            {image.name || `Image ${index + 1}`}
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
                     </PagePanel>
 
                     <div className="space-y-6">
