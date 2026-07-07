@@ -26,7 +26,6 @@ Route::prefix('admin')
                 ->name('password.reset.update');
         });
 
-        Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
-            ->middleware('auth')
+        Route::match(['get', 'post'], '/logout', [AuthenticatedSessionController::class, 'destroy'])
             ->name('logout');
     });

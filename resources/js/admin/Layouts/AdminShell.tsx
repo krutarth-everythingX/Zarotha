@@ -1,4 +1,4 @@
-import { Link, router, usePage } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type React from 'react';
 import { useState } from 'react';
 import { Heading } from '@admin/Components/ui/heading';
@@ -53,16 +53,9 @@ export function AdminShell({ title, description, children, actions }: AdminShell
     const page = usePage<AppPageProps>();
     const user = page.props.auth.user;
     const [showSignOutModal, setShowSignOutModal] = useState(false);
-    const [isSigningOut, setIsSigningOut] = useState(false);
 
-    const confirmSignOut = () => {
-        setIsSigningOut(true);
-        router.post('/admin/logout', {}, {
-            onFinish: () => {
-                setIsSigningOut(false);
-                setShowSignOutModal(false);
-            },
-        });
+    const handleSignOut = () => {
+        window.location.assign('/admin/logout');
     };
 
     const sidebar = (
@@ -135,11 +128,7 @@ export function AdminShell({ title, description, children, actions }: AdminShell
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="signout-modal-title"
-                    onClick={() => {
-                        if (!isSigningOut) {
-                            setShowSignOutModal(false);
-                        }
-                    }}
+                    onClick={() => setShowSignOutModal(false)}
                 >
                     <div
                         className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-5 shadow-2xl dark:bg-zinc-950"
@@ -156,12 +145,11 @@ export function AdminShell({ title, description, children, actions }: AdminShell
                                 plain
                                 className="justify-center"
                                 onClick={() => setShowSignOutModal(false)}
-                                disabled={isSigningOut}
                             >
                                 Cancel
                             </Button>
-                            <Button type="button" className="justify-center" onClick={confirmSignOut} disabled={isSigningOut}>
-                                {isSigningOut ? 'Signing out...' : 'Yes, sign out'}
+                            <Button type="button" className="justify-center" onClick={handleSignOut}>
+                                Yes, sign out
                             </Button>
                         </div>
                     </div>
