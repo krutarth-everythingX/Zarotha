@@ -2,7 +2,7 @@
     $compact = $compact ?? false;
 @endphp
 
-<form class="inquiry-form" method="post" action="{{ $action }}" enctype="multipart/form-data">
+<form class="inquiry-form" method="post" action="{{ $action }}" enctype="multipart/form-data" data-inquiry-submit-form>
     @csrf
     <input type="text" name="website" tabindex="-1" autocomplete="off" class="honeypot" aria-hidden="true">
     @unless ($compact)

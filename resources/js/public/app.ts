@@ -707,6 +707,28 @@ document.querySelectorAll<HTMLInputElement>('input[name="budget_range_start"], i
     input.addEventListener('blur', applyBudgetFormat);
 });
 
+const inquirySubmitOverlay = document.querySelector<HTMLElement>('[data-inquiry-submit-overlay]');
+
+document.querySelectorAll<HTMLFormElement>('[data-inquiry-submit-form]').forEach((form) => {
+    let isSubmitting = false;
+
+    form.addEventListener('submit', () => {
+        if (isSubmitting) {
+            return;
+        }
+
+        isSubmitting = true;
+        inquirySubmitOverlay?.removeAttribute('hidden');
+        inquirySubmitOverlay?.setAttribute('aria-hidden', 'false');
+        form.setAttribute('aria-busy', 'true');
+
+        const submitButtons = form.querySelectorAll<HTMLButtonElement>('button[type="submit"]');
+        submitButtons.forEach((button) => {
+            button.disabled = true;
+        });
+    });
+});
+
 const galleryRoot = document.querySelector<HTMLElement>('[data-products-gallery]');
 const galleryFeed = document.querySelector<HTMLElement>('[data-products-feed]');
 const gallerySentinel = document.querySelector<HTMLElement>('[data-products-sentinel]');

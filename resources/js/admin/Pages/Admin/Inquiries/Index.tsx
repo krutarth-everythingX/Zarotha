@@ -254,26 +254,26 @@ export default function InquiriesIndex({ inquiries, stats, filters }: InquiriesI
                                 </colgroup>
                                 <thead>
                                     <tr className="border-b border-zinc-950/8 dark:border-white/10">
-                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Inquiry</th>
-                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Created</th>
-                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Actions</th>
+                                        <th className="px-4 py-2.5 text-left text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Inquiry</th>
+                                        <th className="px-4 py-2.5 text-left text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Created</th>
+                                        <th className="px-4 py-2.5 text-right text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-zinc-950/8 dark:divide-white/10">
                                     {inquiries.data.map((inquiry) => (
                                         <tr key={inquiry.id} className="align-middle">
-                                            <td className="px-4 py-2.5 text-center">
-                                                <div className="flex items-center justify-center gap-2">
+                                            <td className="px-4 py-2.5">
+                                                <div className="flex items-center gap-2">
                                                     <p className="truncate text-sm font-medium leading-5 text-zinc-950 dark:text-white">{inquiry.name}</p>
                                                     <StatusBadge tone={toneForStatus(inquiry.status)}>{inquiry.status}</StatusBadge>
                                                 </div>
                                                 <Text>{inquiry.email}</Text>
                                             </td>
-                                            <td className="px-4 py-2.5 text-center">
+                                            <td className="px-4 py-2.5">
                                                 <Text>{formatDate(inquiry.createdAt)}</Text>
                                             </td>
                                             <td className="px-4 py-2.5">
-                                                <div className="grid grid-cols-2 justify-center gap-2">
+                                                <div className="ml-auto grid w-fit grid-cols-2 gap-2">
                                                     <Button type="button" color="light" className="h-9 w-9 px-0" aria-label="View inquiry" title="View inquiry" onClick={() => setSelectedInquiry(inquiry)}>
                                                         <Eye data-slot="icon" />
                                                     </Button>

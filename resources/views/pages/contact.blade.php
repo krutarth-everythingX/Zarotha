@@ -69,7 +69,7 @@
                 <p>{{ $pageIntro }}</p>
             </div>
 
-            <form id="contact-inquiry-form" class="contact-form-panel" method="post" action="{{ route('public.contact.submit') }}" enctype="multipart/form-data">
+            <form id="contact-inquiry-form" class="contact-form-panel" method="post" action="{{ route('public.contact.submit') }}" enctype="multipart/form-data" data-inquiry-submit-form>
                 @csrf
                 <input type="text" name="website" tabindex="-1" autocomplete="off" class="honeypot" aria-hidden="true">
 
@@ -191,6 +191,18 @@
             </form>
         </div>
     </section>
+
+    <div class="inquiry-submit-overlay" data-inquiry-submit-overlay hidden aria-hidden="true">
+        <div class="inquiry-submit-overlay__panel" role="status" aria-live="polite">
+            <div class="inquiry-submit-overlay__mark">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <p class="inquiry-submit-overlay__title">Submitting your inquiry</p>
+            <p class="inquiry-submit-overlay__text">Please wait while we send your details.</p>
+        </div>
+    </div>
 
     <section class="contact-location-section" aria-labelledby="contact-location-title">
         <div class="contact-location-section__inner">
