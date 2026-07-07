@@ -159,7 +159,7 @@ export default function TestimonialsIndex({ testimonials, mediaOptions }: Props)
                             <div key={item.id ?? `new-${index}`} className="rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
                                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                                     <p className="text-sm font-semibold text-zinc-950 dark:text-white">Testimonial {index + 1}</p>
-                                    <Button type="button" color="light" onClick={() => removeTestimonial(index)}>
+                                    <Button type="button" color="light" className="w-full justify-center sm:w-auto" onClick={() => removeTestimonial(index)}>
                                         Remove
                                     </Button>
                                 </div>
@@ -209,7 +209,7 @@ export default function TestimonialsIndex({ testimonials, mediaOptions }: Props)
                         ))}
                     </div>
                     <div className="mt-5">
-                        <Button type="button" color="light" onClick={addTestimonial}>
+                        <Button type="button" color="light" className="w-full justify-center sm:w-auto" onClick={addTestimonial}>
                             Add testimonial
                         </Button>
                     </div>

@@ -55,7 +55,7 @@ export default function RedirectsIndex({ redirects, filters }: RedirectsIndexPro
                             <FieldError message={form.errors.target_path} />
                         </Field>
                         <div className="flex items-end">
-                            <Button type="submit">Add redirect</Button>
+                            <Button type="submit" className="w-full justify-center lg:w-auto">Add redirect</Button>
                         </div>
                     </form>
                 </PagePanel>
@@ -67,8 +67,8 @@ export default function RedirectsIndex({ redirects, filters }: RedirectsIndexPro
                             <FormInput name="search" defaultValue={filters.search ?? ''} />
                         </Field>
                         <div className="flex items-end gap-2">
-                            <Button type="submit" color="light">Search</Button>
-                            <Button href="/admin/redirects" plain>Clear</Button>
+                            <Button type="submit" color="light" className="justify-center">Search</Button>
+                            <Button href="/admin/redirects" plain className="justify-center">Clear</Button>
                         </div>
                     </form>
                 </PagePanel>

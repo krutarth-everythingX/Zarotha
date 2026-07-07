@@ -199,6 +199,20 @@ function FieldHint({ children }: { children: React.ReactNode }) {
 export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditProps) {
     const [mediaChoices, setMediaChoices] = useState<MediaOption[]>(mediaOptions);
     const isAboutPage = page.pageKey === 'about_us';
+    const sectionLinks = isAboutPage
+        ? [
+              ['content', 'Content'],
+              ['about-details', 'Details'],
+              ['why-choose-us', 'Why choose us'],
+              ['vision-mission', 'Vision & mission'],
+              ['aim-stats', 'Aim & stats'],
+              ['strength', 'Strength'],
+              ['seo', 'SEO'],
+          ]
+        : [
+              ['content', 'Content'],
+              ['seo', 'SEO'],
+          ];
 
     const form = useForm<PageForm>({
         title: page.title,
@@ -307,67 +321,82 @@ export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditPr
                         submit();
                     }}
                 >
-                    <PagePanel>
-                        <div className="mb-5">
-                            <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Page content</h2>
-                            <Text>Hero copy, publishing, image, and primary call to action.</Text>
-                        </div>
-                        <div className="grid gap-5 lg:grid-cols-2">
-                            <Field>
-                                <Label>Title</Label>
-                                <FormInput value={form.data.title} onChange={(event) => form.setData('title', event.target.value)} />
-                                <FieldError message={form.errors.title} />
-                            </Field>
-                            <Field>
-                                <Label>Status</Label>
-                                <FormSelect value={form.data.status} onChange={(event) => form.setData('status', event.target.value as PublishStatus)}>
-                                    <option value="draft">Draft</option>
-                                    <option value="published">Published</option>
-                                    <option value="archived">Archived</option>
-                                </FormSelect>
-                            </Field>
-                            <Field>
-                                <Label>Intro title</Label>
-                                <FormInput value={form.data.intro_title} onChange={(event) => form.setData('intro_title', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>CTA label</Label>
-                                <FormInput value={form.data.cta_label} onChange={(event) => form.setData('cta_label', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>CTA URL</Label>
-                                <FormInput value={form.data.cta_url} onChange={(event) => form.setData('cta_url', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Published at</Label>
-                                <FormInput value={form.data.published_at} onChange={(event) => form.setData('published_at', event.target.value)} placeholder="YYYY-MM-DD HH:MM:SS" />
-                            </Field>
-                            <Field className="lg:col-span-2">
-                                <Label>Intro body</Label>
-                                <FormTextarea rows={3} value={form.data.intro_body} onChange={(event) => form.setData('intro_body', event.target.value)} />
-                            </Field>
-                            <Field className="lg:col-span-2">
-                                <Label>Hero image</Label>
-                                <MediaDropSelect
-                                    value={form.data.hero_media_id}
-                                    options={mediaChoices}
-                                    preview={imageFor(mediaChoices, form.data.hero_media_id)}
-                                    label="Hero image"
-                                    onUploaded={rememberUploadedMedia}
-                                    onChange={(value) => form.setData('hero_media_id', value)}
-                                />
-                                <FieldError message={form.errors.hero_media_id} />
-                            </Field>
-                            <Field className="lg:col-span-2">
-                                <Label>Body HTML</Label>
-                                <FormTextarea rows={8} value={form.data.body_html} onChange={(event) => form.setData('body_html', event.target.value)} />
-                                <FieldHint>Used by standard static pages. The About page uses the structured fields below.</FieldHint>
-                            </Field>
-                        </div>
-                    </PagePanel>
+                    <nav className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:hidden" aria-label="Page editor sections">
+                        {sectionLinks.map(([id, label]) => (
+                            <a
+                                key={id}
+                                href={`#${id}`}
+                                className="shrink-0 rounded-full border border-zinc-950/10 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-950/20 hover:text-zinc-950 dark:border-white/10 dark:text-zinc-300 dark:hover:border-white/20 dark:hover:text-white"
+                            >
+                                {label}
+                            </a>
+                        ))}
+                    </nav>
+
+                    <section id="content">
+                        <PagePanel>
+                            <div className="mb-5">
+                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Page content</h2>
+                                <Text>Hero copy, publishing, image, and primary call to action.</Text>
+                            </div>
+                            <div className="grid gap-5 lg:grid-cols-2">
+                                <Field>
+                                    <Label>Title</Label>
+                                    <FormInput value={form.data.title} onChange={(event) => form.setData('title', event.target.value)} />
+                                    <FieldError message={form.errors.title} />
+                                </Field>
+                                <Field>
+                                    <Label>Status</Label>
+                                    <FormSelect value={form.data.status} onChange={(event) => form.setData('status', event.target.value as PublishStatus)}>
+                                        <option value="draft">Draft</option>
+                                        <option value="published">Published</option>
+                                        <option value="archived">Archived</option>
+                                    </FormSelect>
+                                </Field>
+                                <Field>
+                                    <Label>Intro title</Label>
+                                    <FormInput value={form.data.intro_title} onChange={(event) => form.setData('intro_title', event.target.value)} />
+                                </Field>
+                                <Field>
+                                    <Label>CTA label</Label>
+                                    <FormInput value={form.data.cta_label} onChange={(event) => form.setData('cta_label', event.target.value)} />
+                                </Field>
+                                <Field>
+                                    <Label>CTA URL</Label>
+                                    <FormInput value={form.data.cta_url} onChange={(event) => form.setData('cta_url', event.target.value)} />
+                                </Field>
+                                <Field>
+                                    <Label>Published at</Label>
+                                    <FormInput value={form.data.published_at} onChange={(event) => form.setData('published_at', event.target.value)} placeholder="YYYY-MM-DD HH:MM:SS" />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>Intro body</Label>
+                                    <FormTextarea rows={3} value={form.data.intro_body} onChange={(event) => form.setData('intro_body', event.target.value)} />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>Hero image</Label>
+                                    <MediaDropSelect
+                                        value={form.data.hero_media_id}
+                                        options={mediaChoices}
+                                        preview={imageFor(mediaChoices, form.data.hero_media_id)}
+                                        label="Hero image"
+                                        onUploaded={rememberUploadedMedia}
+                                        onChange={(value) => form.setData('hero_media_id', value)}
+                                    />
+                                    <FieldError message={form.errors.hero_media_id} />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>Body HTML</Label>
+                                    <FormTextarea rows={8} value={form.data.body_html} onChange={(event) => form.setData('body_html', event.target.value)} />
+                                    <FieldHint>Used by standard static pages. The About page uses the structured fields below.</FieldHint>
+                                </Field>
+                            </div>
+                        </PagePanel>
+                    </section>
 
                     {isAboutPage ? (
                         <>
+                            <section id="about-details">
                             <PagePanel>
                                 <div className="mb-5">
                                     <h2 className="text-base font-semibold text-zinc-950 dark:text-white">About page details</h2>
@@ -401,7 +430,9 @@ export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditPr
                                     </Field>
                                 </div>
                             </PagePanel>
+                            </section>
 
+                            <section id="why-choose-us">
                             <PagePanel>
                                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                                     <div>
@@ -466,7 +497,9 @@ export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditPr
                                     </div>
                                 </div>
                             </PagePanel>
+                            </section>
 
+                            <section id="vision-mission">
                             <PagePanel>
                                 <div className="mb-5">
                                     <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Vision and mission</h2>
@@ -502,7 +535,9 @@ export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditPr
                                     </Field>
                                 </div>
                             </PagePanel>
+                            </section>
 
+                            <section id="aim-stats">
                             <PagePanel>
                                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                                     <div>
@@ -547,7 +582,9 @@ export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditPr
                                     </div>
                                 </div>
                             </PagePanel>
+                            </section>
 
+                            <section id="strength">
                             <PagePanel>
                                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                                     <div>
@@ -603,52 +640,55 @@ export default function PageEdit({ page, mediaOptions, pageOptions }: PageEditPr
                                     </div>
                                 </div>
                             </PagePanel>
+                            </section>
                         </>
                     ) : null}
 
-                    <PagePanel>
-                        <div className="mb-5">
-                            <h2 className="text-base font-semibold text-zinc-950 dark:text-white">SEO</h2>
-                            <Text>Search metadata and canonical controls.</Text>
-                        </div>
-                        <div className="grid gap-5 lg:grid-cols-2">
-                            <Field>
-                                <Label>Meta title</Label>
-                                <FormInput value={form.data.meta_title} onChange={(event) => form.setData('meta_title', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Meta description</Label>
-                                <FormInput value={form.data.meta_description} onChange={(event) => form.setData('meta_description', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Canonical URL</Label>
-                                <FormInput value={form.data.canonical_url} onChange={(event) => form.setData('canonical_url', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Effective date</Label>
-                                <FormInput type="date" value={form.data.effective_date} onChange={(event) => form.setData('effective_date', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Open Graph title</Label>
-                                <FormInput value={form.data.og_title} onChange={(event) => form.setData('og_title', event.target.value)} />
-                            </Field>
-                            <Field>
-                                <Label>Open Graph description</Label>
-                                <FormInput value={form.data.og_description} onChange={(event) => form.setData('og_description', event.target.value)} />
-                            </Field>
-                            <Field className="lg:col-span-2">
-                                <Label>Open Graph image</Label>
-                                <MediaDropSelect
-                                    value={form.data.og_image_media_id}
-                                    options={mediaChoices}
-                                    preview={imageFor(mediaChoices, form.data.og_image_media_id)}
-                                    label="Open Graph image"
-                                    onUploaded={rememberUploadedMedia}
-                                    onChange={(value) => form.setData('og_image_media_id', value)}
-                                />
-                            </Field>
-                        </div>
-                    </PagePanel>
+                    <section id="seo">
+                        <PagePanel>
+                            <div className="mb-5">
+                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">SEO</h2>
+                                <Text>Search metadata and canonical controls.</Text>
+                            </div>
+                            <div className="grid gap-5 lg:grid-cols-2">
+                                <Field>
+                                    <Label>Meta title</Label>
+                                    <FormInput value={form.data.meta_title} onChange={(event) => form.setData('meta_title', event.target.value)} />
+                                </Field>
+                                <Field>
+                                    <Label>Meta description</Label>
+                                    <FormInput value={form.data.meta_description} onChange={(event) => form.setData('meta_description', event.target.value)} />
+                                </Field>
+                                <Field>
+                                    <Label>Canonical URL</Label>
+                                    <FormInput value={form.data.canonical_url} onChange={(event) => form.setData('canonical_url', event.target.value)} />
+                                </Field>
+                                <Field>
+                                    <Label>Effective date</Label>
+                                    <FormInput type="date" value={form.data.effective_date} onChange={(event) => form.setData('effective_date', event.target.value)} />
+                                </Field>
+                                <Field>
+                                    <Label>Open Graph title</Label>
+                                    <FormInput value={form.data.og_title} onChange={(event) => form.setData('og_title', event.target.value)} />
+                                </Field>
+                                <Field>
+                                    <Label>Open Graph description</Label>
+                                    <FormInput value={form.data.og_description} onChange={(event) => form.setData('og_description', event.target.value)} />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>Open Graph image</Label>
+                                    <MediaDropSelect
+                                        value={form.data.og_image_media_id}
+                                        options={mediaChoices}
+                                        preview={imageFor(mediaChoices, form.data.og_image_media_id)}
+                                        label="Open Graph image"
+                                        onUploaded={rememberUploadedMedia}
+                                        onChange={(value) => form.setData('og_image_media_id', value)}
+                                    />
+                                </Field>
+                            </div>
+                        </PagePanel>
+                    </section>
 
                     <div className="flex flex-wrap gap-3">
                         <Button href="/admin" color="light">

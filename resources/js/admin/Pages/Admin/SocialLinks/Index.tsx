@@ -81,12 +81,23 @@ function SortableLinkItem({
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="flex gap-4 items-start rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
-            <div className="pt-2 cursor-grab" {...attributes} {...listeners}>
-                <GripVerticalIcon className="w-5 h-5 text-zinc-400" />
+        <div ref={setNodeRef} style={style} className="flex flex-col gap-4 rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10 sm:flex-row sm:items-start">
+            <div className="flex items-center justify-between gap-3 sm:block sm:pt-2">
+                <div className="cursor-grab" {...attributes} {...listeners}>
+                    <GripVerticalIcon className="h-5 w-5 text-zinc-400" />
+                </div>
+                <label className="flex items-center gap-2 sm:hidden">
+                    <input
+                        type="checkbox"
+                        checked={link.is_active}
+                        onChange={(e) => onUpdate({ is_active: e.target.checked })}
+                        className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                    />
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Active</span>
+                </label>
             </div>
-            
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                     <Field>
                         <Label>Platform</Label>
@@ -116,8 +127,8 @@ function SortableLinkItem({
                 </div>
             </div>
 
-            <div className="pt-8 flex items-center gap-4">
-                <label className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:pt-8">
+                <label className="hidden items-center gap-2 sm:flex">
                     <input
                         type="checkbox"
                         checked={link.is_active}
@@ -127,8 +138,8 @@ function SortableLinkItem({
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Active</span>
                 </label>
                 
-                <Button type="button" color="light" onClick={onRemove} className="text-red-500">
-                    <TrashIcon className="w-4 h-4" />
+                <Button type="button" color="light" onClick={onRemove} className="justify-center text-red-500">
+                    <TrashIcon className="h-4 w-4" />
                 </Button>
             </div>
         </div>
@@ -311,8 +322,8 @@ export default function SocialLinksIndex({ links, settings }: Props) {
                 </DndContext>
 
                 <div className="mt-6 flex">
-                    <Button type="button" color="light" onClick={handleAdd}>
-                        <PlusIcon className="w-4 h-4 mr-2" />
+                    <Button type="button" color="light" className="w-full justify-center sm:w-auto" onClick={handleAdd}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
                         Add social link
                     </Button>
                 </div>

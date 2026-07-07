@@ -134,11 +134,11 @@ function CategoryModal({
                         </Field>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-end gap-2 border-t border-zinc-950/8 pt-4 dark:border-white/10">
-                        <Button type="button" plain onClick={onClose}>
+                    <div className="mt-4 flex flex-col-reverse gap-2 border-t border-zinc-950/8 pt-4 sm:flex-row sm:items-center sm:justify-end dark:border-white/10">
+                        <Button type="button" plain className="justify-center" onClick={onClose}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={processing}>
+                        <Button type="submit" className="justify-center" disabled={processing}>
                             {submitLabel}
                         </Button>
                     </div>

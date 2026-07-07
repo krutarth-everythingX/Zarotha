@@ -127,7 +127,7 @@ export default function ProductsForm({ mode, product, categories }: ProductsForm
                 title={mode === 'edit' ? 'Edit Product' : 'Add Product'}
                 description="Manage product page content, images, details, and active state."
                 actions={
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <Button outline type="button" onClick={() => submit('draft')} disabled={form.processing}>Save inactive</Button>
                         <Button type="button" onClick={() => submit('published')} disabled={form.processing}>Save active</Button>
                     </div>
@@ -140,6 +140,27 @@ export default function ProductsForm({ mode, product, categories }: ProductsForm
                         submit();
                     }}
                 >
+                    <div className="xl:hidden">
+                        <PagePanel className="p-3">
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                                {sections.map((section) => (
+                                    <button
+                                        key={section.id}
+                                        type="button"
+                                        onClick={() => scrollToSection(section.id)}
+                                        className={`shrink-0 rounded-md px-3 py-2 text-sm transition-colors ${
+                                            activeSection === section.id
+                                                ? 'bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950'
+                                                : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
+                                        }`}
+                                    >
+                                        {section.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </PagePanel>
+                    </div>
+
                     {/* Left Sticky Navigation */}
                     <div className="hidden xl:block sticky top-24">
                         <PagePanel className="p-4">

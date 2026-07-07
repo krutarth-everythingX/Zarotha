@@ -505,7 +505,7 @@ export default function HomepageIndex({ homepage, settings, mediaOptions }: Home
                 title="Homepage"
                 description="Manage only the homepage sections shown on the public homepage."
                 actions={
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         <Button href="/" color="light">View homepage</Button>
                         <Button type="button" onClick={submit} disabled={form.processing}>
                             {form.processing ? 'Saving' : 'Save homepage'}
@@ -520,6 +520,27 @@ export default function HomepageIndex({ homepage, settings, mediaOptions }: Home
                         submit();
                     }}
                 >
+                    <div className="xl:hidden">
+                        <PagePanel className="p-3">
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                                {sections.map((section) => (
+                                    <button
+                                        key={section.id}
+                                        type="button"
+                                        onClick={() => scrollToSection(section.id)}
+                                        className={`shrink-0 rounded-md px-3 py-2 text-sm transition-colors ${
+                                            activeSection === section.id
+                                                ? 'bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950'
+                                                : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
+                                        }`}
+                                    >
+                                        {section.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </PagePanel>
+                    </div>
+
                     <div className="hidden xl:block xl:sticky xl:top-24">
                         <PagePanel className="p-4">
                             <p className="mb-4 px-2 font-semibold text-zinc-950 dark:text-white">Sections</p>

@@ -11,7 +11,7 @@ type PanelProps = {
 export function PagePanel({ children, className = '' }: PanelProps) {
     return (
         <section
-            className={`rounded-3xl border border-zinc-950/8 bg-white/90 p-6 shadow-sm dark:border-white/10 dark:bg-zinc-900/90 ${className}`}
+            className={`rounded-3xl border border-zinc-950/8 bg-white/90 p-4 shadow-sm sm:p-5 lg:p-6 dark:border-white/10 dark:bg-zinc-900/90 ${className}`}
         >
             {children}
         </section>
@@ -84,7 +84,7 @@ export function PaginationLinks({
             <span>
                 Showing {meta.from ?? 0} to {meta.to ?? 0} of {meta.total}
             </span>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                 {meta.currentPage <= 1 ? (
                     <span className="rounded-lg border border-zinc-950/10 px-3 py-2 opacity-50 dark:border-white/15">Previous</span>
                 ) : (

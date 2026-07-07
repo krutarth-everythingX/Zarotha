@@ -342,12 +342,13 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                             </div>
                             <div className="grid gap-4">
                                 {contactForm.data.contact_social_links.map((link, index) => (
-                                    <div key={index} className="grid gap-3 lg:grid-cols-[0.45fr_1fr_auto] lg:items-center">
+                                    <div key={index} className="grid gap-3 rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10 lg:grid-cols-[0.45fr_1fr_auto] lg:items-center">
                                         <FormInput value={link.label} onChange={(event) => setContactPageSocialLink(index, 'label', event.target.value)} placeholder="Instagram" />
                                         <FormInput type="url" value={link.url} onChange={(event) => setContactPageSocialLink(index, 'url', event.target.value)} placeholder="https://..." />
                                         <Button
                                             type="button"
                                             plain
+                                            className="justify-center sm:justify-start"
                                             onClick={() =>
                                                 contactForm.setData(
                                                     'contact_social_links',
@@ -415,7 +416,7 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                                                 <FormInput type="number" value={link.sort_order} onChange={(event) => updateSocialLink(link.id, { sort_order: Number(event.target.value) })} />
                                             </Field>
                                         </div>
-                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                             <label className="flex items-center gap-2">
                                                 <input
                                                     type="checkbox"
@@ -425,7 +426,7 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                                                 />
                                                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Active</span>
                                             </label>
-                                            <Button type="button" plain onClick={() => removeSocialLink(link.id)}>
+                                            <Button type="button" plain className="justify-center sm:justify-start" onClick={() => removeSocialLink(link.id)}>
                                                 <Trash2 data-slot="icon" />
                                                 Remove
                                             </Button>

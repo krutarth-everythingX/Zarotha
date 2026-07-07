@@ -1,5 +1,6 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import type React from 'react';
+import { useState } from 'react';
 import { Heading } from '@admin/Components/ui/heading';
 import { Navbar, NavbarLabel, NavbarSection, NavbarSpacer } from '@admin/Components/ui/navbar';
 import {
@@ -51,6 +52,18 @@ type AdminShellProps = {
 export function AdminShell({ title, description, children, actions }: AdminShellProps) {
     const page = usePage<AppPageProps>();
     const user = page.props.auth.user;
+    const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const [isSigningOut, setIsSigningOut] = useState(false);
+
+    const confirmSignOut = () => {
+        setIsSigningOut(true);
+        router.post('/admin/logout', {}, {
+            onFinish: () => {
+                setIsSigningOut(false);
+                setShowSignOutModal(false);
+            },
+        });
+    };
 
     const sidebar = (
         <Sidebar>
@@ -86,7 +99,7 @@ export function AdminShell({ title, description, children, actions }: AdminShell
                         <p className="text-sm font-medium text-zinc-950 dark:text-white">{user?.name ?? 'CMS User'}</p>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">{user?.email ?? ''}</p>
                     </div>
-                    <Button href="/admin/logout" method="post" color="light">
+                    <Button type="button" color="light" onClick={() => setShowSignOutModal(true)}>
                         Sign out
                     </Button>
                 </SidebarSection>
@@ -104,15 +117,56 @@ export function AdminShell({ title, description, children, actions }: AdminShell
     );
 
     return (
-        <SidebarLayout navbar={navbar} sidebar={sidebar}>
-            <header className="flex flex-wrap items-start justify-between gap-4">
-                <div className="space-y-2">
-                    <Heading>{title}</Heading>
-                    <Text>{description}</Text>
+        <>
+            <SidebarLayout navbar={navbar} sidebar={sidebar}>
+                <header className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+                    <div className="min-w-0 space-y-2">
+                        <Heading>{title}</Heading>
+                        <Text>{description}</Text>
+                    </div>
+                    {actions && <div className="min-w-0 sm:flex-shrink-0">{actions}</div>}
+                </header>
+                <div className="mt-6 sm:mt-8 lg:mt-10">{children}</div>
+            </SidebarLayout>
+
+            {showSignOutModal ? (
+                <div
+                    className="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/70 p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="signout-modal-title"
+                    onClick={() => {
+                        if (!isSigningOut) {
+                            setShowSignOutModal(false);
+                        }
+                    }}
+                >
+                    <div
+                        className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-5 shadow-2xl dark:bg-zinc-950"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <h2 id="signout-modal-title" className="text-lg font-semibold text-zinc-950 dark:text-white">
+                            Sign out
+                        </h2>
+                        <Text className="mt-2">Are you sure you want to sign out from the CMS?</Text>
+
+                        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                            <Button
+                                type="button"
+                                plain
+                                className="justify-center"
+                                onClick={() => setShowSignOutModal(false)}
+                                disabled={isSigningOut}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="button" className="justify-center" onClick={confirmSignOut} disabled={isSigningOut}>
+                                {isSigningOut ? 'Signing out...' : 'Yes, sign out'}
+                            </Button>
+                        </div>
+                    </div>
                 </div>
-                {actions && <div className="flex-shrink-0">{actions}</div>}
-            </header>
-            <div className="mt-10">{children}</div>
-        </SidebarLayout>
+            ) : null}
+        </>
     );
 }

@@ -198,7 +198,7 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                             {form.data.inquiry_type_options.map((option, index) => (
                                 <div key={index} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
                                     <FormInput value={option} onChange={(event) => setInquiryOption(index, event.target.value)} placeholder="Inquiry type" />
-                                    <Button type="button" plain onClick={() => removeInquiryOption(index)}>
+                                    <Button type="button" plain className="justify-center sm:justify-start" onClick={() => removeInquiryOption(index)}>
                                         <Trash2 data-slot="icon" />
                                         Remove
                                     </Button>
@@ -263,10 +263,10 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                         </div>
                         <div className="grid gap-4">
                             {form.data.contact_social_links.map((link, index) => (
-                                <div key={index} className="grid gap-3 lg:grid-cols-[0.45fr_1fr_auto] lg:items-center">
+                                <div key={index} className="grid gap-3 rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10 lg:grid-cols-[0.45fr_1fr_auto] lg:items-center">
                                     <FormInput value={link.label} onChange={(event) => setSocialLink(index, 'label', event.target.value)} placeholder="Instagram" />
                                     <FormInput type="url" value={link.url} onChange={(event) => setSocialLink(index, 'url', event.target.value)} placeholder="https://..." />
-                                    <Button type="button" plain onClick={() => removeSocialLink(index)}>
+                                    <Button type="button" plain className="justify-center sm:justify-start" onClick={() => removeSocialLink(index)}>
                                         <Trash2 data-slot="icon" />
                                         Remove
                                     </Button>
