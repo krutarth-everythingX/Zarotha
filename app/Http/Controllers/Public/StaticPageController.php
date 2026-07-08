@@ -53,11 +53,7 @@ class StaticPageController extends Controller
     {
         $ids = collect([
             $page?->hero_media_id,
-            $details['catalog_media_id'] ?? null,
-            $details['certificate_media_id'] ?? null,
-            $details['strength_media_id'] ?? null,
         ])
-            ->merge($details['gallery_media_ids'] ?? [])
             ->filter(fn ($id): bool => is_numeric($id))
             ->map(fn ($id): int => (int) $id)
             ->unique()

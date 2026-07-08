@@ -167,7 +167,7 @@ export default function InquiriesShow({ inquiry, assignableUsers }: InquiryDetai
 
                 <PagePanel className="mt-6">
                     <h2 className="text-lg font-semibold text-zinc-950 dark:text-white">Activity history</h2>
-                    <div className="mt-4 divide-y divide-zinc-950/8 dark:divide-white/10">
+                    <div className="mt-4 [&>*]:border-b [&>*]:border-zinc-950/8 dark:[&>*]:border-white/10">
                         {inquiry.activities.map((activity) => (
                             <article key={activity.id} className="py-3">
                                 <p className="font-medium text-zinc-950 dark:text-white">{activity.type}</p>

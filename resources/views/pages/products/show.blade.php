@@ -5,17 +5,14 @@
 @section('body_class', 'product-detail-page')
 
 @php
-    use Illuminate\Support\Str;
-
     $hasInquiryErrors = $errors->any();
-    $details = collect(is_array($product->details) ? $product->details : []);
-
-    $availabilityLabels = [
-        'in_stock' => 'In stock',
-        'out_of_stock' => 'Out of stock',
-        'made_to_order' => 'Made to order',
-        'pre_order' => 'Pre-order',
-    ];
+    $isInquiryAvailable = true;
+    $rawDetails = is_array($product->details) ? $product->details : [];
+    $descriptionText = html_entity_decode((string) $product->full_description, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $descriptionText = preg_replace('/<li\b[^>]*>/i', "\n- ", $descriptionText) ?? $descriptionText;
+    $descriptionText = preg_replace('/<br\s*\/?>/i', "\n", $descriptionText) ?? $descriptionText;
+    $descriptionText = preg_replace('/<\/(p|div|li|h[1-6]|section|article)>/i', "\n\n", $descriptionText) ?? $descriptionText;
+    $plainDescription = trim(html_entity_decode(strip_tags($descriptionText), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
     $formatPrice = function ($price) {
         if (! filled($price)) {
@@ -28,91 +25,13 @@
         return 'Rs. ' . number_format($price, $decimals);
     };
 
-    $availability = filled($product->availability)
-        ? ($availabilityLabels[$product->availability] ?? (string) Str::of($product->availability)->replace(['_', '-'], ' ')->title())
-        : null;
-
-    $woodType = $product->wood_type === 'Other' && filled($details->get('custom_wood_type'))
-        ? $details->get('custom_wood_type')
-        : $product->wood_type;
-
-    $unitMap = [
-        'inches' => 'in',
-        'cm' => 'cm',
-        'mm' => 'mm',
-    ];
-    $dimensionUnit = $unitMap[$details->get('dimensions_unit')] ?? $details->get('dimensions_unit');
-    $withUnit = fn ($key) => filled($details->get($key)) ? trim($details->get($key) . ' ' . $dimensionUnit) : null;
-
-    $dimensionParts = collect([
-        'H' => $details->get('height'),
-        'W' => $details->get('width'),
-        'D' => $details->get('depth'),
-    ])->filter(fn ($value) => filled($value));
-
-    $dimensionSummary = $dimensionParts->isNotEmpty()
-        ? $dimensionParts->map(fn ($value, $label) => $label . ' ' . $value)->implode(' x ') . (filled($dimensionUnit) ? ' ' . $dimensionUnit : '')
-        : $product->dimensions;
-
-    $priceRows = collect([
-        'Sale price' => $formatPrice($product->sale_price),
-        'Regular price' => $formatPrice($product->regular_price),
-    ])->filter(fn ($value) => filled($value));
-
-    $summarySpecs = collect([
-        'Product type' => $product->product_type,
-        'Category' => $product->category?->name,
-        'Price' => $formatPrice($product->sale_price ?: $product->regular_price),
-        'Availability' => $availability,
-        'Wood' => $woodType,
-        'Dimensions' => $dimensionSummary,
-    ])->filter(fn ($value) => filled($value));
-
-    $overviewRows = collect([
-        'Product type' => $product->product_type,
-        'Category' => $product->category?->name,
-        'Style' => $product->style,
-        'Availability' => $availability,
-        'Stock quantity' => $product->is_track_inventory && filled($product->stock_quantity) ? $product->stock_quantity : null,
-        'Inventory tracking' => $product->is_track_inventory ? 'Enabled' : null,
-    ])->filter(fn ($value) => filled($value));
-
-    $materialRows = collect([
-        'Primary wood' => $woodType,
-        'Material' => $product->material,
-        'Material grade' => $details->get('material_grade'),
-        'Wood source' => $details->get('wood_source'),
-        'Finish' => $product->finish,
-        'Style' => $product->style,
-        'Reclaimed wood' => $details->has('is_reclaimed_wood') ? ($details->get('is_reclaimed_wood') ? 'Yes' : 'No') : null,
-        'Sustainably sourced' => $details->has('is_sustainably_sourced') ? ($details->get('is_sustainably_sourced') ? 'Yes' : 'No') : null,
-    ])->filter(fn ($value) => filled($value));
-
-    $dimensionRows = collect([
-        'Listed dimensions' => $product->dimensions,
-        'Height' => $withUnit('height'),
-        'Width' => $withUnit('width'),
-        'Depth' => $withUnit('depth'),
-        'Weight' => filled($details->get('weight')) ? $details->get('weight') . ' kg' : null,
-    ])->filter(fn ($value) => filled($value));
-
-    $dynamicSpecRows = collect($details->get('dynamic_specs', []))
-        ->filter(fn ($spec) => filled($spec['key'] ?? null) || filled($spec['value'] ?? null))
-        ->mapWithKeys(fn ($spec) => [($spec['key'] ?? 'Specification') => ($spec['value'] ?? '')]);
-
-    $handledDetailKeys = [
-        'custom_wood_type',
-        'material_grade',
-        'wood_source',
-        'is_reclaimed_wood',
-        'is_sustainably_sourced',
-        'dimensions_unit',
-        'height',
-        'width',
-        'depth',
-        'weight',
-        'dynamic_specs',
-    ];
+    $regularPrice = $formatPrice($product->regular_price);
+    $salePrice = $formatPrice($product->sale_price);
+    $currentPrice = $salePrice ?: $regularPrice;
+    $hasOriginalPrice = filled($regularPrice)
+        && filled($salePrice)
+        && (float) $product->regular_price !== (float) $product->sale_price;
+    $shouldShowPrice = $product->show_price && filled($currentPrice);
 
     $formatDetailValue = function ($value) {
         if (is_bool($value)) {
@@ -129,24 +48,33 @@
         return filled($value) ? (string) $value : null;
     };
 
-    $extraDetailRows = $details
-        ->reject(fn ($value, $key) => in_array($key, $handledDetailKeys, true))
-        ->mapWithKeys(function ($value, $key) use ($formatDetailValue) {
-            $value = $formatDetailValue($value);
+    $additionalRows = collect();
 
-            return filled($value)
-                ? [(string) Str::of($key)->replace(['_', '-'], ' ')->title() => $value]
-                : [];
-        });
+    if (array_is_list($rawDetails)) {
+        $additionalRows = collect($rawDetails)
+            ->filter(fn ($detail) => is_array($detail))
+            ->map(function ($detail) use ($formatDetailValue) {
+                $title = $detail['title'] ?? $detail['key'] ?? null;
+                $value = $formatDetailValue($detail['value'] ?? null);
 
-    $detailGroups = collect([
-        ['title' => 'Overview', 'items' => $overviewRows],
-        ['title' => 'Price and availability', 'items' => $priceRows],
-        ['title' => 'Material and finish', 'items' => $materialRows],
-        ['title' => 'Dimensions and weight', 'items' => $dimensionRows],
-        ['title' => 'Additional specifications', 'items' => $dynamicSpecRows],
-        ['title' => 'More details', 'items' => $extraDetailRows],
-    ])->filter(fn ($group) => $group['items']->isNotEmpty());
+                return filled($title) || filled($value)
+                    ? ['title' => filled($title) ? (string) $title : 'Detail', 'value' => $value ?? '']
+                    : null;
+            })
+            ->filter();
+    } elseif (array_key_exists('dynamic_specs', $rawDetails)) {
+        $additionalRows = collect($rawDetails['dynamic_specs'] ?? [])
+            ->filter(fn ($detail) => is_array($detail))
+            ->map(function ($detail) use ($formatDetailValue) {
+                $title = $detail['title'] ?? $detail['key'] ?? null;
+                $value = $formatDetailValue($detail['value'] ?? null);
+
+                return filled($title) || filled($value)
+                    ? ['title' => filled($title) ? (string) $title : 'Detail', 'value' => $value ?? '']
+                    : null;
+            })
+            ->filter();
+    }
 @endphp
 
 @section('content')
@@ -158,11 +86,6 @@
             <span>/</span>
             <span>{{ $product->name }}</span>
         </nav>
-
-        <header class="product-purchase__title">
-            <p>{{ $product->category->name }}</p>
-            <h1>{{ $product->name }}</h1>
-        </header>
 
         <section class="product-purchase__shell" aria-labelledby="product-detail-title">
             <div class="product-purchase__media-lock">
@@ -233,79 +156,69 @@
             <aside class="product-purchase__details" aria-labelledby="product-detail-title">
                 <div class="product-purchase__details-scroll">
                     <section class="product-purchase__panel product-purchase__panel--summary">
-                        <p class="product-purchase__kicker">Product details</p>
-                        <h2 id="product-detail-title">Review the essentials before you inquire.</h2>
+                        <p class="product-purchase__kicker">{{ $product->category->name }}</p>
+                        <h1 id="product-detail-title">{{ $product->name }}</h1>
                         @if ($product->short_description)
-                            <p>{{ $product->short_description }}</p>
+                            <p class="product-purchase__lead">{{ $product->short_description }}</p>
                         @endif
                     </section>
 
-                    @if ($summarySpecs->isNotEmpty())
-                        <section class="product-purchase__panel" aria-label="Product summary">
-                            <div class="product-purchase__summary-list">
-                                @foreach ($summarySpecs as $label => $value)
-                                    <div @class(['product-purchase__summary-item', 'product-purchase__summary-item--wide' => $label === 'Dimensions'])>
-                                        <span>{{ $label }}</span>
-                                        <strong>{{ $value }}</strong>
-                                    </div>
-                                @endforeach
+                    @if ($shouldShowPrice)
+                        <section class="product-purchase__panel product-purchase__panel--prices">
+                            <div class="product-purchase__price-stack">
+                                @if ($hasOriginalPrice)
+                                    <del class="product-purchase__price-original">{{ $regularPrice }}</del>
+                                @endif
+                                <strong class="product-purchase__price-current">{{ $currentPrice }}</strong>
                             </div>
                         </section>
                     @endif
 
-                    <section class="product-purchase__cta" aria-labelledby="product-inquiry-title">
-                        <h3 id="product-inquiry-title" class="sr-only">Ask about {{ $product->name }}</h3>
-                        <button class="product-purchase__button" type="button" data-inquiry-open>
-                            Product inquiry
-                        </button>
-                        @if ($contactInformation?->show_whatsapp && $contactInformation->whatsapp_number)
-                            <a class="product-purchase__link-button" href="https://wa.me/{{ preg_replace('/\D+/', '', $contactInformation->whatsapp_number) }}">
-                                WhatsApp
-                            </a>
-                        @endif
+                    @if ($isInquiryAvailable)
+                        <section class="product-purchase__cta" aria-labelledby="product-inquiry-title">
+                            <h2 id="product-inquiry-title">Interested in this product?</h2>
+                            <button class="product-purchase__button" type="button" data-inquiry-open>
+                                Product inquiry
+                            </button>
+                            @if ($contactInformation?->show_whatsapp && $contactInformation->whatsapp_number)
+                                <a class="product-purchase__link-button" href="https://wa.me/{{ preg_replace('/\D+/', '', $contactInformation->whatsapp_number) }}">
+                                    WhatsApp
+                                </a>
+                            @endif
+                        </section>
+                    @endif
+
+                    <section class="product-purchase__panel product-purchase__panel--description" aria-labelledby="product-story-title">
+                        <h2 id="product-story-title">Description</h2>
+                        <div class="product-story__copy">
+                            @if ($plainDescription !== '')
+                                @foreach (preg_split('/\R{2,}/', $plainDescription) as $paragraph)
+                                    @if (trim($paragraph) !== '')
+                                        <p>{{ trim($paragraph) }}</p>
+                                    @endif
+                                @endforeach
+                            @else
+                                <p>{{ $product->short_description ?: $product->name }}</p>
+                            @endif
+                        </div>
                     </section>
-                </div>
-            </aside>
-        </section>
 
-        <section class="product-story" aria-labelledby="product-story-title">
-            <div>
-                <p class="product-purchase__kicker">Product story</p>
-                <h2 id="product-story-title">A closer look at the piece.</h2>
-            </div>
-            <div class="product-story__copy">
-                @if ($product->full_description)
-                    {!! $product->full_description !!}
-                @else
-                    <p>{{ $product->name }} is presented as an inquiry-based furniture piece. Share your space, finish preferences, and usage needs so the team can discuss the right direction before production.</p>
-                @endif
-            </div>
-        </section>
-
-        @if ($detailGroups->isNotEmpty())
-            <section class="product-specification" aria-labelledby="product-specification-title">
-                <div class="product-specification__heading">
-                    <p class="product-purchase__kicker">All details</p>
-                    <h2 id="product-specification-title">Everything saved for this product.</h2>
-                </div>
-
-                <div class="product-specification__groups">
-                    @foreach ($detailGroups as $group)
-                        <section class="product-specification__group">
-                            <h3>{{ $group['title'] }}</h3>
-                            <dl class="product-specification__list">
-                                @foreach ($group['items'] as $label => $value)
-                                    <div class="product-specification__item">
-                                        <dt>{{ $label }}</dt>
-                                        <dd>{{ $value }}</dd>
+                    @if ($additionalRows->isNotEmpty())
+                        <section class="product-purchase__panel product-purchase__panel--details" aria-labelledby="product-specification-title">
+                            <h2 id="product-specification-title">Additional details</h2>
+                            <dl class="product-purchase__detail-list">
+                                @foreach ($additionalRows as $detail)
+                                    <div class="product-purchase__detail-row">
+                                        <dt>{{ $detail['title'] }}</dt>
+                                        <dd>{{ $detail['value'] }}</dd>
                                     </div>
                                 @endforeach
                             </dl>
                         </section>
-                    @endforeach
+                    @endif
                 </div>
-            </section>
-        @endif
+            </aside>
+        </section>
 
         <section class="product-showcase" aria-labelledby="related-products-title">
             <div class="product-showcase__heading">
@@ -336,31 +249,33 @@
         @endif
     </div>
 
-    @if ($quickInquirySection?->is_visible ?? true)
+    @if (($quickInquirySection?->is_visible ?? true) && $isInquiryAvailable)
         <x-public.home.quick-inquiry
             :section="$quickInquirySection"
             :contactInformation="$contactInformation"
         />
     @endif
 
-    <div
-        class="product-inquiry-modal"
-        data-inquiry-modal
-        @if (! $hasInquiryErrors) hidden @endif
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="product-inquiry-modal-title"
-    >
-        <button class="product-inquiry-modal__backdrop" type="button" data-inquiry-close aria-label="Close inquiry form"></button>
-        <div class="product-inquiry-modal__panel">
-            <button class="product-inquiry-modal__close" type="button" data-inquiry-close aria-label="Close inquiry form">
-                <span></span>
-            </button>
-            <div class="product-inquiry-modal__content">
-                <p class="product-purchase__kicker">Inquiry</p>
-                <h2 id="product-inquiry-modal-title">Ask about {{ $product->name }}</h2>
-                @include('partials.inquiry-form', ['action' => route('public.inquiries.product.submit', $product->slug), 'product' => $product, 'compact' => true])
+    @if ($isInquiryAvailable)
+        <div
+            class="product-inquiry-modal"
+            data-inquiry-modal
+            @if (! $hasInquiryErrors) hidden @endif
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-inquiry-modal-title"
+        >
+            <button class="product-inquiry-modal__backdrop" type="button" data-inquiry-close aria-label="Close inquiry form"></button>
+            <div class="product-inquiry-modal__panel">
+                <button class="product-inquiry-modal__close" type="button" data-inquiry-close aria-label="Close inquiry form">
+                    <span></span>
+                </button>
+                <div class="product-inquiry-modal__content">
+                    <p class="product-purchase__kicker">Inquiry</p>
+                    <h2 id="product-inquiry-modal-title">Ask about {{ $product->name }}</h2>
+                    @include('partials.inquiry-form', ['action' => route('public.inquiries.product.submit', $product->slug), 'product' => $product, 'compact' => true])
+                </div>
             </div>
         </div>
-    </div>
+    @endif
 @endsection

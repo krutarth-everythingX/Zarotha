@@ -228,6 +228,175 @@ if (revealItems.length > 0) {
     }
 }
 
+const mobileMarqueeQuery = window.matchMedia('(max-width: 767px)');
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+document.querySelectorAll<HTMLElement>('[data-mobile-marquee]').forEach((marquee) => {
+    const track = marquee.querySelector<HTMLElement>('[data-mobile-marquee-track]');
+
+    if (!track) {
+        return;
+    }
+
+    const speed = Math.max(1, Number.parseFloat(marquee.dataset.mobileMarqueeSpeed ?? '') || 28);
+    const pauseDuration = Math.max(0, Number.parseInt(marquee.dataset.mobileMarqueePause ?? '', 10) || 5000);
+    let frameId: number | null = null;
+    let pauseTimer: number | null = null;
+    let lastFrameTime: number | null = null;
+    let lastAutomaticScrollLeft: number | null = null;
+    let isPaused = false;
+    const automaticScrollTolerance = Math.max(4, speed * 0.25);
+
+    const canAutoScroll = () => mobileMarqueeQuery.matches && !reducedMotionQuery.matches;
+
+    const getLoopDistance = () => {
+        const groups = Array.from(track.children).filter(
+            (child): child is HTMLElement => child instanceof HTMLElement,
+        );
+        const firstGroup = groups[0];
+        const secondGroup = groups[1];
+        const measuredDistance = firstGroup && secondGroup
+            ? secondGroup.offsetLeft - firstGroup.offsetLeft
+            : track.scrollWidth / 2;
+
+        return Math.max(0, measuredDistance);
+    };
+
+    const normalizeScrollLeft = (scrollLeft: number) => {
+        const loopDistance = getLoopDistance();
+
+        if (loopDistance <= 0) {
+            return 0;
+        }
+
+        let nextScrollLeft = Math.max(0, scrollLeft);
+
+        while (nextScrollLeft >= loopDistance) {
+            nextScrollLeft -= loopDistance;
+        }
+
+        return nextScrollLeft;
+    };
+
+    const hasScrollableContent = () => marquee.scrollWidth > marquee.clientWidth + 1 && getLoopDistance() > 0;
+
+    const scrollAutomatically = (scrollLeft: number) => {
+        const nextScrollLeft = normalizeScrollLeft(scrollLeft);
+
+        lastAutomaticScrollLeft = nextScrollLeft;
+        marquee.scrollLeft = nextScrollLeft;
+    };
+
+    const stopFrame = () => {
+        if (frameId !== null) {
+            window.cancelAnimationFrame(frameId);
+            frameId = null;
+        }
+    };
+
+    const queueFrame = () => {
+        if (frameId === null) {
+            frameId = window.requestAnimationFrame(step);
+        }
+    };
+
+    function step(timestamp: number) {
+        frameId = null;
+
+        if (!canAutoScroll()) {
+            return;
+        }
+
+        if (isPaused || !hasScrollableContent()) {
+            lastFrameTime = timestamp;
+            queueFrame();
+            return;
+        }
+
+        if (lastFrameTime === null) {
+            lastFrameTime = timestamp;
+        }
+
+        const elapsed = Math.min(timestamp - lastFrameTime, 100);
+        lastFrameTime = timestamp;
+
+        scrollAutomatically(marquee.scrollLeft + (speed * elapsed) / 1000);
+        queueFrame();
+    }
+
+    const pauseAfterUserScroll = () => {
+        if (!canAutoScroll()) {
+            return;
+        }
+
+        isPaused = true;
+        lastFrameTime = null;
+
+        if (pauseTimer !== null) {
+            window.clearTimeout(pauseTimer);
+        }
+
+        pauseTimer = window.setTimeout(() => {
+            pauseTimer = null;
+            isPaused = false;
+            lastFrameTime = null;
+            queueFrame();
+        }, pauseDuration);
+    };
+
+    const deactivate = () => {
+        stopFrame();
+        isPaused = false;
+        lastFrameTime = null;
+        lastAutomaticScrollLeft = null;
+        delete marquee.dataset.mobileMarqueeActive;
+
+        if (pauseTimer !== null) {
+            window.clearTimeout(pauseTimer);
+            pauseTimer = null;
+        }
+
+        marquee.scrollLeft = 0;
+    };
+
+    const activate = () => {
+        marquee.dataset.mobileMarqueeActive = 'true';
+        marquee.scrollLeft = normalizeScrollLeft(marquee.scrollLeft);
+        lastFrameTime = null;
+        queueFrame();
+    };
+
+    const syncMarqueeMode = () => {
+        if (canAutoScroll()) {
+            activate();
+            return;
+        }
+
+        deactivate();
+    };
+
+    const handleScroll = () => {
+        const isAutomaticScroll = lastAutomaticScrollLeft !== null
+            && Math.abs(marquee.scrollLeft - lastAutomaticScrollLeft) <= automaticScrollTolerance;
+
+        if (isAutomaticScroll) {
+            return;
+        }
+
+        pauseAfterUserScroll();
+    };
+
+    marquee.addEventListener('pointerdown', pauseAfterUserScroll, { passive: true });
+    marquee.addEventListener('touchstart', pauseAfterUserScroll, { passive: true });
+    marquee.addEventListener('touchmove', pauseAfterUserScroll, { passive: true });
+    marquee.addEventListener('wheel', pauseAfterUserScroll, { passive: true });
+    marquee.addEventListener('scroll', handleScroll, { passive: true });
+    mobileMarqueeQuery.addEventListener('change', syncMarqueeMode);
+    reducedMotionQuery.addEventListener('change', syncMarqueeMode);
+
+    syncMarqueeMode();
+});
+
 const lightbox = document.querySelector<HTMLElement>('[data-lightbox]');
 const lightboxImage = document.querySelector<HTMLImageElement>('[data-lightbox-image]');
 const closeLightbox = document.querySelector<HTMLButtonElement>('[data-lightbox-close]');
@@ -1016,26 +1185,6 @@ if (galleryRoot && galleryFeed && gallerySentinel && galleryTemplate) {
         );
 
         observer.observe(gallerySentinel);
-    }
-}
-
-const quickInquiry = document.querySelector<HTMLElement>('.quick-inquiry');
-if (quickInquiry) {
-    const bannersJson = quickInquiry.dataset.inquiryBanners;
-    if (bannersJson) {
-        try {
-            const banners = JSON.parse(bannersJson) as string[];
-            if (banners.length > 1) {
-                quickInquiry.style.transition = 'background-image 1s ease-in-out';
-                let currentBannerIndex = 0;
-                setInterval(() => {
-                    currentBannerIndex = (currentBannerIndex + 1) % banners.length;
-                    quickInquiry.style.setProperty('--section-bg-image', `url('${banners[currentBannerIndex]}')`);
-                }, 3000);
-            }
-        } catch {
-            // Ignored
-        }
     }
 }
 

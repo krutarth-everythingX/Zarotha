@@ -4,7 +4,19 @@ import { Button } from '@admin/Components/ui/button';
 import { Field, Label } from '@admin/Components/ui/fieldset';
 import { Text } from '@admin/Components/ui/text';
 import { AdminShell } from '@admin/Layouts/AdminShell';
-import { FieldError, FormCheckbox, FormInput, FormSelect, FormTextarea, PagePanel } from '@admin/Components/AdminPrimitives';
+import {
+    EditableTable,
+    EditableTableBody,
+    EditableTableCell,
+    EditableTableHead,
+    EditableTableHeader,
+    FieldError,
+    FormCheckbox,
+    FormInput,
+    FormSelect,
+    FormTextarea,
+    PagePanel,
+} from '@admin/Components/AdminPrimitives';
 import { Plus, Trash2 } from 'lucide-react';
 
 type ContactSocialLink = {
@@ -122,7 +134,9 @@ const AVAILABLE_PLATFORMS = [
 export default function ContactSocials({ contact, links, settings }: Props) {
     const [localLinks, setLocalLinks] = React.useState<SocialLink[]>(links);
     const [isSavingLinks, setIsSavingLinks] = React.useState(false);
-    const [showHeroSocials, setShowHeroSocials] = React.useState(settings.showSocialLinksOnHero);
+    const [showHeroSocials, setShowHeroSocials] = React.useState(
+        settings.showSocialLinksOnHero,
+    );
     const contactForm = useForm<ContactForm>({
         business_name: contact.businessName ?? '',
         phone_primary: contact.phonePrimary ?? '',
@@ -169,7 +183,11 @@ export default function ContactSocials({ contact, links, settings }: Props) {
         setLocalLinks(links);
     }, [links]);
 
-    const setContactPageSocialLink = (index: number, field: keyof ContactSocialLink, value: string) => {
+    const setContactPageSocialLink = (
+        index: number,
+        field: keyof ContactSocialLink,
+        value: string,
+    ) => {
         contactForm.setData(
             'contact_social_links',
             contactForm.data.contact_social_links.map((link, itemIndex) =>
@@ -195,7 +213,9 @@ export default function ContactSocials({ contact, links, settings }: Props) {
 
     const updateSocialLink = (id: number, data: Partial<SocialLink>) => {
         setLocalLinks((current) =>
-            current.map((link) => (link.id === id ? { ...link, ...data } : link)),
+            current.map((link) =>
+                link.id === id ? { ...link, ...data } : link,
+            ),
         );
     };
 
@@ -203,7 +223,10 @@ export default function ContactSocials({ contact, links, settings }: Props) {
         if (id > 0) {
             router.delete(`/admin/social-links/${id}`, {
                 preserveScroll: true,
-                onSuccess: () => setLocalLinks((current) => current.filter((link) => link.id !== id)),
+                onSuccess: () =>
+                    setLocalLinks((current) =>
+                        current.filter((link) => link.id !== id),
+                    ),
             });
             return;
         }
@@ -217,7 +240,9 @@ export default function ContactSocials({ contact, links, settings }: Props) {
 
         for (const link of localLinks) {
             if (link.url.trim() === '') {
-                alert(`URL is required for ${link.platform_key || 'social link'}.`);
+                alert(
+                    `URL is required for ${link.platform_key || 'social link'}.`,
+                );
                 hasError = true;
                 break;
             }
@@ -234,7 +259,10 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                 const options = {
                     preserveScroll: true,
                     onError: (errors: Record<string, string>) => {
-                        alert(Object.values(errors)[0] ?? `Failed to save ${link.platform_key}.`);
+                        alert(
+                            Object.values(errors)[0] ??
+                                `Failed to save ${link.platform_key}.`,
+                        );
                         hasError = true;
                     },
                     onFinish: () => resolve(),
@@ -243,7 +271,11 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                 if (link.id < 0) {
                     router.post('/admin/social-links', payload, options);
                 } else {
-                    router.put(`/admin/social-links/${link.id}`, payload, options);
+                    router.put(
+                        `/admin/social-links/${link.id}`,
+                        payload,
+                        options,
+                    );
                 }
             });
 
@@ -266,7 +298,13 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                 title="Contact & Socials"
                 description="Manage footer contact details, contact page information, and public social links."
                 actions={
-                    <Button type="button" onClick={() => contactForm.patch('/admin/contact-socials/contact')} disabled={contactForm.processing}>
+                    <Button
+                        type="button"
+                        onClick={() =>
+                            contactForm.patch('/admin/contact-socials/contact')
+                        }
+                        disabled={contactForm.processing}
+                    >
                         Save contact info
                     </Button>
                 }
@@ -281,87 +319,546 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                     >
                         <PagePanel>
                             <div className="mb-5">
-                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Contact details</h2>
-                                <Text>Phone, email, WhatsApp, address, and visibility controls used across public contact areas.</Text>
+                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                                    Contact details
+                                </h2>
+                                <Text>
+                                    Phone, email, WhatsApp, address, and
+                                    visibility controls used across public
+                                    contact areas.
+                                </Text>
                             </div>
                             <div className="grid gap-4 lg:grid-cols-2">
-                                <Field><Label>Business name</Label><FormInput value={contactForm.data.business_name} onChange={(event) => contactForm.setData('business_name', event.target.value)} /></Field>
-                                <Field><Label>Primary phone</Label><FormInput value={contactForm.data.phone_primary} onChange={(event) => contactForm.setData('phone_primary', event.target.value)} /></Field>
-                                <Field><Label>Secondary phone</Label><FormInput value={contactForm.data.phone_secondary} onChange={(event) => contactForm.setData('phone_secondary', event.target.value)} /></Field>
-                                <Field><Label>Primary email</Label><FormInput type="email" value={contactForm.data.email_primary} onChange={(event) => contactForm.setData('email_primary', event.target.value)} /></Field>
-                                <Field><Label>Secondary email</Label><FormInput type="email" value={contactForm.data.email_secondary} onChange={(event) => contactForm.setData('email_secondary', event.target.value)} /></Field>
-                                <Field><Label>WhatsApp number</Label><FormInput value={contactForm.data.whatsapp_number} onChange={(event) => contactForm.setData('whatsapp_number', event.target.value)} /></Field>
-                                <Field className="lg:col-span-2"><Label>WhatsApp message</Label><FormInput value={contactForm.data.whatsapp_text} onChange={(event) => contactForm.setData('whatsapp_text', event.target.value)} /></Field>
-                                <Field><Label>Address label</Label><FormInput value={contactForm.data.address_label} onChange={(event) => contactForm.setData('address_label', event.target.value)} placeholder="Showroom" /></Field>
-                                <Field><Label>Address line 1</Label><FormInput value={contactForm.data.address_line_1} onChange={(event) => contactForm.setData('address_line_1', event.target.value)} /></Field>
-                                <Field><Label>Address line 2</Label><FormInput value={contactForm.data.address_line_2} onChange={(event) => contactForm.setData('address_line_2', event.target.value)} /></Field>
-                                <Field><Label>City</Label><FormInput value={contactForm.data.city} onChange={(event) => contactForm.setData('city', event.target.value)} /></Field>
-                                <Field><Label>State</Label><FormInput value={contactForm.data.state} onChange={(event) => contactForm.setData('state', event.target.value)} /></Field>
-                                <Field><Label>Postal code</Label><FormInput value={contactForm.data.postal_code} onChange={(event) => contactForm.setData('postal_code', event.target.value)} /></Field>
-                                <Field><Label>Country</Label><FormInput value={contactForm.data.country} onChange={(event) => contactForm.setData('country', event.target.value)} /></Field>
+                                <Field>
+                                    <Label>Business name</Label>
+                                    <FormInput
+                                        value={contactForm.data.business_name}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'business_name',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Primary phone</Label>
+                                    <FormInput
+                                        value={contactForm.data.phone_primary}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'phone_primary',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Secondary phone</Label>
+                                    <FormInput
+                                        value={contactForm.data.phone_secondary}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'phone_secondary',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Primary email</Label>
+                                    <FormInput
+                                        type="email"
+                                        value={contactForm.data.email_primary}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'email_primary',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Secondary email</Label>
+                                    <FormInput
+                                        type="email"
+                                        value={contactForm.data.email_secondary}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'email_secondary',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>WhatsApp number</Label>
+                                    <FormInput
+                                        value={contactForm.data.whatsapp_number}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'whatsapp_number',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>WhatsApp message</Label>
+                                    <FormInput
+                                        value={contactForm.data.whatsapp_text}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'whatsapp_text',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Address label</Label>
+                                    <FormInput
+                                        value={contactForm.data.address_label}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'address_label',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="Showroom"
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Address line 1</Label>
+                                    <FormInput
+                                        value={contactForm.data.address_line_1}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'address_line_1',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Address line 2</Label>
+                                    <FormInput
+                                        value={contactForm.data.address_line_2}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'address_line_2',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>City</Label>
+                                    <FormInput
+                                        value={contactForm.data.city}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'city',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>State</Label>
+                                    <FormInput
+                                        value={contactForm.data.state}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'state',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Postal code</Label>
+                                    <FormInput
+                                        value={contactForm.data.postal_code}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'postal_code',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Country</Label>
+                                    <FormInput
+                                        value={contactForm.data.country}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'country',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
                             </div>
                             <div className="mt-5 flex flex-wrap gap-4">
-                                <FormCheckbox checked={contactForm.data.show_phone} onChange={(event) => contactForm.setData('show_phone', event.target.checked)} label="Show phone" />
-                                <FormCheckbox checked={contactForm.data.show_email} onChange={(event) => contactForm.setData('show_email', event.target.checked)} label="Show email" />
-                                <FormCheckbox checked={contactForm.data.show_whatsapp} onChange={(event) => contactForm.setData('show_whatsapp', event.target.checked)} label="Show WhatsApp" />
-                                <FormCheckbox checked={contactForm.data.show_address} onChange={(event) => contactForm.setData('show_address', event.target.checked)} label="Show address" />
+                                <FormCheckbox
+                                    checked={contactForm.data.show_phone}
+                                    onChange={(event) =>
+                                        contactForm.setData(
+                                            'show_phone',
+                                            event.target.checked,
+                                        )
+                                    }
+                                    label="Show phone"
+                                />
+                                <FormCheckbox
+                                    checked={contactForm.data.show_email}
+                                    onChange={(event) =>
+                                        contactForm.setData(
+                                            'show_email',
+                                            event.target.checked,
+                                        )
+                                    }
+                                    label="Show email"
+                                />
+                                <FormCheckbox
+                                    checked={contactForm.data.show_whatsapp}
+                                    onChange={(event) =>
+                                        contactForm.setData(
+                                            'show_whatsapp',
+                                            event.target.checked,
+                                        )
+                                    }
+                                    label="Show WhatsApp"
+                                />
+                                <FormCheckbox
+                                    checked={contactForm.data.show_address}
+                                    onChange={(event) =>
+                                        contactForm.setData(
+                                            'show_address',
+                                            event.target.checked,
+                                        )
+                                    }
+                                    label="Show address"
+                                />
                             </div>
                         </PagePanel>
 
                         <PagePanel>
                             <div className="mb-5">
-                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Contact page copy</h2>
-                                <Text>Headings, helper text, map links, and form messaging for the public contact page.</Text>
+                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                                    Contact page copy
+                                </h2>
+                                <Text>
+                                    Headings, helper text, map links, and form
+                                    messaging for the public contact page.
+                                </Text>
                             </div>
                             <div className="grid gap-4 lg:grid-cols-2">
-                                <Field><Label>Page title</Label><FormInput value={contactForm.data.page_title} onChange={(event) => contactForm.setData('page_title', event.target.value)} /><FieldError message={contactForm.errors.page_title} /></Field>
-                                <Field><Label>Form title</Label><FormInput value={contactForm.data.form_title} onChange={(event) => contactForm.setData('form_title', event.target.value)} /><FieldError message={contactForm.errors.form_title} /></Field>
-                                <Field className="lg:col-span-2"><Label>Page intro</Label><FormTextarea rows={3} value={contactForm.data.page_intro} onChange={(event) => contactForm.setData('page_intro', event.target.value)} /><FieldError message={contactForm.errors.page_intro} /></Field>
-                                <Field><Label>Submit button label</Label><FormInput value={contactForm.data.submit_label} onChange={(event) => contactForm.setData('submit_label', event.target.value)} placeholder="Send Inquiry" /><FieldError message={contactForm.errors.submit_label} /></Field>
-                                <Field><Label>Success message</Label><FormInput value={contactForm.data.success_message} onChange={(event) => contactForm.setData('success_message', event.target.value)} /><FieldError message={contactForm.errors.success_message} /></Field>
-                                <Field className="lg:col-span-2"><Label>Form helper text</Label><FormTextarea rows={3} value={contactForm.data.form_helper_text} onChange={(event) => contactForm.setData('form_helper_text', event.target.value)} /><FieldError message={contactForm.errors.form_helper_text} /></Field>
-                                <Field className="lg:col-span-2"><Label>Consent text</Label><FormTextarea rows={3} value={contactForm.data.consent_text} onChange={(event) => contactForm.setData('consent_text', event.target.value)} placeholder="I consent to being contacted regarding my inquiry." /><FieldError message={contactForm.errors.consent_text} /></Field>
-                                <Field><Label>Location kicker</Label><FormInput value={contactForm.data.location_kicker} onChange={(event) => contactForm.setData('location_kicker', event.target.value)} /></Field>
-                                <Field><Label>Location title</Label><FormInput value={contactForm.data.location_title} onChange={(event) => contactForm.setData('location_title', event.target.value)} /></Field>
-                                <Field className="lg:col-span-2"><Label>Location body</Label><FormTextarea rows={3} value={contactForm.data.location_body} onChange={(event) => contactForm.setData('location_body', event.target.value)} /></Field>
-                                <Field><Label>Map embed URL</Label><FormInput type="url" value={contactForm.data.map_embed_url} onChange={(event) => contactForm.setData('map_embed_url', event.target.value)} placeholder="https://www.google.com/maps/embed?..." /></Field>
-                                <Field><Label>Map link URL</Label><FormInput type="url" value={contactForm.data.map_link_url} onChange={(event) => contactForm.setData('map_link_url', event.target.value)} placeholder="https://maps.google.com/..." /></Field>
+                                <Field>
+                                    <Label>Page title</Label>
+                                    <FormInput
+                                        value={contactForm.data.page_title}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'page_title',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <FieldError
+                                        message={contactForm.errors.page_title}
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Form title</Label>
+                                    <FormInput
+                                        value={contactForm.data.form_title}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'form_title',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <FieldError
+                                        message={contactForm.errors.form_title}
+                                    />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>Page intro</Label>
+                                    <FormTextarea
+                                        rows={3}
+                                        value={contactForm.data.page_intro}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'page_intro',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <FieldError
+                                        message={contactForm.errors.page_intro}
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Submit button label</Label>
+                                    <FormInput
+                                        value={contactForm.data.submit_label}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'submit_label',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="Send Inquiry"
+                                    />
+                                    <FieldError
+                                        message={
+                                            contactForm.errors.submit_label
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Success message</Label>
+                                    <FormInput
+                                        value={contactForm.data.success_message}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'success_message',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <FieldError
+                                        message={
+                                            contactForm.errors.success_message
+                                        }
+                                    />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>Form helper text</Label>
+                                    <FormTextarea
+                                        rows={3}
+                                        value={
+                                            contactForm.data.form_helper_text
+                                        }
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'form_helper_text',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <FieldError
+                                        message={
+                                            contactForm.errors.form_helper_text
+                                        }
+                                    />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>Consent text</Label>
+                                    <FormTextarea
+                                        rows={3}
+                                        value={contactForm.data.consent_text}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'consent_text',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="I consent to being contacted regarding my inquiry."
+                                    />
+                                    <FieldError
+                                        message={
+                                            contactForm.errors.consent_text
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Location kicker</Label>
+                                    <FormInput
+                                        value={contactForm.data.location_kicker}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'location_kicker',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Location title</Label>
+                                    <FormInput
+                                        value={contactForm.data.location_title}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'location_title',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field className="lg:col-span-2">
+                                    <Label>Location body</Label>
+                                    <FormTextarea
+                                        rows={3}
+                                        value={contactForm.data.location_body}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'location_body',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Map embed URL</Label>
+                                    <FormInput
+                                        type="url"
+                                        value={contactForm.data.map_embed_url}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'map_embed_url',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="https://www.google.com/maps/embed?..."
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Map link URL</Label>
+                                    <FormInput
+                                        type="url"
+                                        value={contactForm.data.map_link_url}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'map_link_url',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="https://maps.google.com/..."
+                                    />
+                                </Field>
                             </div>
                         </PagePanel>
 
                         <PagePanel>
                             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                                 <div>
-                                    <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Contact page social links</h2>
-                                    <Text>Optional links shown on the public contact page.</Text>
+                                    <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                                        Contact page social links
+                                    </h2>
+                                    <Text>
+                                        Optional links shown on the public
+                                        contact page.
+                                    </Text>
                                 </div>
-                                <Button type="button" color="light" onClick={() => contactForm.setData('contact_social_links', [...contactForm.data.contact_social_links, { label: '', url: '' }])}>
+                                <Button
+                                    type="button"
+                                    color="light"
+                                    onClick={() =>
+                                        contactForm.setData(
+                                            'contact_social_links',
+                                            [
+                                                ...contactForm.data
+                                                    .contact_social_links,
+                                                { label: '', url: '' },
+                                            ],
+                                        )
+                                    }
+                                >
                                     <Plus data-slot="icon" />
                                     Add link
                                 </Button>
                             </div>
-                            <div className="grid gap-4">
-                                {contactForm.data.contact_social_links.map((link, index) => (
-                                    <div key={index} className="grid gap-3 rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10 lg:grid-cols-[0.45fr_1fr_auto] lg:items-center">
-                                        <FormInput value={link.label} onChange={(event) => setContactPageSocialLink(index, 'label', event.target.value)} placeholder="Instagram" />
-                                        <FormInput type="url" value={link.url} onChange={(event) => setContactPageSocialLink(index, 'url', event.target.value)} placeholder="https://..." />
-                                        <Button
-                                            type="button"
-                                            plain
-                                            className="justify-center sm:justify-start"
-                                            onClick={() =>
-                                                contactForm.setData(
-                                                    'contact_social_links',
-                                                    contactForm.data.contact_social_links.filter((_, itemIndex) => itemIndex !== index),
-                                                )
-                                            }
-                                        >
-                                            <Trash2 data-slot="icon" />
-                                            Remove
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
+                            <EditableTable minWidth="48rem">
+                                <colgroup>
+                                    <col className="w-[90px]" />
+                                    <col className="w-[220px]" />
+                                    <col />
+                                    <col className="w-[120px]" />
+                                </colgroup>
+                                <EditableTableHead>
+                                    <EditableTableHeader>
+                                        Item
+                                    </EditableTableHeader>
+                                    <EditableTableHeader>
+                                        Label
+                                    </EditableTableHeader>
+                                    <EditableTableHeader>
+                                        URL
+                                    </EditableTableHeader>
+                                    <EditableTableHeader className="text-right">
+                                        Actions
+                                    </EditableTableHeader>
+                                </EditableTableHead>
+                                <EditableTableBody>
+                                    {contactForm.data.contact_social_links.map(
+                                        (link, index) => (
+                                            <tr key={index}>
+                                                <EditableTableCell>
+                                                    <p className="text-sm font-semibold text-zinc-950 dark:text-white">
+                                                        #{index + 1}
+                                                    </p>
+                                                </EditableTableCell>
+                                                <EditableTableCell>
+                                                    <FormInput
+                                                        value={link.label}
+                                                        onChange={(event) =>
+                                                            setContactPageSocialLink(
+                                                                index,
+                                                                'label',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        placeholder="Instagram"
+                                                    />
+                                                </EditableTableCell>
+                                                <EditableTableCell>
+                                                    <FormInput
+                                                        type="url"
+                                                        value={link.url}
+                                                        onChange={(event) =>
+                                                            setContactPageSocialLink(
+                                                                index,
+                                                                'url',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        placeholder="https://..."
+                                                    />
+                                                </EditableTableCell>
+                                                <EditableTableCell className="text-right">
+                                                    <Button
+                                                        type="button"
+                                                        plain
+                                                        onClick={() =>
+                                                            contactForm.setData(
+                                                                'contact_social_links',
+                                                                contactForm.data.contact_social_links.filter(
+                                                                    (
+                                                                        _,
+                                                                        itemIndex,
+                                                                    ) =>
+                                                                        itemIndex !==
+                                                                        index,
+                                                                ),
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 data-slot="icon" />
+                                                        Remove
+                                                    </Button>
+                                                </EditableTableCell>
+                                            </tr>
+                                        ),
+                                    )}
+                                </EditableTableBody>
+                            </EditableTable>
                         </PagePanel>
                     </form>
 
@@ -369,10 +866,19 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                         <PagePanel>
                             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                                 <div>
-                                    <h2 className="text-base font-semibold text-zinc-950 dark:text-white">Public social links</h2>
-                                    <Text>Active links appear in public social link areas such as the footer.</Text>
+                                    <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                                        Public social links
+                                    </h2>
+                                    <Text>
+                                        Active links appear in public social
+                                        link areas such as the footer.
+                                    </Text>
                                 </div>
-                                <Button type="button" color="light" onClick={addSocialLink}>
+                                <Button
+                                    type="button"
+                                    color="light"
+                                    onClick={addSocialLink}
+                                >
                                     <Plus data-slot="icon" />
                                     Add link
                                 </Button>
@@ -385,59 +891,171 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                                     onChange={(event) => {
                                         const checked = event.target.checked;
                                         setShowHeroSocials(checked);
-                                        router.patch('/admin/social-links/settings', {
-                                            show_social_links_on_hero: checked,
-                                        }, {
-                                            preserveScroll: true,
-                                        });
+                                        router.patch(
+                                            '/admin/social-links/settings',
+                                            {
+                                                show_social_links_on_hero:
+                                                    checked,
+                                            },
+                                            {
+                                                preserveScroll: true,
+                                            },
+                                        );
                                     }}
                                 />
                                 Show active social links on homepage hero
                             </label>
 
-                            <div className="space-y-4">
-                                {localLinks.map((link, index) => (
-                                    <div key={link.id} className="space-y-3 rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
-                                        <div className="grid gap-3">
-                                            <Field>
-                                                <Label>Platform</Label>
-                                                <FormSelect value={link.platform_key} onChange={(event) => updateSocialLink(link.id, { platform_key: event.target.value })}>
-                                                    {AVAILABLE_PLATFORMS.map((platform) => (
-                                                        <option key={platform.key} value={platform.key}>{platform.label}</option>
-                                                    ))}
+                            <EditableTable minWidth="60rem">
+                                <colgroup>
+                                    <col className="w-[90px]" />
+                                    <col className="w-[180px]" />
+                                    <col />
+                                    <col className="w-[130px]" />
+                                    <col className="w-[130px]" />
+                                    <col className="w-[120px]" />
+                                </colgroup>
+                                <EditableTableHead>
+                                    <EditableTableHeader>
+                                        Item
+                                    </EditableTableHeader>
+                                    <EditableTableHeader>
+                                        Platform
+                                    </EditableTableHeader>
+                                    <EditableTableHeader>
+                                        URL
+                                    </EditableTableHeader>
+                                    <EditableTableHeader>
+                                        Sort order
+                                    </EditableTableHeader>
+                                    <EditableTableHeader>
+                                        Status
+                                    </EditableTableHeader>
+                                    <EditableTableHeader className="text-right">
+                                        Actions
+                                    </EditableTableHeader>
+                                </EditableTableHead>
+                                <EditableTableBody>
+                                    {localLinks.map((link, index) => (
+                                        <tr key={link.id}>
+                                            <EditableTableCell>
+                                                <p className="text-sm font-semibold text-zinc-950 dark:text-white">
+                                                    #{index + 1}
+                                                </p>
+                                            </EditableTableCell>
+                                            <EditableTableCell>
+                                                <FormSelect
+                                                    value={link.platform_key}
+                                                    onChange={(event) =>
+                                                        updateSocialLink(
+                                                            link.id,
+                                                            {
+                                                                platform_key:
+                                                                    event.target
+                                                                        .value,
+                                                            },
+                                                        )
+                                                    }
+                                                >
+                                                    {AVAILABLE_PLATFORMS.map(
+                                                        (platform) => (
+                                                            <option
+                                                                key={
+                                                                    platform.key
+                                                                }
+                                                                value={
+                                                                    platform.key
+                                                                }
+                                                            >
+                                                                {platform.label}
+                                                            </option>
+                                                        ),
+                                                    )}
                                                 </FormSelect>
-                                            </Field>
-                                            <Field>
-                                                <Label>URL</Label>
-                                                <FormInput value={link.url} onChange={(event) => updateSocialLink(link.id, { url: event.target.value })} placeholder="https://..." />
-                                            </Field>
-                                            <Field>
-                                                <Label>Sort order</Label>
-                                                <FormInput type="number" value={link.sort_order} onChange={(event) => updateSocialLink(link.id, { sort_order: Number(event.target.value) })} />
-                                            </Field>
-                                        </div>
-                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                            <label className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={link.is_active}
-                                                    onChange={(event) => updateSocialLink(link.id, { is_active: event.target.checked })}
-                                                    className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                                            </EditableTableCell>
+                                            <EditableTableCell>
+                                                <FormInput
+                                                    value={link.url}
+                                                    onChange={(event) =>
+                                                        updateSocialLink(
+                                                            link.id,
+                                                            {
+                                                                url: event
+                                                                    .target
+                                                                    .value,
+                                                            },
+                                                        )
+                                                    }
+                                                    placeholder="https://..."
                                                 />
-                                                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Active</span>
-                                            </label>
-                                            <Button type="button" plain className="justify-center sm:justify-start" onClick={() => removeSocialLink(link.id)}>
-                                                <Trash2 data-slot="icon" />
-                                                Remove
-                                            </Button>
-                                        </div>
-                                        <p className="text-xs text-zinc-500 dark:text-zinc-400">Saved as item {index + 1}</p>
-                                    </div>
-                                ))}
-                            </div>
+                                            </EditableTableCell>
+                                            <EditableTableCell>
+                                                <FormInput
+                                                    type="number"
+                                                    value={link.sort_order}
+                                                    onChange={(event) =>
+                                                        updateSocialLink(
+                                                            link.id,
+                                                            {
+                                                                sort_order:
+                                                                    Number(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    ),
+                                                            },
+                                                        )
+                                                    }
+                                                />
+                                            </EditableTableCell>
+                                            <EditableTableCell>
+                                                <label className="flex items-center gap-2 pt-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={link.is_active}
+                                                        onChange={(event) =>
+                                                            updateSocialLink(
+                                                                link.id,
+                                                                {
+                                                                    is_active:
+                                                                        event
+                                                                            .target
+                                                                            .checked,
+                                                                },
+                                                            )
+                                                        }
+                                                        className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                                                    />
+                                                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                                        Active
+                                                    </span>
+                                                </label>
+                                            </EditableTableCell>
+                                            <EditableTableCell className="text-right">
+                                                <Button
+                                                    type="button"
+                                                    plain
+                                                    onClick={() =>
+                                                        removeSocialLink(
+                                                            link.id,
+                                                        )
+                                                    }
+                                                >
+                                                    <Trash2 data-slot="icon" />
+                                                    Remove
+                                                </Button>
+                                            </EditableTableCell>
+                                        </tr>
+                                    ))}
+                                </EditableTableBody>
+                            </EditableTable>
 
                             <div className="mt-6 flex justify-end">
-                                <Button type="button" onClick={saveSocialLinks} disabled={isSavingLinks}>
+                                <Button
+                                    type="button"
+                                    onClick={saveSocialLinks}
+                                    disabled={isSavingLinks}
+                                >
                                     Save social links
                                 </Button>
                             </div>

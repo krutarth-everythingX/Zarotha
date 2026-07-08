@@ -5,8 +5,8 @@ namespace App\Services\Media;
 use App\Jobs\GenerateMediaVariants;
 use App\Models\MediaAsset;
 use App\Models\Product;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -163,7 +163,6 @@ class MediaLibrary
                         ->orWhere('og_image_media_id', $mediaAsset->id);
                 })
                 ->count()
-            + $this->aboutDetailsReferenceCount($mediaAsset->id)
             + DB::table('hero_banners')
                 ->where(function ($query) use ($mediaAsset): void {
                     $query->where('desktop_media_id', $mediaAsset->id)
@@ -188,32 +187,6 @@ class MediaLibrary
                         ->orWhere('dark_logo_media_id', $mediaAsset->id);
                 })
                 ->count();
-    }
-
-    private function aboutDetailsReferenceCount(int $mediaAssetId): int
-    {
-        return DB::table('pages')
-            ->whereNotNull('about_details')
-            ->get(['about_details'])
-            ->filter(function (object $page) use ($mediaAssetId): bool {
-                $details = json_decode((string) $page->about_details, true);
-
-                if (! is_array($details)) {
-                    return false;
-                }
-
-                $referencedIds = collect([
-                    $details['catalog_media_id'] ?? null,
-                    $details['certificate_media_id'] ?? null,
-                    $details['strength_media_id'] ?? null,
-                ])
-                    ->merge($details['gallery_media_ids'] ?? [])
-                    ->filter(fn ($id): bool => is_numeric($id))
-                    ->map(fn ($id): int => (int) $id);
-
-                return $referencedIds->contains($mediaAssetId);
-            })
-            ->count();
     }
 
     public function pruneOrphanUploads(int $olderThanHours = 24): int

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\CategoryController;
@@ -24,6 +25,13 @@ Route::prefix('admin')
     ->middleware(['auth', 'admin.user', 'response.noindex'])
     ->group(function (): void {
         Route::get('/', DashboardController::class)->name('dashboard.index');
+        Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+        Route::patch('/account/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
+        Route::post('/account/avatar', [AccountController::class, 'updateAvatar'])->middleware('throttle:media-upload')->name('account.avatar.update');
+        Route::delete('/account/avatar', [AccountController::class, 'removeAvatar'])->name('account.avatar.destroy');
+        Route::patch('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+        Route::patch('/account/theme', [AccountController::class, 'updateTheme'])->name('account.theme.update');
+        Route::delete('/account', [AccountController::class, 'destroy'])->name('account.destroy');
 
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
@@ -53,11 +61,15 @@ Route::prefix('admin')
         Route::delete('/media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
 
         Route::get('/homepage', [HomepageController::class, 'edit'])->name('homepage.edit');
+        Route::get('/settings/home', [HomepageController::class, 'edit'])->name('settings.home.edit');
         Route::match(['put', 'patch'], '/homepage', [HomepageController::class, 'save'])->name('homepage.update');
+        Route::match(['put', 'patch'], '/settings/home', [HomepageController::class, 'save'])->name('settings.home.update');
         Route::match(['put', 'patch'], '/homepage/sections/{section}', [HomepageController::class, 'update'])->name('homepage.sections.update');
 
         Route::get('/testimonials', [TestimonialController::class, 'index'])->name('testimonials.index');
         Route::match(['put', 'patch'], '/testimonials', [TestimonialController::class, 'update'])->name('testimonials.update');
+        Route::get('/settings/testimonials', [TestimonialController::class, 'index'])->name('settings.testimonials.edit');
+        Route::match(['put', 'patch'], '/settings/testimonials', [TestimonialController::class, 'update'])->name('settings.testimonials.update');
 
         Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
         Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
@@ -65,7 +77,12 @@ Route::prefix('admin')
         Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
 
         Route::patch('/social-links/settings', [SocialLinkController::class, 'settings'])->name('social-links.settings');
+        Route::patch('/settings/socials/display', [SocialLinkController::class, 'settings'])->name('settings.socials.display');
         Route::resource('social-links', SocialLinkController::class)->except(['create', 'show', 'edit']);
+        Route::get('/settings/socials', [SocialLinkController::class, 'index'])->name('settings.socials.edit');
+        Route::post('/settings/socials', [SocialLinkController::class, 'store'])->name('settings.socials.store');
+        Route::match(['put', 'patch'], '/settings/socials/{socialLink}', [SocialLinkController::class, 'update'])->name('settings.socials.update');
+        Route::delete('/settings/socials/{socialLink}', [SocialLinkController::class, 'destroy'])->name('settings.socials.destroy');
         Route::get('/contact-socials', [ContactSocialController::class, 'edit'])->name('contact-socials.edit');
         Route::match(['put', 'patch'], '/contact-socials/contact', [ContactSocialController::class, 'updateContact'])->name('contact-socials.contact.update');
 
@@ -93,12 +110,17 @@ Route::prefix('admin')
         Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::post('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
 
-        Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
+        Route::get('/settings', fn () => redirect()->route('admin.settings.home.edit'))->name('settings.edit');
+        Route::get('/settings/general', [SettingsController::class, 'edit'])->name('settings.general.edit');
         Route::match(['put', 'patch'], '/settings', [SettingsController::class, 'update'])->name('settings.update');
         Route::get('/seo', [SettingsController::class, 'seoEdit'])->name('seo.settings.edit');
         Route::match(['put', 'patch'], '/seo', [SettingsController::class, 'seoUpdate'])->name('seo.settings.update');
         Route::get('/pages/contact', [SettingsController::class, 'contactEdit'])->name('pages.contact.edit');
+        Route::get('/settings/contact', [SettingsController::class, 'contactEdit'])->name('settings.contact.edit');
         Route::match(['put', 'patch'], '/pages/contact', [SettingsController::class, 'contactUpdate'])->name('pages.contact.update');
+        Route::match(['put', 'patch'], '/settings/contact', [SettingsController::class, 'contactUpdate'])->name('settings.contact.update');
+        Route::get('/settings/about', [PageController::class, 'edit'])->defaults('pageSlug', 'about-us')->name('settings.about.edit');
+        Route::match(['put', 'patch'], '/settings/about', [PageController::class, 'update'])->defaults('pageSlug', 'about-us')->name('settings.about.update');
         Route::get('/pages/{pageSlug}', [PageController::class, 'edit'])->name('pages.edit');
         Route::match(['put', 'patch'], '/pages/{pageSlug}', [PageController::class, 'update'])->name('pages.update');
 

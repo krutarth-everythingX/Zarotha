@@ -19,8 +19,8 @@ class UpsertClientRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:150'],
-            'website_url' => ['nullable', 'url:http,https', 'max:2048'],
-            'logo_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
+            'website_url' => ['nullable', 'required_without:logo_media_id', 'url:http,https', 'max:2048'],
+            'logo_media_id' => ['nullable', 'required_without:website_url', 'integer', 'exists:media_assets,id'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'is_active' => ['required', 'boolean'],
         ];

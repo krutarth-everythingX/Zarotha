@@ -150,6 +150,7 @@ class DemoDataSeeder extends Seeder
             'customer_name' => 'Rahul Sharma',
             'location_or_role' => 'Interior Designer',
             'body_text' => 'The wooden art pieces from Zarokha completely transformed my client\'s living space.',
+            'rating' => 5,
             'image_media_id' => $testImg1->id,
             'status' => 'published',
             'is_visible' => true,

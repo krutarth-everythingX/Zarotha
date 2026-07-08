@@ -22,30 +22,48 @@ class CategoryController extends Controller
         $search = trim((string) $request->string('search'));
         $active = $request->query('is_active');
 
-        $categories = Category::query()
+        $categoryQuery = Category::query()
             ->withCount('products')
             ->when($search !== '', fn ($query) => $query->where(function ($builder) use ($search): void {
                 $builder->where('name', 'like', "%{$search}%")
                     ->orWhere('slug', 'like', "%{$search}%");
             }))
-            ->when($active !== null && $active !== '', fn ($query) => $query->where('is_active', filter_var($active, FILTER_VALIDATE_BOOLEAN)))
+            ->when($active !== null && $active !== '', fn ($query) => $query->where('is_active', filter_var($active, FILTER_VALIDATE_BOOLEAN)));
+
+        $categories = $categoryQuery
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Admin/Categories/Index', [
             'filters' => [
                 'search' => $search === '' ? null : $search,
                 'is_active' => $active,
             ],
-            'categories' => $categories->map(fn (Category $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'slug' => $category->slug,
-                'sortOrder' => $category->sort_order,
-                'isActive' => $category->is_active,
-                'productCount' => $category->products_count,
-            ]),
+            'stats' => [
+                'total' => Category::query()->count(),
+                'active' => Category::query()->where('is_active', true)->count(),
+                'inactive' => Category::query()->where('is_active', false)->count(),
+            ],
+            'categories' => [
+                'data' => $categories->getCollection()->map(fn (Category $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'sortOrder' => $category->sort_order,
+                    'isActive' => $category->is_active,
+                    'productCount' => $category->products_count,
+                ]),
+                'meta' => [
+                    'currentPage' => $categories->currentPage(),
+                    'perPage' => $categories->perPage(),
+                    'total' => $categories->total(),
+                    'lastPage' => $categories->lastPage(),
+                    'from' => $categories->firstItem(),
+                    'to' => $categories->lastItem(),
+                ],
+            ],
         ]);
     }
 

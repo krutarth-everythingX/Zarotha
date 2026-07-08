@@ -191,12 +191,14 @@ class HomeController extends Controller
                 'body_text' => 'The wooden art pieces from Zarokha completely transformed my client\'s living space.',
                 'customer_name' => 'Rahul Sharma',
                 'location_or_role' => 'Interior Designer',
+                'rating' => 5,
                 'imageMedia' => null,
             ],
             (object) [
                 'body_text' => 'We used Zarokha for a large commercial project. The craftsmanship and attention to detail were simply outstanding.',
                 'customer_name' => 'Sarah Jenkins',
                 'location_or_role' => 'Architect',
+                'rating' => 5,
                 'imageMedia' => null,
             ],
         ]);

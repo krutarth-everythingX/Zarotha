@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
@@ -35,6 +36,26 @@ class AdminAuthenticationTest extends TestCase
         ]);
 
         $response->assertRedirect('/admin');
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_authorized_admin_user_can_sign_in_with_remember_me(): void
+    {
+        $user = User::factory()->create([
+            'role_id' => Role::idFor(UserRole::SuperAdministrator),
+        ]);
+
+        $token = 'test-token';
+
+        $response = $this->withSession(['_token' => $token])->post('/admin/login', [
+            '_token' => $token,
+            'email' => $user->email,
+            'password' => 'password',
+            'remember' => '1',
+        ]);
+
+        $response->assertRedirect('/admin');
+        $response->assertCookie(Auth::guard('web')->getRecallerName());
         $this->assertAuthenticatedAs($user);
     }
 

@@ -8,6 +8,22 @@ use Illuminate\Validation\Rule;
 
 class UpdateProductRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'slug' => $this->input('slug') ?: str($this->input('name'))->slug()->toString(),
+            'status' => $this->input('status', 'draft'),
+            'is_featured' => $this->boolean('is_featured'),
+            'is_best_selling' => $this->boolean('is_best_selling'),
+            'is_latest' => $this->boolean('is_latest'),
+            'robots_index' => $this->has('robots_index') ? $this->boolean('robots_index') : true,
+            'robots_follow' => $this->has('robots_follow') ? $this->boolean('robots_follow') : true,
+            'is_track_inventory' => $this->boolean('is_track_inventory'),
+            'is_available_for_inquiry' => true,
+            'show_price' => $this->has('show_price') ? $this->boolean('show_price') : false,
+        ]);
+    }
+
     public function authorize(): bool
     {
         /** @var Product $product */
@@ -55,12 +71,16 @@ class UpdateProductRequest extends FormRequest
             'wood_type' => ['nullable', 'string', 'max:100'],
             'style' => ['nullable', 'string', 'max:100'],
             'regular_price' => ['required', 'numeric', 'min:0'],
-            'sale_price' => ['nullable', 'numeric', 'min:0', 'lte:regular_price'],
+            'sale_price' => ['nullable', 'numeric', 'min:0'],
             'is_track_inventory' => ['required', 'boolean'],
             'stock_quantity' => ['nullable', 'integer', 'min:0'],
             'availability' => ['nullable', 'string', 'max:100'],
+            'is_available_for_inquiry' => ['required', 'boolean'],
+            'show_price' => ['required', 'boolean'],
             'details' => ['nullable', 'array'],
-            'gallery_images' => ['nullable', 'array'],
+            'details.*.title' => ['nullable', 'string', 'max:120'],
+            'details.*.value' => ['nullable', 'string', 'max:500'],
+            'gallery_images' => ['nullable', 'array', 'max:10'],
             'gallery_images.*' => ['integer', 'exists:media_assets,id'],
         ];
     }

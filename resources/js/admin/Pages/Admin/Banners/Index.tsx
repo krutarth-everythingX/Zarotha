@@ -1,11 +1,29 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { Button } from '@admin/Components/ui/button';
-import { Field, Label } from '@admin/Components/ui/fieldset';
-import { Text } from '@admin/Components/ui/text';
-import { AdminShell } from '@admin/Layouts/AdminShell';
-import { EmptyState, FieldError, FormInput, FormTextarea, PagePanel, StatusBadge } from '@admin/Components/AdminPrimitives';
-import { MediaDropSelect, type MediaOption as UploadMediaOption } from '@admin/Components/MediaDropSelect';
-import { useState } from 'react';
+import { Head, router, useForm } from "@inertiajs/react";
+import { Button } from "@admin/Components/ui/button";
+import { Field, Label } from "@admin/Components/ui/fieldset";
+import { Text } from "@admin/Components/ui/text";
+import { AdminShell } from "@admin/Layouts/AdminShell";
+import {
+    DetailGrid,
+    DetailItem,
+    DetailModal,
+    DetailSection,
+    EmptyState,
+    FieldError,
+    FormInput,
+    FormTextarea,
+    ListTableFooter,
+    ListTablePanel,
+    MobileTableList,
+    MobileTableRow,
+    PagePanel,
+    StatusBadge,
+} from "@admin/Components/AdminPrimitives";
+import {
+    MediaDropSelect,
+    type MediaOption as UploadMediaOption,
+} from "@admin/Components/MediaDropSelect";
+import { useState } from "react";
 
 type Banner = {
     id: number;
@@ -33,28 +51,33 @@ type BannerForm = {
     body_text: string;
     primary_cta_label: string;
     primary_cta_url: string;
-    desktop_media_id: number | '';
-    mobile_media_id: number | '';
+    desktop_media_id: number | "";
+    mobile_media_id: number | "";
     sort_order: number;
     is_active: boolean;
     starts_at: string;
     ends_at: string;
 };
 
-export default function BannersIndex({ banners, mediaOptions }: BannersIndexProps) {
-    const [mediaChoices, setMediaChoices] = useState<UploadMediaOption[]>(mediaOptions);
+export default function BannersIndex({
+    banners,
+    mediaOptions,
+}: BannersIndexProps) {
+    const [mediaChoices, setMediaChoices] =
+        useState<UploadMediaOption[]>(mediaOptions);
+    const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
     const form = useForm<BannerForm>({
-        eyebrow: '',
-        headline: '',
-        body_text: '',
-        primary_cta_label: '',
-        primary_cta_url: '',
-        desktop_media_id: '',
-        mobile_media_id: '',
+        eyebrow: "",
+        headline: "",
+        body_text: "",
+        primary_cta_label: "",
+        primary_cta_url: "",
+        desktop_media_id: "",
+        mobile_media_id: "",
         sort_order: 0,
         is_active: true,
-        starts_at: '',
-        ends_at: '',
+        starts_at: "",
+        ends_at: "",
     });
     const rememberUploadedMedia = (media: UploadMediaOption) => {
         setMediaChoices((current) => [
@@ -62,25 +85,53 @@ export default function BannersIndex({ banners, mediaOptions }: BannersIndexProp
             ...current.filter((item) => item.id !== media.id),
         ]);
     };
-    const selectedMedia = form.data.desktop_media_id === ''
-        ? null
-        : mediaChoices.find((option) => option.id === form.data.desktop_media_id) ?? null;
+    const selectedMedia =
+        form.data.desktop_media_id === ""
+            ? null
+            : (mediaChoices.find(
+                  (option) => option.id === form.data.desktop_media_id,
+              ) ?? null);
+
+    const removeBanner = (banner: Banner) => {
+        if (!window.confirm(`Delete banner "${banner.headline}"?`)) {
+            return;
+        }
+
+        router.delete(`/admin/banners/${banner.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (selectedBanner?.id === banner.id) {
+                    setSelectedBanner(null);
+                }
+            },
+        });
+    };
 
     return (
         <>
             <Head title="Banners" />
-            <AdminShell title="Banners" description="Manage homepage hero banners using approved media records.">
+            <AdminShell
+                title="Banners"
+                description="Manage homepage hero banners using approved media records."
+            >
                 <PagePanel>
                     <form
                         className="grid gap-5 lg:grid-cols-2"
                         onSubmit={(event) => {
                             event.preventDefault();
-                            form.post('/admin/banners', { preserveScroll: true });
+                            form.post("/admin/banners", {
+                                preserveScroll: true,
+                            });
                         }}
                     >
                         <Field>
                             <Label>Headline</Label>
-                            <FormInput value={form.data.headline} onChange={(event) => form.setData('headline', event.target.value)} />
+                            <FormInput
+                                value={form.data.headline}
+                                onChange={(event) =>
+                                    form.setData("headline", event.target.value)
+                                }
+                            />
                             <FieldError message={form.errors.headline} />
                         </Field>
                         <Field>
@@ -91,21 +142,50 @@ export default function BannersIndex({ banners, mediaOptions }: BannersIndexProp
                                 preview={selectedMedia}
                                 label="Banner image"
                                 onUploaded={rememberUploadedMedia}
-                                onChange={(desktop_media_id) => form.setData('desktop_media_id', desktop_media_id)}
+                                onChange={(desktop_media_id) =>
+                                    form.setData(
+                                        "desktop_media_id",
+                                        desktop_media_id,
+                                    )
+                                }
                             />
-                            <FieldError message={form.errors.desktop_media_id} />
+                            <FieldError
+                                message={form.errors.desktop_media_id}
+                            />
                         </Field>
                         <Field>
                             <Label>Eyebrow</Label>
-                            <FormInput value={form.data.eyebrow} onChange={(event) => form.setData('eyebrow', event.target.value)} />
+                            <FormInput
+                                value={form.data.eyebrow}
+                                onChange={(event) =>
+                                    form.setData("eyebrow", event.target.value)
+                                }
+                            />
                         </Field>
                         <Field>
                             <Label>CTA URL</Label>
-                            <FormInput value={form.data.primary_cta_url} onChange={(event) => form.setData('primary_cta_url', event.target.value)} />
+                            <FormInput
+                                value={form.data.primary_cta_url}
+                                onChange={(event) =>
+                                    form.setData(
+                                        "primary_cta_url",
+                                        event.target.value,
+                                    )
+                                }
+                            />
                         </Field>
                         <Field className="lg:col-span-2">
                             <Label>Body text</Label>
-                            <FormTextarea rows={3} value={form.data.body_text} onChange={(event) => form.setData('body_text', event.target.value)} />
+                            <FormTextarea
+                                rows={3}
+                                value={form.data.body_text}
+                                onChange={(event) =>
+                                    form.setData(
+                                        "body_text",
+                                        event.target.value,
+                                    )
+                                }
+                            />
                         </Field>
                         <div className="lg:col-span-2">
                             <Button type="submit" disabled={form.processing}>
@@ -115,64 +195,219 @@ export default function BannersIndex({ banners, mediaOptions }: BannersIndexProp
                     </form>
                 </PagePanel>
 
-                <div className="mt-6 overflow-hidden rounded-3xl border border-zinc-950/8 bg-white/90 shadow-sm dark:border-white/10 dark:bg-zinc-900/90">
+                <ListTablePanel
+                    footer={
+                        <ListTableFooter>
+                            <span>{banners.length} banners</span>
+                        </ListTableFooter>
+                    }
+                >
                     {banners.length === 0 ? (
                         <div className="p-6">
-                            <EmptyState title="No banners yet" description="Add a banner after uploading approved hero media." />
+                            <EmptyState
+                                title="No banners yet"
+                                description="Add a banner after uploading approved hero media."
+                            />
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full table-fixed border-collapse">
-                                <colgroup>
-                                    <col className="w-[140px]" />
-                                    <col />
-                                    <col className="w-[140px]" />
-                                    <col className="w-[140px]" />
-                                </colgroup>
-                                <thead>
-                                    <tr className="border-b border-zinc-950/8 dark:border-white/10">
-                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Preview</th>
-                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Banner</th>
-                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Status</th>
-                                        <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-zinc-950/8 dark:divide-white/10">
-                                    {banners.map((banner) => (
-                                        <tr key={banner.id} className="align-middle">
-                                            <td className="px-4 py-2.5">
-                                                <div className="mx-auto aspect-[4/3] w-24 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                                                    {banner.previewUrl ? <img src={banner.previewUrl} alt="" className="h-full w-full object-cover" /> : null}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-2.5 text-center">
-                                                <p className="font-medium text-zinc-950 dark:text-white">{banner.headline}</p>
-                                                <Text>{banner.bodyText ?? 'No supporting text supplied.'}</Text>
-                                            </td>
-                                            <td className="px-4 py-2.5 text-center">
-                                                <div className="flex justify-center">
-                                                    <StatusBadge tone={banner.isActive ? 'green' : 'amber'}>{banner.isActive ? 'Active' : 'Inactive'}</StatusBadge>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-2.5 text-center">
-                                                <Button
-                                                    color="light"
-                                                    onClick={() => {
-                                                        if (window.confirm(`Delete banner "${banner.headline}"?`)) {
-                                                            router.delete(`/admin/banners/${banner.id}`, { preserveScroll: true });
-                                                        }
-                                                    }}
-                                                >
-                                                    Delete
-                                                </Button>
-                                            </td>
+                        <>
+                            <MobileTableList>
+                                {banners.map((banner, index) => (
+                                    <MobileTableRow
+                                        key={banner.id}
+                                        number={index + 1}
+                                        title={banner.headline}
+                                        subtitle={banner.eyebrow ?? "Banner"}
+                                        media={
+                                            <span className="block aspect-[4/3] w-14 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                                {banner.previewUrl ? (
+                                                    <img
+                                                        src={banner.previewUrl}
+                                                        alt=""
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : null}
+                                            </span>
+                                        }
+                                        badge={
+                                            <StatusBadge
+                                                tone={
+                                                    banner.isActive
+                                                        ? "green"
+                                                        : "amber"
+                                                }
+                                            >
+                                                {banner.isActive
+                                                    ? "Active"
+                                                    : "Inactive"}
+                                            </StatusBadge>
+                                        }
+                                        onOpen={() => setSelectedBanner(banner)}
+                                    />
+                                ))}
+                            </MobileTableList>
+                            <div className="hidden overflow-x-auto md:block">
+                                <table className="min-w-full table-fixed border-collapse">
+                                    <colgroup>
+                                        <col className="w-[140px]" />
+                                        <col />
+                                        <col className="w-[140px]" />
+                                        <col className="w-[140px]" />
+                                    </colgroup>
+                                    <thead>
+                                        <tr className="border-b border-zinc-950/8 dark:border-white/10">
+                                            <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">
+                                                Preview
+                                            </th>
+                                            <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">
+                                                Banner
+                                            </th>
+                                            <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">
+                                                Status
+                                            </th>
+                                            <th className="px-4 py-2.5 text-center text-sm font-medium leading-5 text-zinc-500 dark:text-zinc-400">
+                                                Action
+                                            </th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody className="[&>tr]:border-b [&>tr]:border-zinc-950/8 dark:[&>tr]:border-white/10">
+                                        {banners.map((banner) => (
+                                            <tr
+                                                key={banner.id}
+                                                className="align-middle"
+                                            >
+                                                <td className="px-4 py-2.5">
+                                                    <div className="mx-auto aspect-[4/3] w-24 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                                                        {banner.previewUrl ? (
+                                                            <img
+                                                                src={
+                                                                    banner.previewUrl
+                                                                }
+                                                                alt=""
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : null}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-2.5 text-center">
+                                                    <p className="font-medium text-zinc-950 dark:text-white">
+                                                        {banner.headline}
+                                                    </p>
+                                                    <Text>
+                                                        {banner.bodyText ??
+                                                            "No supporting text supplied."}
+                                                    </Text>
+                                                </td>
+                                                <td className="px-4 py-2.5 text-center">
+                                                    <div className="flex justify-center">
+                                                        <StatusBadge
+                                                            tone={
+                                                                banner.isActive
+                                                                    ? "green"
+                                                                    : "amber"
+                                                            }
+                                                        >
+                                                            {banner.isActive
+                                                                ? "Active"
+                                                                : "Inactive"}
+                                                        </StatusBadge>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-2.5 text-center">
+                                                    <Button
+                                                        color="light"
+                                                        onClick={() =>
+                                                            removeBanner(banner)
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
                     )}
-                </div>
+                </ListTablePanel>
+
+                {selectedBanner ? (
+                    <DetailModal
+                        title={selectedBanner.headline}
+                        subtitle={selectedBanner.eyebrow ?? "Homepage banner"}
+                        badge={
+                            <StatusBadge
+                                tone={
+                                    selectedBanner.isActive ? "green" : "amber"
+                                }
+                            >
+                                {selectedBanner.isActive
+                                    ? "Active"
+                                    : "Inactive"}
+                            </StatusBadge>
+                        }
+                        onClose={() => setSelectedBanner(null)}
+                        titleId="banner-detail-title"
+                        actions={
+                            <Button
+                                type="button"
+                                plain
+                                className="justify-center"
+                                onClick={() => removeBanner(selectedBanner)}
+                            >
+                                Delete
+                            </Button>
+                        }
+                    >
+                        <div className="space-y-4">
+                            <DetailSection title="Preview">
+                                <div className="overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-900">
+                                    {selectedBanner.previewUrl ? (
+                                        <img
+                                            src={selectedBanner.previewUrl}
+                                            alt=""
+                                            className="max-h-64 w-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="grid min-h-40 place-items-center">
+                                            <Text>No preview available</Text>
+                                        </div>
+                                    )}
+                                </div>
+                            </DetailSection>
+
+                            <DetailSection title="Banner Details">
+                                <DetailGrid>
+                                    <DetailItem label="No.">
+                                        {banners.findIndex(
+                                            (banner) =>
+                                                banner.id === selectedBanner.id,
+                                        ) + 1}
+                                    </DetailItem>
+                                    <DetailItem label="Sort Order">
+                                        {selectedBanner.sortOrder}
+                                    </DetailItem>
+                                    <DetailItem label="CTA Label">
+                                        {selectedBanner.primaryCtaLabel}
+                                    </DetailItem>
+                                    <DetailItem label="CTA URL">
+                                        {selectedBanner.primaryCtaUrl}
+                                    </DetailItem>
+                                    <DetailItem label="Starts At">
+                                        {selectedBanner.startsAt}
+                                    </DetailItem>
+                                    <DetailItem label="Ends At">
+                                        {selectedBanner.endsAt}
+                                    </DetailItem>
+                                    <DetailItem label="Body Text" full>
+                                        {selectedBanner.bodyText}
+                                    </DetailItem>
+                                </DetailGrid>
+                            </DetailSection>
+                        </div>
+                    </DetailModal>
+                ) : null}
             </AdminShell>
         </>
     );

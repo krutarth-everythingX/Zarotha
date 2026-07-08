@@ -214,17 +214,15 @@ class Stage10MediaPipelineTest extends TestCase
         $this->assertFalse($media->fresh()->trashed());
     }
 
-    public function test_reference_safe_delete_blocks_about_details_media(): void
+    public function test_reference_safe_delete_blocks_about_hero_media(): void
     {
         $editor = $this->userFor(UserRole::ContentEditor);
-        $media = app(MediaLibrary::class)->storeUpload($this->validWebpUpload('about-gallery.webp'), $editor->id);
+        $media = app(MediaLibrary::class)->storeUpload($this->validWebpUpload('about-hero.webp'), $editor->id);
 
         Page::factory()->create([
             'page_key' => 'about_us',
             'slug' => 'about-us',
-            'about_details' => [
-                'gallery_media_ids' => [$media->id],
-            ],
+            'hero_media_id' => $media->id,
         ]);
 
         $response = $this->actingAs($editor)->delete(route('admin.media.destroy', $media));
@@ -232,6 +230,27 @@ class Stage10MediaPipelineTest extends TestCase
         $response->assertRedirect(route('admin.media.index'));
         $response->assertSessionHasErrors('media');
         $this->assertFalse($media->fresh()->trashed());
+    }
+
+    public function test_legacy_about_detail_media_references_do_not_block_delete(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+        $media = app(MediaLibrary::class)->storeUpload($this->validWebpUpload('legacy-about-gallery.webp'), $editor->id);
+
+        Page::factory()->create([
+            'page_key' => 'about_us',
+            'slug' => 'about-us',
+            'about_details' => [
+                'gallery_media_ids' => [$media->id],
+                'strength_media_id' => $media->id,
+            ],
+        ]);
+
+        $response = $this->actingAs($editor)->delete(route('admin.media.destroy', $media));
+
+        $response->assertRedirect(route('admin.media.index'));
+        $response->assertSessionHasNoErrors();
+        $this->assertTrue($media->fresh()->trashed());
     }
 
     public function test_product_gallery_attach_reorder_feature_and_detach_are_deterministic(): void
@@ -310,7 +329,7 @@ class Stage10MediaPipelineTest extends TestCase
 
         $product = Product::query()->where('slug', 'carved-cabinet')->firstOrFail();
 
-        $response->assertRedirect(route('admin.products.edit', $product));
+        $response->assertRedirect(route('admin.products.index'));
         $this->assertSame($second->id, $product->featured_media_id);
         $this->assertDatabaseHas('product_media', [
             'product_id' => $product->id,

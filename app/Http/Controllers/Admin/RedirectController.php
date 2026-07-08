@@ -25,7 +25,7 @@ class RedirectController extends Controller
                     ->orWhere('target_path', 'like', "%{$search}%");
             }))
             ->orderByDesc('created_at')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Admin/Redirects/Index', [

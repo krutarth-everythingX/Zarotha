@@ -32,7 +32,7 @@ class MediaController extends Controller
             }))
             ->when($status !== null && $status !== '', fn ($query) => $query->where('status', $status))
             ->orderByDesc('created_at')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Admin/Media/Index', [

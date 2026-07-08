@@ -21,7 +21,16 @@ function CloseMenuIcon() {
     );
 }
 
-function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open: boolean; close: () => void }>) {
+function MobileSidebar({
+    open,
+    close,
+    header,
+    children,
+}: React.PropsWithChildren<{
+    open: boolean;
+    close: () => void;
+    header?: React.ReactNode;
+}>) {
     return (
         <Headless.Dialog open={open} onClose={close} className="lg:hidden">
             <Headless.DialogBackdrop
@@ -30,13 +39,20 @@ function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open
             />
             <Headless.DialogPanel
                 transition
-                className="fixed inset-y-0 w-full max-w-80 p-2 transition duration-300 ease-in-out data-closed:-translate-x-full"
+                className="fixed inset-y-0 w-full max-w-80 transition duration-300 ease-in-out data-closed:-translate-x-full"
             >
-                <div className="flex h-full flex-col rounded-lg bg-white shadow-xs ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:ring-white/10">
-                    <div className="-mb-3 px-4 pt-3">
-                        <Headless.CloseButton as={NavbarItem} aria-label="Close navigation">
+                <div className="flex h-full flex-col bg-white shadow-xs ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:ring-white/10">
+                    <div className="flex h-16 items-center border-b border-zinc-950/5 px-3 dark:border-white/5 sm:px-4">
+                        <Headless.CloseButton
+                            as={NavbarItem}
+                            aria-label="Close navigation"
+                            className="shrink-0"
+                        >
                             <CloseMenuIcon />
                         </Headless.CloseButton>
+                        {header ? (
+                            <div className="min-w-0 flex-1">{header}</div>
+                        ) : null}
                     </div>
                     {children}
                 </div>
@@ -48,30 +64,62 @@ function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open
 export function SidebarLayout({
     navbar,
     sidebar,
+    containedScroll = false,
+    mobileSidebarHeader,
     children,
-}: React.PropsWithChildren<{ navbar: React.ReactNode; sidebar: React.ReactNode }>) {
+}: React.PropsWithChildren<{
+    navbar: React.ReactNode;
+    sidebar: React.ReactNode;
+    containedScroll?: boolean;
+    mobileSidebarHeader?: React.ReactNode;
+}>) {
     const [showSidebar, setShowSidebar] = useState(false);
 
     return (
         <div className="relative isolate flex min-h-svh w-full bg-white max-lg:flex-col lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950">
-            <div className="fixed inset-y-0 left-0 w-64 max-lg:hidden">{sidebar}</div>
+            <div className="fixed inset-y-0 left-0 w-64 max-lg:hidden">
+                {sidebar}
+            </div>
 
-            <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
+            <MobileSidebar
+                open={showSidebar}
+                close={() => setShowSidebar(false)}
+                header={mobileSidebarHeader}
+            >
                 {sidebar}
             </MobileSidebar>
 
-            <header className="flex items-center px-3 sm:px-4 lg:hidden">
-                <div className="py-2.5">
-                    <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
+            <header className="flex h-16 items-center px-3 sm:px-4 lg:hidden">
+                <div>
+                    <NavbarItem
+                        onClick={() => setShowSidebar(true)}
+                        aria-label="Open navigation"
+                    >
                         <OpenMenuIcon />
                     </NavbarItem>
                 </div>
                 <div className="min-w-0 flex-1">{navbar}</div>
             </header>
 
-            <main className="flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 lg:pl-64">
-                <div className="grow p-3 sm:p-4 lg:rounded-lg lg:bg-white lg:p-10 lg:shadow-xs lg:ring-1 lg:ring-zinc-950/5 dark:lg:bg-zinc-900 dark:lg:ring-white/10">
-                    <div className="mx-auto max-w-6xl">{children}</div>
+            <main
+                className={`flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 lg:pl-64 ${
+                    containedScroll ? "lg:h-svh lg:overflow-hidden" : ""
+                }`}
+            >
+                <div
+                    className={`grow p-3 sm:p-4 lg:rounded-lg lg:bg-white lg:p-10 lg:shadow-xs lg:ring-1 lg:ring-zinc-950/5 dark:lg:bg-zinc-900 dark:lg:ring-white/10 ${
+                        containedScroll ? "lg:flex lg:min-h-0 lg:flex-col" : ""
+                    }`}
+                >
+                    <div
+                        className={`mx-auto w-full max-w-[104rem] ${
+                            containedScroll
+                                ? "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
+                                : ""
+                        }`}
+                    >
+                        {children}
+                    </div>
                 </div>
             </main>
         </div>

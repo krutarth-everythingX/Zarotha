@@ -23,6 +23,9 @@ class UpdateSiteSettingsRequest extends FormRequest
             'site_name' => ['required', 'string', 'max:255'],
             'light_logo_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
             'dark_logo_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
+            'testimonial_title' => ['nullable', 'string', 'max:255'],
+            'testimonial_short_line' => ['nullable', 'string', 'max:1000'],
+            'testimonial_card_bg_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
     }
 }

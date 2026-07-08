@@ -9,7 +9,6 @@ use App\Http\Requests\Admin\Product\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\Product;
-use App\Support\HtmlSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,7 +25,7 @@ class ProductController extends Controller
         $categoryId = $request->query('category_id');
 
         $products = Product::query()
-            ->with('category')
+            ->with('category', 'media')
             ->when($search !== '', fn ($query) => $query->where(function ($builder) use ($search): void {
                 $builder->where('name', 'like', "%{$search}%")
                     ->orWhere('slug', 'like', "%{$search}%");
@@ -35,7 +34,7 @@ class ProductController extends Controller
             ->when($categoryId !== null && $categoryId !== '', fn ($query) => $query->where('category_id', (int) $categoryId))
             ->orderBy('sort_order')
             ->orderByDesc('updated_at')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Admin/Products/Index', [
@@ -44,15 +43,19 @@ class ProductController extends Controller
                 'status' => $status,
                 'categoryId' => $categoryId,
             ],
+            'stats' => [
+                'total' => Product::query()->count(),
+                'active' => Product::query()->where('status', PublishStatus::Published->value)->count(),
+                'inactive' => Product::query()->where('status', PublishStatus::Draft->value)->count(),
+                'archived' => Product::query()->where('status', PublishStatus::Archived->value)->count(),
+            ],
             'categories' => Category::query()->orderBy('name')->get(['id', 'name'])->map(fn (Category $category) => [
                 'id' => $category->id,
                 'label' => $category->name,
             ]),
             'products' => [
                 'data' => $products->getCollection()->map(fn (Product $product) => [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'slug' => $product->slug,
+                    ...$this->drawerProductPayload($product),
                     'category' => [
                         'id' => $product->category->id,
                         'name' => $product->category->name,
@@ -92,7 +95,7 @@ class ProductController extends Controller
         /** @var Product $product */
         $product = Product::query()->create([
             ...$validated,
-            'full_description' => HtmlSanitizer::sanitize($validated['full_description'] ?? null),
+            'full_description' => $this->plainTextDescription($validated['full_description'] ?? null),
             'published_at' => ($validated['status'] ?? null) === PublishStatus::Published->value
                 ? ($validated['published_at'] ?? now())
                 : ($validated['published_at'] ?? null),
@@ -123,7 +126,7 @@ class ProductController extends Controller
 
         $product->update([
             ...$validated,
-            'full_description' => HtmlSanitizer::sanitize($validated['full_description'] ?? null),
+            'full_description' => $this->plainTextDescription($validated['full_description'] ?? null),
             'published_at' => ($validated['status'] ?? null) === PublishStatus::Published->value
                 ? ($validated['published_at'] ?? $product->published_at ?? now())
                 : ($validated['published_at'] ?? null),
@@ -221,52 +224,7 @@ class ProductController extends Controller
 
         return [
             'mode' => $product === null ? 'create' : 'edit',
-            'product' => $product === null ? null : [
-                'id' => $product->id,
-                'name' => $product->name,
-                'slug' => $product->slug,
-                'categoryId' => $product->category_id,
-                'shortDescription' => $product->short_description,
-                'fullDescription' => $product->full_description,
-                'dimensions' => $product->dimensions,
-                'material' => $product->material,
-                'finish' => $product->finish,
-                'featuredMediaId' => $product->featured_media_id,
-                'status' => $product->status->value,
-                'publishedAt' => $product->published_at?->toDateTimeString(),
-                'sortOrder' => $product->sort_order,
-                'isFeatured' => $product->is_featured,
-                'isBestSelling' => $product->is_best_selling,
-                'isLatest' => $product->is_latest,
-                'metaTitle' => $product->meta_title,
-                'metaDescription' => $product->meta_description,
-                'ogTitle' => $product->og_title,
-                'ogDescription' => $product->og_description,
-                'ogImageMediaId' => $product->og_image_media_id,
-                'canonicalUrl' => $product->canonical_url,
-                'robotsIndex' => $product->robots_index,
-                'robotsFollow' => $product->robots_follow,
-
-                // New fields
-                'sku' => $product->sku,
-                'productType' => $product->product_type,
-                'woodType' => $product->wood_type,
-                'style' => $product->style,
-                'regularPrice' => $product->regular_price,
-                'salePrice' => $product->sale_price,
-                'isTrackInventory' => $product->is_track_inventory,
-                'stockQuantity' => $product->stock_quantity,
-                'availability' => $product->availability,
-                'details' => $product->details ?? [],
-                'galleryImages' => $product->media ? $product->media->map(fn($media) => [
-                    'id' => $media->id,
-                    'url' => $media->responsiveImage('25vw')['src'],
-                    'label' => $media->original_filename,
-                    'altText' => $media->alt_text,
-                    'status' => $media->status,
-                    'isPrimary' => $product->featured_media_id === $media->id,
-                ]) : [],
-            ],
+            'product' => $product === null ? null : $this->drawerProductPayload($product),
             'categories' => Category::query()->orderBy('name')->get(['id', 'name'])->map(fn (Category $category) => [
                 'id' => $category->id,
                 'label' => $category->name,
@@ -316,5 +274,79 @@ class ProductController extends Controller
             ->where('is_latest', true)
             ->whereNotIn('id', $latestProductIdsToKeep)
             ->update(['is_latest' => false]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function drawerProductPayload(Product $product): array
+    {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'categoryId' => $product->category_id,
+            'shortDescription' => $product->short_description,
+            'fullDescription' => $this->plainTextDescription($product->full_description),
+            'dimensions' => $product->dimensions,
+            'material' => $product->material,
+            'finish' => $product->finish,
+            'featuredMediaId' => $product->featured_media_id,
+            'status' => $product->status->value,
+            'publishedAt' => $product->published_at?->toDateTimeString(),
+            'sortOrder' => $product->sort_order,
+            'isFeatured' => $product->is_featured,
+            'isBestSelling' => $product->is_best_selling,
+            'isLatest' => $product->is_latest,
+            'metaTitle' => $product->meta_title,
+            'metaDescription' => $product->meta_description,
+            'ogTitle' => $product->og_title,
+            'ogDescription' => $product->og_description,
+            'ogImageMediaId' => $product->og_image_media_id,
+            'canonicalUrl' => $product->canonical_url,
+            'robotsIndex' => $product->robots_index,
+            'robotsFollow' => $product->robots_follow,
+            'sku' => $product->sku,
+            'productType' => $product->product_type,
+            'woodType' => $product->wood_type,
+            'style' => $product->style,
+            'regularPrice' => $product->regular_price,
+            'salePrice' => $product->sale_price,
+            'isTrackInventory' => $product->is_track_inventory,
+            'stockQuantity' => $product->stock_quantity,
+            'availability' => $product->availability,
+            'isAvailableForInquiry' => $product->is_available_for_inquiry,
+            'showPrice' => $product->show_price,
+            'details' => $product->details ?? [],
+            'galleryImages' => $product->media ? $product->media->map(fn ($media) => [
+                'id' => $media->id,
+                'url' => $media->responsiveImage('25vw')['src'],
+                'label' => $media->original_filename,
+                'altText' => $media->alt_text,
+                'status' => $media->status,
+                'isPrimary' => $product->featured_media_id === $media->id,
+            ]) : [],
+        ];
+    }
+
+    private function plainTextDescription(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $text = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/<li\b[^>]*>/i', "\n- ", $text) ?? $text;
+        $text = preg_replace('/<br\s*\/?>/i', "\n", $text) ?? $text;
+        $text = preg_replace('/<\/(p|div|li|h[1-6]|section|article)>/i', "\n", $text) ?? $text;
+        $text = strip_tags($text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        $lines = collect(preg_split('/\R+/', $text) ?: [])
+            ->map(fn (string $line) => trim(preg_replace('/[ \t]+/', ' ', $line) ?? $line))
+            ->filter(fn (string $line) => $line !== '')
+            ->values();
+
+        return $lines->isEmpty() ? null : $lines->implode("\n\n");
     }
 }

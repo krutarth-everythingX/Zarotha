@@ -5,6 +5,9 @@ export type AuthUser = {
     role: string;
     roleName?: string | null;
     is_active: boolean;
+    avatar_path?: string | null;
+    avatarUrl?: string | null;
+    admin_theme?: "dark" | "light";
 };
 
 export type AppPageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {

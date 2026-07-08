@@ -12,6 +12,7 @@ class HomepageTestimonial extends Model
         'customer_name',
         'location_or_role',
         'body_text',
+        'rating',
         'image_media_id',
         'status',
         'sort_order',
@@ -23,6 +24,7 @@ class HomepageTestimonial extends Model
     protected function casts(): array
     {
         return [
+            'rating' => 'integer',
             'sort_order' => 'integer',
             'is_visible' => 'boolean',
         ];

@@ -14,6 +14,29 @@ class UpdatePageRequest extends FormRequest
         return $this->user()?->can('viewAny', Product::class) ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->route('pageSlug') !== 'about-us') {
+            return;
+        }
+
+        $aboutDetails = $this->input('about_details', []);
+
+        if (is_array($aboutDetails)) {
+            unset(
+                $aboutDetails['catalog_media_id'],
+                $aboutDetails['gallery_media_ids'],
+                $aboutDetails['certificate_media_id'],
+                $aboutDetails['strength_media_id'],
+            );
+        }
+
+        $this->merge([
+            'about_details' => is_array($aboutDetails) ? $aboutDetails : [],
+            'og_image_media_id' => null,
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -38,14 +61,10 @@ class UpdatePageRequest extends FormRequest
             'about_details.why_items.*' => ['nullable', 'string', 'max:180'],
             'about_details.catalog_title' => ['nullable', 'string', 'max:160'],
             'about_details.catalog_body' => ['nullable', 'string', 'max:255'],
-            'about_details.catalog_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
-            'about_details.gallery_media_ids' => ['nullable', 'array', 'max:4'],
-            'about_details.gallery_media_ids.*' => ['nullable', 'integer', 'exists:media_assets,id'],
             'about_details.vision_title' => ['nullable', 'string', 'max:160'],
             'about_details.vision_body' => ['nullable', 'string', 'max:1200'],
             'about_details.mission_title' => ['nullable', 'string', 'max:160'],
             'about_details.mission_body' => ['nullable', 'string', 'max:1200'],
-            'about_details.certificate_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
             'about_details.aim_title' => ['nullable', 'string', 'max:160'],
             'about_details.aim_body' => ['nullable', 'string', 'max:600'],
             'about_details.stats' => ['nullable', 'array', 'max:4'],
@@ -54,7 +73,6 @@ class UpdatePageRequest extends FormRequest
             'about_details.strength_kicker' => ['nullable', 'string', 'max:80'],
             'about_details.strength_title' => ['nullable', 'string', 'max:160'],
             'about_details.strength_body' => ['nullable', 'string', 'max:1600'],
-            'about_details.strength_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
             'about_details.skills' => ['nullable', 'array', 'max:4'],
             'about_details.skills.*.label' => ['nullable', 'string', 'max:120'],
             'about_details.skills.*.percent' => ['nullable', 'integer', 'min:0', 'max:100'],

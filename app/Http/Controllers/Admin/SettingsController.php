@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Settings\UpdateContactInformationRequest;
 use App\Http\Requests\Admin\Settings\UpdateSeoSettingsRequest;
 use App\Http\Requests\Admin\Settings\UpdateSiteSettingsRequest;
 use App\Models\ContactInformation;
+use App\Models\HomepageSection;
 use App\Models\SiteSetting;
 use App\Models\MediaAsset;
 use Illuminate\Http\RedirectResponse;
@@ -50,10 +51,38 @@ class SettingsController extends Controller
             'site_name' => config('app.name'),
         ]);
 
-        $siteSetting->update($request->validated());
+        $validated = $request->validated();
+        $testimonialData = [];
+
+        if ($request->has('testimonial_title')) {
+            $testimonialData['section_title'] = $validated['testimonial_title'] ?? null;
+        }
+
+        if ($request->has('testimonial_short_line')) {
+            $testimonialData['section_intro'] = $validated['testimonial_short_line'] ?? null;
+        }
+
+        if ($request->has('testimonial_card_bg_color')) {
+            $testimonialData['background_color'] = $validated['testimonial_card_bg_color'] ?? null;
+        }
+
+        unset(
+            $validated['testimonial_title'],
+            $validated['testimonial_short_line'],
+            $validated['testimonial_card_bg_color'],
+        );
+
+        $siteSetting->update($validated);
+
+        if ($testimonialData !== []) {
+            $this->ensureTestimonialsSection()->update([
+                ...$testimonialData,
+                'updated_by_user_id' => $request->user()->id,
+            ]);
+        }
 
         return redirect()
-            ->route('admin.settings.edit')
+            ->route('admin.settings.general.edit')
             ->with('status', 'Settings updated.');
     }
 
@@ -160,7 +189,7 @@ class SettingsController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.pages.contact.edit')
+            ->route($request->routeIs('admin.settings.contact.update') ? 'admin.settings.contact.edit' : 'admin.pages.contact.edit')
             ->with('status', 'Contact information updated.');
     }
 
@@ -181,5 +210,20 @@ class SettingsController extends Controller
             'width' => $image['width'] ?? $media->width,
             'height' => $image['height'] ?? $media->height,
         ];
+    }
+
+    private function ensureTestimonialsSection(): HomepageSection
+    {
+        return HomepageSection::query()->firstOrCreate(
+            ['section_key' => 'testimonials'],
+            [
+                'section_title' => 'Testimonials',
+                'section_intro' => 'What customers are saying.',
+                'source_mode' => 'manual',
+                'sort_order' => 60,
+                'is_visible' => true,
+                'background_color' => '#ffffff',
+            ],
+        );
     }
 }

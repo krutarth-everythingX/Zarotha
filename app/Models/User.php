@@ -18,6 +18,8 @@ use Illuminate\Support\Carbon;
  * @property string $email
  * @property bool $is_active
  * @property Carbon|null $last_login_at
+ * @property string|null $avatar_path
+ * @property string $admin_theme
  * @property-read Role $role
  */
 class User extends Authenticatable
@@ -37,6 +39,8 @@ class User extends Authenticatable
         'role_id',
         'is_active',
         'last_login_at',
+        'avatar_path',
+        'admin_theme',
     ];
 
     /**

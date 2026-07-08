@@ -71,6 +71,12 @@ class PageController extends Controller
             'updated_by_user_id' => $request->user()->id,
         ]);
 
+        if ($request->routeIs('admin.settings.about.update')) {
+            return redirect()
+                ->route('admin.settings.about.edit')
+                ->with('status', 'Page content updated.');
+        }
+
         return redirect()
             ->route('admin.pages.edit', $pageSlug)
             ->with('status', 'Page content updated.');

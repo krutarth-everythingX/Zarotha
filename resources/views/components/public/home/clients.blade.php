@@ -36,8 +36,8 @@
             @endif
         </div>
 
-        <div class="home-clients__marquee" aria-label="Client logos">
-            <div class="home-clients__track">
+        <div class="home-clients__marquee" aria-label="Client logos" data-mobile-marquee data-mobile-marquee-speed="28" data-mobile-marquee-pause="5000">
+            <div class="home-clients__track" data-mobile-marquee-track>
                 @foreach ([0, 1] as $copyIndex)
                     <div class="home-clients__group" @if ($copyIndex === 1) aria-hidden="true" @endif>
                     @foreach ($marqueeItems as $client)

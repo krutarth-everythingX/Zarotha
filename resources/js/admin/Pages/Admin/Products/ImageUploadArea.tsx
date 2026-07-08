@@ -74,6 +74,7 @@ function SortableImageItem({ image, onRemove, onSetPrimary, onPreview }: Sortabl
 type ImageUploadAreaProps = {
     images: ProductImage[];
     onChange: (images: ProductImage[]) => void;
+    maxImages?: number;
 };
 
 function uploadErrorMessage(error: unknown) {
@@ -94,11 +95,12 @@ function uploadErrorMessage(error: unknown) {
     return 'Image upload failed.';
 }
 
-export default function ImageUploadArea({ images, onChange }: ImageUploadAreaProps) {
+export default function ImageUploadArea({ images, onChange, maxImages = 10 }: ImageUploadAreaProps) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [isDraggingOver, setIsDraggingOver] = useState(false);
     const [previewImage, setPreviewImage] = useState<ProductImage | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const remainingSlots = Math.max(maxImages - images.length, 0);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -135,7 +137,18 @@ export default function ImageUploadArea({ images, onChange }: ImageUploadAreaPro
 
         setUploadError(null);
 
-        const newImages: ProductImage[] = Array.from(files).map((file, index) => ({
+        if (remainingSlots <= 0) {
+            setUploadError(`You can upload up to ${maxImages} product images.`);
+            return;
+        }
+
+        const acceptedFiles = Array.from(files).slice(0, remainingSlots);
+
+        if (files.length > remainingSlots) {
+            setUploadError(`Only ${remainingSlots} more image${remainingSlots === 1 ? '' : 's'} can be added.`);
+        }
+
+        const newImages: ProductImage[] = acceptedFiles.map((file, index) => ({
             id: `temp-${Date.now()}-${index}`,
             url: URL.createObjectURL(file),
             isPrimary: images.length === 0 && index === 0,
@@ -197,7 +210,7 @@ export default function ImageUploadArea({ images, onChange }: ImageUploadAreaPro
     return (
         <div className="space-y-4">
             <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDraggingOver ? 'border-zinc-950 bg-zinc-50 dark:border-white dark:bg-white/5' : 'border-zinc-300 dark:border-zinc-700'}`}
+                className={`rounded-xl border border-dashed p-5 text-center transition-colors ${remainingSlots <= 0 ? 'border-zinc-200 bg-zinc-50 opacity-75 dark:border-zinc-800 dark:bg-white/5' : isDraggingOver ? 'border-zinc-950 bg-zinc-50 dark:border-white dark:bg-white/5' : 'border-zinc-300 dark:border-zinc-700'}`}
                 onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
                 onDragLeave={() => setIsDraggingOver(false)}
                 onDrop={(e) => {
@@ -210,8 +223,10 @@ export default function ImageUploadArea({ images, onChange }: ImageUploadAreaPro
                     <div className="h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                         <ImagePlus className="h-5 w-5 text-zinc-500" />
                     </div>
-                    <Text className="font-medium">Drag & drop images here</Text>
-                    <Text className="text-sm text-zinc-500">or click to browse</Text>
+                    <Text className="font-medium">{remainingSlots > 0 ? 'Upload product images' : 'Image limit reached'}</Text>
+                    <Text className="text-sm text-zinc-500">
+                        {images.length}/{maxImages} images selected. First image is primary unless you choose another.
+                    </Text>
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -222,8 +237,9 @@ export default function ImageUploadArea({ images, onChange }: ImageUploadAreaPro
                             handleFiles(e.target.files);
                             e.currentTarget.value = '';
                         }}
+                        disabled={remainingSlots <= 0}
                     />
-                    <Button outline type="button" onClick={() => fileInputRef.current?.click()}>
+                    <Button outline type="button" onClick={() => fileInputRef.current?.click()} disabled={remainingSlots <= 0}>
                         <ImagePlus data-slot="icon" />
                         <span>Browse files</span>
                     </Button>
@@ -235,7 +251,7 @@ export default function ImageUploadArea({ images, onChange }: ImageUploadAreaPro
             {images.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={images.map(i => i.id)} strategy={rectSortingStrategy}>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                             {images.map((image) => (
                                 <SortableImageItem
                                     key={image.id}

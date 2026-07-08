@@ -8,23 +8,53 @@ use App\Models\Client;
 use App\Models\MediaAsset;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ClientController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Product::class);
 
+        $search = trim((string) $request->string('search'));
+        $active = $request->query('is_active');
+
+        $clients = Client::query()
+            ->with('logoMedia.variants')
+            ->when($search !== '', fn ($query) => $query->where(function ($builder) use ($search): void {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('website_url', 'like', "%{$search}%");
+            }))
+            ->when($active !== null && $active !== '', fn ($query) => $query->where('is_active', filter_var($active, FILTER_VALIDATE_BOOLEAN)))
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->paginate(10)
+            ->withQueryString();
+
         return Inertia::render('Admin/Clients/Index', [
-            'clients' => Client::query()
-                ->with('logoMedia.variants')
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get()
-                ->map(fn (Client $client): array => $this->clientPayload($client)),
+            'filters' => [
+                'search' => $search === '' ? null : $search,
+                'is_active' => $active,
+            ],
+            'stats' => [
+                'total' => Client::query()->count(),
+                'active' => Client::query()->where('is_active', true)->count(),
+                'inactive' => Client::query()->where('is_active', false)->count(),
+            ],
+            'clients' => [
+                'data' => $clients->getCollection()->map(fn (Client $client): array => $this->clientPayload($client)),
+                'meta' => [
+                    'currentPage' => $clients->currentPage(),
+                    'perPage' => $clients->perPage(),
+                    'total' => $clients->total(),
+                    'lastPage' => $clients->lastPage(),
+                    'from' => $clients->firstItem(),
+                    'to' => $clients->lastItem(),
+                ],
+            ],
             'mediaOptions' => MediaAsset::query()
                 ->with('variants')
                 ->orderByDesc('created_at')

@@ -46,20 +46,20 @@
         if ($inquiryOptions->isEmpty()) {
             $inquiryOptions = collect(['Home furniture', 'Office furniture', 'Custom wooden art', 'Commercial project', 'General inquiry']);
         }
-        $cmsSocialLinks = collect($contactInformation?->contact_social_links ?? [])
+        $contactSocialLinks = ($socialLinks ?? collect())
             ->map(fn ($link) => [
-                'label' => trim((string) ($link['label'] ?? '')),
-                'url' => trim((string) ($link['url'] ?? '')),
+                'label' => trim((string) ($link->label ?: ucfirst((string) $link->platform_key))),
+                'url' => trim((string) $link->url),
             ])
             ->filter(fn ($link) => $link['label'] !== '' && $link['url'] !== '')
             ->values();
-        $contactSocialLinks = $cmsSocialLinks->isNotEmpty()
-            ? $cmsSocialLinks
-            : collect([
+        if ($contactSocialLinks->isEmpty()) {
+            $contactSocialLinks = collect([
                 ['label' => 'Instagram', 'url' => 'https://instagram.com/zarokha'],
                 ['label' => 'Facebook', 'url' => 'https://facebook.com/zarokha'],
                 ['label' => 'WhatsApp', 'url' => $whatsappUrl ?: '#contact-inquiry-form'],
             ]);
+        }
     @endphp
 
     <section class="contact-form-section" aria-labelledby="contact-page-title">

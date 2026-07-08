@@ -38,6 +38,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $canonical_url
  * @property bool $robots_index
  * @property bool $robots_follow
+ * @property bool $is_available_for_inquiry
+ * @property bool $show_price
  */
 class Product extends Model
 {
@@ -79,6 +81,8 @@ class Product extends Model
         'is_track_inventory',
         'stock_quantity',
         'availability',
+        'is_available_for_inquiry',
+        'show_price',
         'details',
     ];
 
@@ -95,6 +99,8 @@ class Product extends Model
             'regular_price' => 'decimal:2',
             'sale_price' => 'decimal:2',
             'is_track_inventory' => 'boolean',
+            'is_available_for_inquiry' => 'boolean',
+            'show_price' => 'boolean',
             'stock_quantity' => 'integer',
             'details' => 'array',
         ];

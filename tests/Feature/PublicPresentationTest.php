@@ -13,6 +13,7 @@ use App\Models\MediaVariant;
 use App\Models\Page;
 use App\Models\Product;
 use App\Models\SiteSetting;
+use App\Models\SocialLink;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -116,6 +117,44 @@ class PublicPresentationTest extends TestCase
             ->assertDontSee('default-og-image.webp', false);
     }
 
+    public function test_footer_renders_pinterest_and_x_social_icons(): void
+    {
+        SocialLink::factory()->create([
+            'platform_key' => 'instagram',
+            'url' => 'https://instagram.com/zarokha',
+            'sort_order' => 1,
+        ]);
+        SocialLink::factory()->create([
+            'platform_key' => 'facebook',
+            'url' => 'https://facebook.com/zarokha',
+            'sort_order' => 2,
+        ]);
+        SocialLink::factory()->create([
+            'platform_key' => 'pinterest',
+            'url' => 'https://pinterest.com/zarokha',
+            'sort_order' => 3,
+        ]);
+        SocialLink::factory()->create([
+            'platform_key' => 'twitter',
+            'url' => 'https://x.com/zarokha',
+            'sort_order' => 4,
+        ]);
+
+        $response = $this->get('/')
+            ->assertOk()
+            ->assertSee('aria-label="Pinterest"', false)
+            ->assertSee('aria-label="Twitter"', false)
+            ->assertSee('https://pinterest.com/zarokha', false)
+            ->assertSee('https://x.com/zarokha', false)
+            ->assertSee('site-footer__social-icon--brand', false);
+
+        $footerStart = strpos($response->getContent(), '<footer class="site-footer">');
+        $footerEnd = strpos($response->getContent(), '</footer>', $footerStart);
+        $footer = substr($response->getContent(), $footerStart, $footerEnd - $footerStart);
+
+        $this->assertSame(0, substr_count($footer, '<circle cx="12" cy="12" r="9"'));
+    }
+
     public function test_homepage_latest_products_render_as_six_item_gallery_with_products_cta(): void
     {
         $category = Category::factory()->create(['name' => 'Wooden Art', 'slug' => 'wooden-art']);
@@ -156,6 +195,7 @@ class PublicPresentationTest extends TestCase
     public function test_about_page_renders_cms_details_youtube_and_clients_before_footer(): void
     {
         $media = $this->processedMedia('about-workshop.jpg');
+        $legacyMedia = $this->processedMedia('legacy-about-image.jpg');
         $clientMedia = $this->processedMedia('client-logo.jpg');
         Client::factory()->create([
             'name' => 'Studio Client',
@@ -180,7 +220,7 @@ class PublicPresentationTest extends TestCase
                 'who_we_are_body' => 'CMS managed about body.',
                 'why_title' => 'Why choose us?',
                 'why_items' => ['Workshop quality', 'Clear project communication'],
-                'gallery_media_ids' => [$media->id],
+                'gallery_media_ids' => [$legacyMedia->id],
                 'vision_title' => 'Vision & Mission',
                 'vision_body' => 'CMS managed vision.',
                 'mission_title' => 'Our mission',
@@ -192,7 +232,7 @@ class PublicPresentationTest extends TestCase
                 ],
                 'strength_title' => 'Our Strength',
                 'strength_body' => 'CMS managed strength.',
-                'strength_media_id' => $media->id,
+                'strength_media_id' => $legacyMedia->id,
                 'skills' => [
                     ['label' => 'Craft quality', 'percent' => 96],
                 ],
@@ -214,6 +254,9 @@ class PublicPresentationTest extends TestCase
 
         $content = $response->getContent();
         $this->assertLessThan(strpos($content, 'site-footer'), strpos($content, 'home-clients'));
+        $this->assertStringNotContainsString('legacy-about-image.webp', $content);
+        $this->assertStringNotContainsString('about-proof__gallery', $content);
+        $this->assertStringNotContainsString('about-strength__image', $content);
     }
 
     public function test_homepage_hero_uses_default_banners_until_cms_banners_exist(): void
@@ -330,6 +373,14 @@ class PublicPresentationTest extends TestCase
             'section_intro' => 'This copy is controlled from the homepage quick inquiry CMS section.',
             'cta_label' => 'Plan My Piece',
             'cta_url' => '/contact',
+            'background_media_id' => $this->processedMedia('quick-inquiry-cta.jpg')->id,
+            'is_visible' => true,
+        ]);
+
+        HomepageSectionBanner::query()->create([
+            'homepage_section_id' => $quickInquiry->id,
+            'media_asset_id' => $this->processedMedia('legacy-rotating-cta.jpg')->id,
+            'sort_order' => 0,
             'is_visible' => true,
         ]);
 
@@ -337,9 +388,13 @@ class PublicPresentationTest extends TestCase
             $this->get($path)
                 ->assertOk()
                 ->assertSee('quick-inquiry', false)
+                ->assertSee('quick-inquiry__cards', false)
                 ->assertSee('Synced Commission CTA')
                 ->assertSee('Plan My Piece')
-                ->assertSee('href="/contact"', false);
+                ->assertSee('href="/contact"', false)
+                ->assertSee('quick-inquiry-cta.webp', false)
+                ->assertDontSee('data-inquiry-banners', false)
+                ->assertSee('legacy-rotating-cta.webp', false);
         }
 
         $quickInquiry->update(['is_visible' => false]);
@@ -351,6 +406,71 @@ class PublicPresentationTest extends TestCase
                 ->assertDontSee('Synced Commission CTA')
                 ->assertDontSee('Plan My Piece');
         }
+    }
+
+    public function test_product_inquiry_stays_available_for_products(): void
+    {
+        $category = Category::factory()->create(['slug' => 'required-inquiry-category']);
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => 'Inquiry Required Product',
+            'slug' => 'inquiry-required-product',
+            'status' => PublishStatus::Published,
+            'published_at' => now(),
+            'is_available_for_inquiry' => false,
+            'featured_media_id' => $this->processedMedia()->id,
+        ]);
+
+        $this->get('/products/'.$product->slug)
+            ->assertOk()
+            ->assertSee($product->name)
+            ->assertSee('Product inquiry')
+            ->assertSee('product-inquiry-modal', false);
+
+        $this->post('/products/'.$product->slug.'/inquiries', [
+            'name' => 'Inquiry Sender',
+            'email' => 'sender@example.com',
+            'phone' => '1234567890',
+            'subject' => 'Custom furniture',
+            'project_location' => 'Ahmedabad, Gujarat',
+            'project_state' => 'Gujarat',
+            'project_country' => 'India',
+            'message' => 'Please share more information about this product.',
+            'consent_confirmed' => '1',
+        ])->assertRedirect();
+    }
+
+    public function test_product_prices_only_render_when_enabled(): void
+    {
+        $category = Category::factory()->create(['slug' => 'price-visibility-category']);
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => 'Price Toggle Product',
+            'slug' => 'price-toggle-product',
+            'status' => PublishStatus::Published,
+            'published_at' => now(),
+            'regular_price' => 3499,
+            'sale_price' => 2999,
+            'show_price' => false,
+            'featured_media_id' => $this->processedMedia()->id,
+        ]);
+
+        $this->get('/products/'.$product->slug)
+            ->assertOk()
+            ->assertDontSee('Product prices')
+            ->assertDontSee('Rs. 3,499')
+            ->assertDontSee('Rs. 2,999');
+
+        $product->update(['show_price' => true]);
+
+        $this->get('/products/'.$product->slug)
+            ->assertOk()
+            ->assertSee('Rs. 3,499')
+            ->assertSee('<del class="product-purchase__price-original">Rs. 3,499</del>', false)
+            ->assertDontSee('Original price')
+            ->assertDontSee('Product prices')
+            ->assertDontSee('<span>Price</span>', false)
+            ->assertSee('Rs. 2,999');
     }
 
     public function test_products_index_supports_gallery_json_pagination_without_duplicates_from_drafts(): void

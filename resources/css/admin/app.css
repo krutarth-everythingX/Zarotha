@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-    color-scheme: light dark;
+    color-scheme: light;
 }
 
 @theme inline {
@@ -17,5 +19,25 @@
 
     body {
         @apply bg-zinc-100 text-zinc-950 antialiased dark:bg-zinc-950 dark:text-white;
+    }
+}
+
+@layer components {
+    .admin-editor-scroll {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .admin-editor-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+    .admin-subsection-tabs {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .admin-subsection-tabs::-webkit-scrollbar {
+        display: none;
     }
 }

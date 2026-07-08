@@ -66,6 +66,12 @@ class UpdateHomepageRequest extends FormRequest
             $normalized['industryStats'] = $industryStats;
         }
 
+        if (is_array($this->input('settings'))) {
+            $settings = $this->input('settings');
+            $settings['show_whatsapp'] = $settings['show_whatsapp'] ?? true;
+            $normalized['settings'] = $settings;
+        }
+
         if ($normalized !== []) {
             $this->merge($normalized);
         }
@@ -204,12 +210,13 @@ class UpdateHomepageRequest extends FormRequest
             'quickInquiry.background_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
             'quickInquiry.background_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'quickInquiry.is_visible' => ['required', 'boolean'],
-            'quickInquiry.items' => ['nullable', 'array', 'max:10'],
+            'quickInquiry.items' => ['nullable', 'array', 'max:3'],
             'quickInquiry.items.*.id' => ['nullable', 'integer', 'exists:homepage_section_banners,id'],
             'quickInquiry.items.*.imageMediaId' => ['nullable', 'integer', 'exists:media_assets,id'],
             'quickInquiry.items.*.sortOrder' => ['required', 'integer', 'min:0', 'max:100000'],
             'quickInquiry.items.*.isVisible' => ['required', 'boolean'],
 
+            'settings.show_whatsapp' => ['required', 'boolean'],
             'settings.whatsapp_text' => ['nullable', 'string', 'max:255'],
             'settings.whatsapp_number' => ['nullable', 'string', 'max:50'],
         ];

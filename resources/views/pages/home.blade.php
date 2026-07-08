@@ -65,12 +65,12 @@
         />
     @endif
 
+    <x-public.home.clients :clients="$clients" />
+
     @if ($quickInquiryVisible)
         <x-public.home.quick-inquiry
             :section="$quickInquirySection"
             :contactInformation="$contactInformation"
         />
     @endif
-
-    <x-public.home.clients :clients="$clients" />
 @endsection

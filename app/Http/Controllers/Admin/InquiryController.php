@@ -46,7 +46,7 @@ class InquiryController extends Controller
             ->when($assignedUserId !== null && $assignedUserId !== '', fn ($query) => $query->where('assigned_user_id', (int) $assignedUserId))
             ->when($sourcePageKey !== null && $sourcePageKey !== '', fn ($query) => $query->where('source_page_key', $sourcePageKey))
             ->orderByDesc('created_at')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Admin/Inquiries/Index', [
@@ -61,7 +61,6 @@ class InquiryController extends Controller
                 'unread' => Inquiry::query()->where('status', 'unread')->count(),
                 'read' => Inquiry::query()->where('status', 'read')->count(),
                 'replied' => Inquiry::query()->where('status', 'replied')->count(),
-                'archived' => Inquiry::query()->where('status', 'archived')->count(),
             ],
             'inquiries' => [
                 'data' => $inquiries->getCollection()->map(fn (Inquiry $inquiry) => $this->inquiryListItem($inquiry)),

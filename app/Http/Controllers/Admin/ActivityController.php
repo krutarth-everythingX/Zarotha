@@ -16,7 +16,7 @@ class ActivityController extends Controller
 
         $activities = ActivityLog::query()
             ->orderByDesc('created_at')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Admin/Activity/Index', [

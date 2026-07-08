@@ -6,10 +6,11 @@ use App\Enums\InquiryActivityType;
 use App\Enums\PublishStatus;
 use App\Enums\UserRole;
 use App\Models\Category;
-use App\Models\ContactInformation;
 use App\Models\Client;
+use App\Models\ContactInformation;
 use App\Models\HomepageSection;
 use App\Models\HomepageSectionBanner;
+use App\Models\HomepageTestimonial;
 use App\Models\Inquiry;
 use App\Models\InquiryActivity;
 use App\Models\MediaAsset;
@@ -115,6 +116,8 @@ class Stage9BackendCmsTest extends TestCase
             'id' => $product->id,
             'category_id' => $category->id,
             'created_by_user_id' => $editor->id,
+            'is_available_for_inquiry' => true,
+            'show_price' => false,
         ]);
     }
 
@@ -227,13 +230,27 @@ class Stage9BackendCmsTest extends TestCase
         $superAdmin = $this->userFor(UserRole::SuperAdministrator);
         $contentEditor = $this->userFor(UserRole::ContentEditor);
 
+        $this->actingAs($superAdmin)
+            ->get(route('admin.settings.edit'))
+            ->assertRedirect(route('admin.settings.home.edit'));
+
         $this->actingAs($contentEditor)->patch(route('admin.settings.update'), [
             'site_name' => 'Zarokha Wooden Arts',
         ])->assertForbidden();
 
         $this->actingAs($superAdmin)->patch(route('admin.settings.update'), [
             'site_name' => 'Zarokha Wooden Arts',
-        ])->assertRedirect(route('admin.settings.edit'));
+            'testimonial_title' => 'Client Stories',
+            'testimonial_short_line' => 'Recent customer feedback.',
+            'testimonial_card_bg_color' => '#f7f1e8',
+        ])->assertRedirect(route('admin.settings.general.edit'));
+
+        $this->assertDatabaseHas('homepage_sections', [
+            'section_key' => 'testimonials',
+            'section_title' => 'Client Stories',
+            'section_intro' => 'Recent customer feedback.',
+            'background_color' => '#f7f1e8',
+        ]);
 
         $this->actingAs($contentEditor)->get(route('admin.products.index'))->assertOk();
         $this->actingAs($contentEditor)->get(route('admin.redirects.index'))->assertOk();
@@ -247,6 +264,27 @@ class Stage9BackendCmsTest extends TestCase
         $media = $this->processedMedia();
 
         $this->actingAs($editor)->get(route('admin.homepage.edit'))->assertOk();
+        $quickInquirySection = HomepageSection::query()->where('section_key', 'quick_inquiry')->firstOrFail();
+        HomepageSectionBanner::query()->create([
+            'homepage_section_id' => $quickInquirySection->id,
+            'media_asset_id' => $media->id,
+            'sort_order' => 0,
+            'is_visible' => true,
+            'created_by_user_id' => $editor->id,
+            'updated_by_user_id' => $editor->id,
+        ]);
+        $this->actingAs($editor)
+            ->get(route('admin.homepage.edit'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Homepage/Index', false)
+                ->where('homepage.quickInquiry.backgroundMediaId', null)
+                ->where('homepage.quickInquiry.backgroundMedia', null)
+                ->has('homepage.quickInquiry.items', 1)
+                ->where('homepage.quickInquiry.items.0.imageMediaId', $media->id)
+                ->missing('homepage.quickInquiry.banners')
+                ->etc()
+            );
 
         $response = $this->actingAs($editor)->patch(route('admin.homepage.update'), [
             'hero' => [
@@ -384,11 +422,9 @@ class Stage9BackendCmsTest extends TestCase
             'homepage_section_id' => $aboutPreviewSection->id,
             'heading' => 'CMS quality point',
         ]);
-        $this->assertDatabaseHas('homepage_section_banners', [
-            'homepage_section_id' => HomepageSection::query()->where('section_key', 'quick_inquiry')->firstOrFail()->id,
-            'media_asset_id' => $media->id,
-            'is_visible' => true,
-        ]);
+        $quickInquirySection->refresh();
+        $this->assertSame($media->id, $quickInquirySection->background_media_id);
+        $this->assertSame(1, $quickInquirySection->banners()->count());
         $industryStatsSection = HomepageSection::query()->where('section_key', 'industry_stats')->firstOrFail();
         $this->assertSame('#1 Furniture Manufacturing Industry.', $industryStatsSection->section_title);
         $this->assertDatabaseHas('why_choose_us_items', [
@@ -471,7 +507,12 @@ class Stage9BackendCmsTest extends TestCase
         $editor = $this->userFor(UserRole::ContentEditor);
         $media = $this->processedMedia();
 
-        $this->actingAs($editor)->get(route('admin.clients.index'))->assertOk();
+        Client::factory()->count(12)->create();
+
+        $this->actingAs($editor)
+            ->get(route('admin.clients.index'))
+            ->assertOk()
+            ->assertSee('&quot;perPage&quot;:10', false);
 
         $createResponse = $this->actingAs($editor)->post(route('admin.clients.store'), [
             'name' => 'New-Tech Industries',
@@ -517,8 +558,104 @@ class Stage9BackendCmsTest extends TestCase
             ->assertRedirect(route('admin.clients.index'))
             ->assertSessionHasErrors('website_url');
 
+        $this->actingAs($editor)
+            ->from(route('admin.clients.index'))
+            ->post(route('admin.clients.store'), [
+                'name' => 'Missing Logo',
+                'website_url' => '',
+                'logo_media_id' => '',
+                'sort_order' => 5,
+                'is_active' => true,
+            ])
+            ->assertRedirect(route('admin.clients.index'))
+            ->assertSessionHasErrors('logo_media_id');
+
         $this->actingAs($editor)->delete(route('admin.clients.destroy', $client))->assertRedirect(route('admin.clients.index'));
         $this->assertDatabaseMissing('clients', ['id' => $client->id]);
+    }
+
+    public function test_testimonials_manager_and_settings_routes_expose_separate_page_modes(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+
+        $this->actingAs($editor)
+            ->get(route('admin.testimonials.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Testimonials/Index', false)
+                ->where('pageMode', 'manager')
+                ->has('testimonials.items')
+                ->has('stats')
+                ->has('mediaOptions')
+                ->etc()
+            );
+
+        $this->actingAs($editor)
+            ->get(route('admin.settings.testimonials.edit'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Testimonials/Index', false)
+                ->where('pageMode', 'settings')
+                ->has('section')
+                ->missing('testimonials')
+                ->missing('stats')
+                ->missing('mediaOptions')
+                ->etc()
+            );
+    }
+
+    public function test_testimonials_cms_persists_rating_and_rejects_out_of_range_values(): void
+    {
+        $editor = $this->userFor(UserRole::ContentEditor);
+        $media = $this->processedMedia();
+
+        $this->actingAs($editor)->get(route('admin.testimonials.index'))->assertOk();
+
+        $payload = [
+            'items' => [
+                [
+                    'customer_name' => 'Aditi Mehta',
+                    'location_or_role' => 'Architect',
+                    'body_text' => 'The team delivered detailed wooden work with excellent finishing.',
+                    'rating' => 4,
+                    'image_media_id' => $media->id,
+                    'status' => 'published',
+                    'sort_order' => 0,
+                    'is_visible' => true,
+                ],
+            ],
+        ];
+
+        $this->actingAs($editor)
+            ->from(route('admin.testimonials.index'))
+            ->patch(route('admin.testimonials.update'), $payload)
+            ->assertRedirect(route('admin.testimonials.index'));
+
+        $section = HomepageSection::query()->where('section_key', 'testimonials')->firstOrFail();
+        $this->assertDatabaseHas('homepage_testimonials', [
+            'homepage_section_id' => $section->id,
+            'customer_name' => 'Aditi Mehta',
+            'rating' => 4,
+            'image_media_id' => $media->id,
+            'status' => 'published',
+        ]);
+
+        $testimonial = HomepageTestimonial::query()->where('customer_name', 'Aditi Mehta')->firstOrFail();
+
+        $this->actingAs($editor)
+            ->from(route('admin.testimonials.index'))
+            ->patch(route('admin.testimonials.update'), [
+                ...$payload,
+                'items' => [
+                    [
+                        ...$payload['items'][0],
+                        'id' => $testimonial->id,
+                        'rating' => 6,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.testimonials.index'))
+            ->assertSessionHasErrors('items.0.rating');
     }
 
     public function test_contact_page_cms_persists_map_socials_and_form_options(): void
@@ -613,6 +750,7 @@ class Stage9BackendCmsTest extends TestCase
                 'who_we_are_title' => 'CMS about heading',
                 'why_items' => ['Quality checks'],
                 'gallery_media_ids' => [$media->id],
+                'strength_media_id' => $media->id,
                 'stats' => [
                     ['value' => '12+', 'label' => 'Years'],
                 ],
@@ -624,7 +762,8 @@ class Stage9BackendCmsTest extends TestCase
 
         $page = Page::query()->where('page_key', 'about_us')->firstOrFail();
         $this->assertSame('CMS about heading', $page->about_details['who_we_are_title']);
-        $this->assertSame([$media->id], $page->about_details['gallery_media_ids']);
+        $this->assertArrayNotHasKey('gallery_media_ids', $page->about_details);
+        $this->assertArrayNotHasKey('strength_media_id', $page->about_details);
 
         $this->actingAs($editor)
             ->from(route('admin.pages.edit', 'about-us'))

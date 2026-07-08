@@ -53,9 +53,10 @@ class HomepageController extends Controller
                 'aboutPreview' => $this->contentSectionPayload($sectionsByKey->get('about_preview'), true),
                 'industryStats' => $this->contentSectionPayload($sectionsByKey->get('industry_stats'), true),
                 'latest' => $this->sectionPayload($sectionsByKey->get('latest_products')),
-                'quickInquiry' => $this->bannersPayload($sectionsByKey->get('quick_inquiry')),
+                'quickInquiry' => $this->quickInquiryPayload($sectionsByKey->get('quick_inquiry')),
             ],
             'settings' => [
+                'show_whatsapp' => $contactInfo?->show_whatsapp ?? true,
                 'whatsapp_text' => $contactInfo?->whatsapp_text ?? '',
                 'whatsapp_number' => $contactInfo?->whatsapp_number ?? '',
             ],
@@ -125,6 +126,7 @@ class HomepageController extends Controller
             ]);
             $settings = $validated['settings'] ?? [];
             $contactInfo->update([
+                'show_whatsapp' => $settings['show_whatsapp'] ?? true,
                 'whatsapp_number' => $settings['whatsapp_number'] ?? null,
                 'whatsapp_text' => $settings['whatsapp_text'] ?? null,
             ]);
@@ -210,7 +212,7 @@ class HomepageController extends Controller
         });
 
         return redirect()
-            ->route('admin.homepage.edit')
+            ->route($request->routeIs('admin.settings.home.update') ? 'admin.settings.home.edit' : 'admin.homepage.edit')
             ->with('status', 'Homepage saved.');
     }
 
@@ -594,6 +596,30 @@ class HomepageController extends Controller
         return [
             ...$this->sectionPayload($section),
             'banners' => $section->banners->values()->map(fn ($banner) => [
+                'id' => $banner->id,
+                'imageMediaId' => $banner->media_asset_id,
+                'sortOrder' => $banner->sort_order,
+                'isVisible' => $banner->is_visible,
+                'imageMedia' => $banner->imageMedia ? $this->mediaPayload($banner->imageMedia) : null,
+            ])->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function quickInquiryPayload(?HomepageSection $section): array
+    {
+        if (! $section) {
+            return [
+                ...$this->sectionPayload(null),
+                'items' => [],
+            ];
+        }
+
+        return [
+            ...$this->sectionPayload($section),
+            'items' => $section->banners->take(3)->values()->map(fn ($banner) => [
                 'id' => $banner->id,
                 'imageMediaId' => $banner->media_asset_id,
                 'sortOrder' => $banner->sort_order,

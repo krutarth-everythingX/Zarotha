@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -40,10 +41,15 @@ class HandleInertiaRequests extends Middleware
                             'name',
                             'email',
                             'is_active',
+                            'avatar_path',
+                            'admin_theme',
                         ]),
                         [
                             'role' => $request->user()->role?->slug,
                             'roleName' => $request->user()->role?->name,
+                            'avatarUrl' => $request->user()->avatar_path
+                                ? Storage::disk('public')->url($request->user()->avatar_path)
+                                : null,
                         ],
                     )
                     : null,
