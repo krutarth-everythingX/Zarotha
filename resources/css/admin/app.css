@@ -23,6 +23,21 @@
 }
 
 @layer components {
+    body :is(h1, h2, h3, h4, h5, h6) {
+        font-weight: 600 !important;
+    }
+
+    body :where(:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)).font-thin,
+    body :where(:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)).font-extralight,
+    body :where(:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)).font-light,
+    body :where(:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)).font-medium,
+    body :where(:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)).font-semibold,
+    body :where(:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)).font-bold,
+    body :where(:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)).font-extrabold,
+    body :where(:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)).font-black {
+        font-weight: 400 !important;
+    }
+
     .admin-hidden-scrollbar {
         scrollbar-width: none;
         -ms-overflow-style: none;

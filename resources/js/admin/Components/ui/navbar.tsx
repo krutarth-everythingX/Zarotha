@@ -37,7 +37,7 @@ export const NavbarItem = forwardRef(function NavbarItem(
     ref: React.ForwardedRef<HTMLAnchorElement | HTMLButtonElement>,
 ) {
     const classes = clsx(
-        'relative flex min-w-0 items-center gap-3 rounded-lg p-2 text-left text-base/6 font-medium text-zinc-950 sm:text-sm/5',
+        'relative flex min-w-0 items-center gap-3 rounded-lg p-2 text-left text-base/6 font-normal text-zinc-950 sm:text-sm/5',
         '*:data-[slot=icon]:size-6 *:data-[slot=icon]:shrink-0 *:data-[slot=icon]:fill-zinc-500 sm:*:data-[slot=icon]:size-5',
         '*:not-nth-2:last:data-[slot=icon]:ml-auto *:not-nth-2:last:data-[slot=icon]:size-5 sm:*:not-nth-2:last:data-[slot=icon]:size-4',
         'data-hover:bg-zinc-950/5 data-hover:*:data-[slot=icon]:fill-zinc-950',

@@ -284,7 +284,7 @@ export function SettingsSubsectionTabs<T extends string>({
             className={`rounded-lg border border-zinc-950/10 bg-white/98 p-2 shadow-sm dark:border-white/12 dark:bg-zinc-900/70 ${className}`}
         >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <p className="shrink-0 px-2 text-sm font-semibold text-zinc-950 dark:text-white">
+                <p className="shrink-0 px-2 text-sm font-normal text-zinc-950 dark:text-white">
                     {label}
                 </p>
                 <nav
@@ -296,7 +296,7 @@ export function SettingsSubsectionTabs<T extends string>({
                             key={section.id}
                             type="button"
                             onClick={() => onSelect(section.id)}
-                            className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                            className={`shrink-0 rounded-lg px-3 py-2 text-sm font-normal transition-colors ${
                                 activeSection === section.id
                                     ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
                                     : "bg-transparent text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/6 dark:hover:text-white"
@@ -358,12 +358,12 @@ export function StatsStrip({ items, className = "" }: StatsStripProps) {
                             className={`inline-flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border px-3 py-1.5 ${tone.item}`}
                         >
                             <span
-                                className={`text-xs font-medium ${tone.label}`}
+                                className={`text-xs font-normal ${tone.label}`}
                             >
                                 {item.label}
                             </span>
                             <span
-                                className={`text-lg font-semibold tabular-nums leading-none ${tone.value}`}
+                                className={`text-lg font-normal tabular-nums leading-none ${tone.value}`}
                             >
                                 {item.value}
                             </span>
@@ -687,7 +687,7 @@ export function SettingsSectionTabs({
                     <Link
                         key={section.key}
                         href={section.href}
-                        className={`shrink-0 rounded-xl px-3 py-2 text-sm font-semibold tracking-normal no-underline transition ${
+                        className={`shrink-0 rounded-xl px-3 py-2 text-sm font-normal tracking-normal no-underline transition ${
                             isVertical ? "block w-full" : "sm:px-4"
                         } ${
                             isActive
@@ -727,7 +727,7 @@ export function SettingsSectionLayout({
                     <PagePanel className="p-4">
                         <Link
                             href="/admin/settings/home"
-                            className="inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-semibold text-zinc-600 no-underline transition hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
+                            className="inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-normal text-zinc-600 no-underline transition hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
                         >
                             <ChevronLeft
                                 className="h-4 w-4"
@@ -742,9 +742,9 @@ export function SettingsSectionLayout({
             <div className="grid min-h-0 grid-cols-1 gap-5 xl:grid-cols-[220px_minmax(0,1fr)] xl:items-start">
                 <div className="hidden xl:sticky xl:top-0 xl:block">
                     <PagePanel className="max-h-dvh overflow-y-auto p-3">
-                        <p className="mb-3 px-2 text-sm font-semibold text-zinc-950 dark:text-white">
+                        <h2 className="mb-3 px-2 text-sm font-semibold text-zinc-950 dark:text-white">
                             Settings
-                        </p>
+                        </h2>
                         <SettingsSectionTabs
                             active={active}
                             orientation="vertical"
@@ -768,7 +768,7 @@ export function MobileSettingsBackButton({
     return (
         <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-semibold text-zinc-600 transition hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-normal text-zinc-600 transition hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
             onClick={onClick}
         >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -789,7 +789,7 @@ export function MobileSettingsBreadcrumbs({
     return (
         <nav
             aria-label="Mobile settings breadcrumbs"
-            className="flex flex-wrap items-center gap-1 text-sm font-semibold"
+            className="flex flex-wrap items-center gap-1 text-sm font-normal"
         >
             {items.map((item, index) => (
                 <div key={index} className="flex items-center gap-1">
@@ -834,7 +834,7 @@ export function MobileSettingsListItem({
     onClick?: () => void;
 }) {
     const className =
-        "flex w-full items-center justify-between gap-3 border-b border-zinc-950/8 px-4 py-4 text-left text-base font-semibold text-zinc-950 transition last:border-b-0 hover:bg-zinc-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5";
+        "flex w-full items-center justify-between gap-3 border-b border-zinc-950/8 px-4 py-4 text-left text-base font-normal text-zinc-950 transition last:border-b-0 hover:bg-zinc-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5";
     const icon = (
         <ChevronRight className="h-5 w-5 shrink-0 text-zinc-400" aria-hidden="true" />
     );
@@ -925,17 +925,17 @@ export function MobileTableRow({
             {media ? (
                 <span className="shrink-0">{media}</span>
             ) : number !== undefined ? (
-                <span className="w-12 shrink-0 text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                <span className="w-12 shrink-0 text-xs font-normal uppercase text-zinc-500 dark:text-zinc-400">
                     No. {number}
                 </span>
             ) : null}
             <span className="min-w-0">
                 {media && number !== undefined ? (
-                    <span className="mb-0.5 block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                    <span className="mb-0.5 block text-xs font-normal uppercase text-zinc-500 dark:text-zinc-400">
                         No. {number}
                     </span>
                 ) : null}
-                <span className="block truncate text-sm font-semibold text-zinc-950 dark:text-white">
+                <span className="block truncate text-sm font-normal text-zinc-950 dark:text-white">
                     {title}
                 </span>
                 {subtitle ? (
@@ -1061,10 +1061,10 @@ export function DetailItem({
         <div
             className={`rounded-lg border border-zinc-950/8 bg-zinc-50/70 p-3 dark:border-white/10 dark:bg-zinc-950/40 ${full ? "sm:col-span-2" : ""} ${className}`}
         >
-            <p className="text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs font-normal uppercase text-zinc-500 dark:text-zinc-400">
                 {label}
             </p>
-            <div className="mt-1 break-words text-sm font-medium text-zinc-950 dark:text-white">
+            <div className="mt-1 break-words text-sm font-normal text-zinc-950 dark:text-white">
                 {hasContent ? (
                     children
                 ) : (
@@ -1117,7 +1117,7 @@ export function EditableTableHeader({
 }) {
     return (
         <th
-            className={`px-4 py-2.5 text-left text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 ${className}`}
+            className={`px-4 py-2.5 text-left text-xs font-normal uppercase text-zinc-500 dark:text-zinc-400 ${className}`}
         >
             {children}
         </th>
@@ -1151,9 +1151,9 @@ export function EmptyState({
 }) {
     return (
         <div className="rounded-2xl border border-dashed border-zinc-950/15 p-8 text-center dark:border-white/15">
-            <p className="text-sm font-semibold text-zinc-950 dark:text-white">
+            <h3 className="text-sm font-semibold text-zinc-950 dark:text-white">
                 {title}
-            </p>
+            </h3>
             <Text className="mt-2">{description}</Text>
         </div>
     );
@@ -1246,7 +1246,7 @@ export function StatusBadge({
 
     return (
         <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClasses[tone]}`}
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-normal ${toneClasses[tone]}`}
         >
             {children}
         </span>
@@ -1332,7 +1332,7 @@ export function TextLink({
     return (
         <Link
             href={href}
-            className="font-medium text-zinc-950 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-950 dark:text-white dark:decoration-zinc-600"
+            className="font-normal text-zinc-950 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-950 dark:text-white dark:decoration-zinc-600"
         >
             {children}
         </Link>

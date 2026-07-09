@@ -24,7 +24,7 @@ export function Legend({
             {...props}
             className={clsx(
                 className,
-                'text-base/6 font-semibold text-zinc-950 data-disabled:opacity-50 sm:text-sm/6 dark:text-white',
+                'text-base/6 font-normal text-zinc-950 data-disabled:opacity-50 sm:text-sm/6 dark:text-white',
             )}
         />
     );
@@ -48,7 +48,6 @@ export function Field({
                 '[&>[data-slot=description]+[data-slot=control]]:mt-3',
                 '[&>[data-slot=control]+[data-slot=description]]:mt-3',
                 '[&>[data-slot=control]+[data-slot=error]]:mt-3',
-                '*:data-[slot=label]:font-medium',
             )}
         />
     );

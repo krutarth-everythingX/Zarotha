@@ -438,12 +438,13 @@ export default function SocialLinksIndex({ links, settings }: Props) {
                         </MobileSettingsScreen>
                     ) : null}
 
-                    <div className="sticky top-0 z-20 hidden bg-white/95 py-2 backdrop-blur-sm md:block dark:bg-zinc-950/95">
+                    <div className="sticky top-0 z-20 hidden bg-white/95 py-2 backdrop-blur-sm md:block dark:bg-transparent">
                         <SettingsSubsectionTabs
                             activeSection={activeSection}
                             label="Social Sections"
                             sections={sections}
                             onSelect={scrollToSection}
+                            className="dark:border-transparent dark:bg-transparent dark:shadow-none"
                         />
                     </div>
 
