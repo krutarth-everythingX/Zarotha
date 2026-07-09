@@ -1,5 +1,7 @@
+import { useState } from "react";
 import type React from "react";
 import { Head, useForm } from "@inertiajs/react";
+import { Eye, EyeOff } from "lucide-react";
 
 type LoginPageProps = {
     canResetPassword: boolean;
@@ -7,6 +9,8 @@ type LoginPageProps = {
 };
 
 export default function Login({ canResetPassword, status }: LoginPageProps) {
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
     const { data, setData, post, processing, errors } = useForm({
         email: "",
         password: "",
@@ -40,33 +44,17 @@ export default function Login({ canResetPassword, status }: LoginPageProps) {
                     aria-hidden="true"
                 />
 
-                <div className="absolute top-4 left-4 z-10 sm:top-6 sm:left-6 lg:top-8 lg:left-8">
-                    <img
-                        src="/images/logo.png"
-                        alt="Zarokha"
-                        className="h-12 w-auto sm:h-14 lg:h-16"
-                    />
-                </div>
-
                 <div className="flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 lg:px-16">
                     <section className="w-full max-w-[28rem] rounded-lg border border-white/20 bg-zinc-950/55 px-5 py-6 shadow-2xl shadow-black/50 backdrop-blur-2xl sm:px-8 sm:py-8">
-                        <div className="mb-8 space-y-3">
-                            <div className="flex items-center gap-3">
-                                <img
-                                    src="/images/logo-z.png"
-                                    alt="Zarokha mark"
-                                    className="h-14 w-14 rounded-md object-contain sm:h-16 sm:w-16"
-                                />
-                                <div className="min-w-0">
-                                    <h1 className="text-2xl font-semibold text-white sm:text-3xl">
-                                        Sign in to the CMS
-                                    </h1>
-                                </div>
-                            </div>
-                            <p className="max-w-sm text-sm leading-6 text-zinc-100/80">
-                                Authorized Zarokha team members can access the
-                                project foundation here.
-                            </p>
+                        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+                            <img
+                                src="/images/logo.png"
+                                alt="Zarokha"
+                                className="h-16 w-auto"
+                            />
+                            <h1 className="text-2xl font-semibold text-white sm:text-3xl">
+                                Sign in to the CMS
+                            </h1>
                         </div>
 
                         <form className="space-y-7" onSubmit={submit}>
@@ -117,28 +105,62 @@ export default function Login({ canResetPassword, status }: LoginPageProps) {
                                     >
                                         Password
                                     </label>
-                                    <input
-                                        id="password"
-                                        type="password"
-                                        autoComplete="current-password"
-                                        value={data.password}
-                                        onChange={(event) =>
-                                            setData(
-                                                "password",
-                                                event.currentTarget.value,
-                                            )
-                                        }
-                                        aria-invalid={
-                                            errors.password ? true : undefined
-                                        }
-                                        aria-describedby={
-                                            errors.password
-                                                ? "password-error"
-                                                : undefined
-                                        }
-                                        className="mt-3 block h-12 w-full rounded-lg border border-white/20 bg-white/10 px-4 text-base text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/40 focus:border-amber-100/80 focus:bg-white/15 focus:ring-4 focus:ring-amber-100/20 sm:h-11 sm:text-sm"
-                                        required
-                                    />
+                                    <div className="relative mt-3">
+                                        <input
+                                            id="password"
+                                            type={
+                                                isPasswordVisible
+                                                    ? "text"
+                                                    : "password"
+                                            }
+                                            autoComplete="current-password"
+                                            value={data.password}
+                                            onChange={(event) =>
+                                                setData(
+                                                    "password",
+                                                    event.currentTarget.value,
+                                                )
+                                            }
+                                            aria-invalid={
+                                                errors.password
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.password
+                                                    ? "password-error"
+                                                    : undefined
+                                            }
+                                            className="block h-12 w-full rounded-lg border border-white/20 bg-white/10 px-4 pr-12 text-base text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/40 focus:border-amber-100/80 focus:bg-white/15 focus:ring-4 focus:ring-amber-100/20 sm:h-11 sm:text-sm"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-zinc-100/75 transition hover:text-white focus:outline-none focus:ring-4 focus:ring-amber-100/20"
+                                            aria-label={
+                                                isPasswordVisible
+                                                    ? "Hide password"
+                                                    : "Show password"
+                                            }
+                                            onClick={() =>
+                                                setIsPasswordVisible(
+                                                    (visible) => !visible,
+                                                )
+                                            }
+                                        >
+                                            {isPasswordVisible ? (
+                                                <EyeOff
+                                                    className="h-5 w-5"
+                                                    aria-hidden="true"
+                                                />
+                                            ) : (
+                                                <Eye
+                                                    className="h-5 w-5"
+                                                    aria-hidden="true"
+                                                />
+                                            )}
+                                        </button>
+                                    </div>
                                     {errors.password ? (
                                         <p
                                             className="mt-2 text-sm text-red-200"

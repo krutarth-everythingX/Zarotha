@@ -15,6 +15,7 @@ import {
     EditableTableHead,
     EditableTableHeader,
     FieldError,
+    FormColorInput,
     FormInput,
     MobileTableList,
     MobileTableRow,
@@ -43,6 +44,7 @@ type HeroForm = {
     is_visible: boolean;
     text_theme: "light" | "dark";
     overlay_opacity: number;
+    background_color: string;
     items: HeroBannerForm[];
 };
 
@@ -115,6 +117,28 @@ export function HeroSection({
                         })
                     }
                 />
+            </div>
+
+            <div className="mb-6 grid gap-5 lg:grid-cols-2">
+                <Field>
+                    <Label>Left background color</Label>
+                    <FormColorInput
+                        placeholder="#eadac5"
+                        value={form.data.hero.background_color}
+                        pickerLabel="Pick hero left background color"
+                        onChange={(
+                            event: React.ChangeEvent<HTMLInputElement>,
+                        ) =>
+                            form.setData("hero", {
+                                ...form.data.hero,
+                                background_color: event.target.value,
+                            })
+                        }
+                    />
+                    <FieldError
+                        message={form.errors["hero.background_color"]}
+                    />
+                </Field>
             </div>
 
             <div className="mt-6 space-y-5">

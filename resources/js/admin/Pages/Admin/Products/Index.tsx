@@ -1,14 +1,11 @@
 import { Head, router } from "@inertiajs/react";
-import { Pencil, Plus, Power, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Pencil, Plus, Power, PowerOff, Trash2 } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@admin/Components/ui/button";
 import { Text } from "@admin/Components/ui/text";
 import { AdminShell } from "@admin/Layouts/AdminShell";
 import {
-    DetailGrid,
-    DetailItem,
     DetailModal,
-    DetailSection,
     EmptyState,
     ListTablePanel,
     MobileTableList,
@@ -73,6 +70,203 @@ function formatProductPrice(value?: string | number | null) {
     }
 
     return String(value);
+}
+
+type ProductPreviewItem = {
+    label: string;
+    value: string | number;
+    className?: string;
+};
+
+function hasProductValue(value: unknown) {
+    if (value === null || value === undefined) {
+        return false;
+    }
+
+    if (typeof value === "string") {
+        return value.trim().length > 0;
+    }
+
+    if (Array.isArray(value)) {
+        return value.length > 0;
+    }
+
+    return true;
+}
+
+function productDetailItems(product: ProductListItem, firstProductNumber: number) {
+    return [
+        {
+            label: "No.",
+            value: firstProductNumber,
+            className: "sm:col-span-1",
+        },
+        {
+            label: "Category",
+            value: product.category.name,
+            className: "sm:col-span-2",
+        },
+        {
+            label: "Slug",
+            value: `/products/${product.slug}`,
+            className: "sm:col-span-3",
+        },
+        {
+            label: "SKU",
+            value: product.sku,
+        },
+        {
+            label: "Product Type",
+            value: product.productType,
+        },
+        {
+            label: "Wood Type",
+            value: product.woodType,
+        },
+        {
+            label: "Style",
+            value: product.style,
+        },
+        {
+            label: "Sort Order",
+            value: product.sortOrder,
+        },
+    ].filter((item): item is ProductPreviewItem => hasProductValue(item.value));
+}
+
+function productCommerceItems(product: ProductListItem) {
+    const items: ProductPreviewItem[] = [];
+
+    if (hasProductValue(product.regularPrice)) {
+        items.push({
+            label: "Regular Price",
+            value: formatProductPrice(product.regularPrice),
+        });
+    }
+
+    if (hasProductValue(product.salePrice)) {
+        items.push({
+            label: "Sale Price",
+            value: formatProductPrice(product.salePrice),
+        });
+    }
+
+    if (hasProductValue(product.availability)) {
+        items.push({
+            label: "Availability",
+            value: product.availability,
+        });
+    }
+
+    if (product.isTrackInventory && hasProductValue(product.stockQuantity)) {
+        items.push({
+            label: "Stock",
+            value: String(product.stockQuantity),
+        });
+    }
+
+    return items;
+}
+
+function productHighlightItems(product: ProductListItem) {
+    return [
+        product.isFeatured ? "Featured" : null,
+        product.isBestSelling ? "Best Selling" : null,
+        product.isLatest ? "Latest" : null,
+        product.updatedAt ? `Updated ${formatProductDate(product.updatedAt)}` : null,
+    ].filter((item): item is string => Boolean(item));
+}
+
+function normalizedProductDetails(details: unknown) {
+    if (Array.isArray(details)) {
+        return details
+            .map((detail) => {
+                if (typeof detail !== "object" || detail === null) {
+                    return null;
+                }
+
+                const record = detail as Record<string, unknown>;
+                const title =
+                    typeof record.title === "string"
+                        ? record.title.trim()
+                        : typeof record.key === "string"
+                          ? record.key.trim()
+                          : "";
+                const value =
+                    typeof record.value === "string" ||
+                    typeof record.value === "number"
+                        ? String(record.value).trim()
+                        : "";
+
+                return title && value ? { title, value } : null;
+            })
+            .filter(
+                (detail): detail is { title: string; value: string } =>
+                    detail !== null,
+            );
+    }
+
+    if (typeof details === "object" && details !== null) {
+        const record = details as Record<string, unknown>;
+        const rows = Array.isArray(record.dynamic_specs)
+            ? record.dynamic_specs
+            : [];
+
+        return rows
+            .map((detail) => {
+                if (typeof detail !== "object" || detail === null) {
+                    return null;
+                }
+
+                const spec = detail as Record<string, unknown>;
+                const title =
+                    typeof spec.title === "string"
+                        ? spec.title.trim()
+                        : typeof spec.key === "string"
+                          ? spec.key.trim()
+                          : "";
+                const value =
+                    typeof spec.value === "string" ||
+                    typeof spec.value === "number"
+                        ? String(spec.value).trim()
+                        : "";
+
+                return title && value ? { title, value } : null;
+            })
+            .filter(
+                (detail): detail is { title: string; value: string } =>
+                    detail !== null,
+            );
+    }
+
+    return [];
+}
+
+function ProductBentoCard({
+    label,
+    value,
+    className = "",
+    valueClassName = "",
+}: {
+    label: string;
+    value: ReactNode;
+    className?: string;
+    valueClassName?: string;
+}) {
+    return (
+        <div
+            className={`self-start rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-sm ${className}`}
+        >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                {label}
+            </p>
+            <div
+                className={`mt-1.5 break-words text-sm font-semibold leading-6 text-zinc-950 dark:text-white ${valueClassName}`}
+            >
+                {value}
+            </div>
+        </div>
+    );
 }
 
 export default function ProductsIndex({
@@ -272,7 +466,12 @@ export default function ProductsIndex({
                                                 (product, index) => (
                                                     <tr
                                                         key={product.id}
-                                                        className="align-middle"
+                                                        className="cursor-pointer align-middle"
+                                                        onClick={() =>
+                                                            setSelectedProduct(
+                                                                product,
+                                                            )
+                                                        }
                                                     >
                                                         <td className="px-4 py-2.5">
                                                             <Text>
@@ -316,7 +515,14 @@ export default function ProductsIndex({
                                                             </Text>
                                                         </td>
                                                         <td className="px-4 py-2.5">
-                                                            <div className="flex items-center justify-end gap-2">
+                                                            <div
+                                                                className="flex items-center justify-end gap-2"
+                                                                onClick={(
+                                                                    event,
+                                                                ) =>
+                                                                    event.stopPropagation()
+                                                                }
+                                                            >
                                                                 <Button
                                                                     type="button"
                                                                     color="light"
@@ -343,7 +549,12 @@ export default function ProductsIndex({
                                                                         )
                                                                     }
                                                                 >
-                                                                    <Power data-slot="icon" />
+                                                                    {product.status ===
+                                                                    "published" ? (
+                                                                        <PowerOff data-slot="icon" />
+                                                                    ) : (
+                                                                        <Power data-slot="icon" />
+                                                                    )}
                                                                 </Button>
                                                                 <Button
                                                                     type="button"
@@ -388,7 +599,13 @@ export default function ProductsIndex({
                         product={editingProduct}
                         categories={categories}
                         onClose={() => setEditingProduct(null)}
-                        onSaved={() => setEditingProduct(null)}
+                        onSaved={(intent) => {
+                            setEditingProduct(null);
+
+                            if (intent === "add-more") {
+                                setShowCreateDrawer(true);
+                            }
+                        }}
                     />
                 ) : null}
 
@@ -407,6 +624,8 @@ export default function ProductsIndex({
                         }
                         onClose={() => setSelectedProduct(null)}
                         titleId="product-detail-title"
+                        maxWidthClass="max-w-4xl"
+                        bodyClassName="admin-hidden-scrollbar"
                         actions={
                             <>
                                 <Button
@@ -428,7 +647,11 @@ export default function ProductsIndex({
                                         toggleProduct(selectedProduct)
                                     }
                                 >
-                                    <Power data-slot="icon" />
+                                    {selectedProduct.status === "published" ? (
+                                        <PowerOff data-slot="icon" />
+                                    ) : (
+                                        <Power data-slot="icon" />
+                                    )}
                                     {selectedProduct.status === "published"
                                         ? "Deactivate"
                                         : "Activate"}
@@ -447,98 +670,228 @@ export default function ProductsIndex({
                             </>
                         }
                     >
-                        <div className="space-y-4">
-                            <DetailSection title="Product Details">
-                                <DetailGrid>
-                                    <DetailItem label="No.">
-                                        {products.data.findIndex(
-                                            (product) =>
-                                                product.id ===
-                                                selectedProduct.id,
-                                        ) + firstProductNumber}
-                                    </DetailItem>
-                                    <DetailItem label="Category">
-                                        {selectedProduct.category.name}
-                                    </DetailItem>
-                                    <DetailItem label="Slug">
-                                        /products/{selectedProduct.slug}
-                                    </DetailItem>
-                                    <DetailItem label="SKU">
-                                        {selectedProduct.sku}
-                                    </DetailItem>
-                                    <DetailItem label="Product Type">
-                                        {selectedProduct.productType}
-                                    </DetailItem>
-                                    <DetailItem label="Wood Type">
-                                        {selectedProduct.woodType}
-                                    </DetailItem>
-                                    <DetailItem label="Style">
-                                        {selectedProduct.style}
-                                    </DetailItem>
-                                    <DetailItem label="Sort Order">
-                                        {selectedProduct.sortOrder}
-                                    </DetailItem>
-                                </DetailGrid>
-                            </DetailSection>
-
-                            <DetailSection title="Commerce">
-                                <DetailGrid>
-                                    <DetailItem label="Regular Price">
-                                        {formatProductPrice(
-                                            selectedProduct.regularPrice,
-                                        )}
-                                    </DetailItem>
-                                    <DetailItem label="Sale Price">
-                                        {formatProductPrice(
-                                            selectedProduct.salePrice,
-                                        )}
-                                    </DetailItem>
-                                    <DetailItem label="Availability">
-                                        {selectedProduct.availability}
-                                    </DetailItem>
-                                    <DetailItem label="Stock">
-                                        {selectedProduct.isTrackInventory
-                                            ? (selectedProduct.stockQuantity ??
-                                              "0")
-                                            : "Not tracked"}
-                                    </DetailItem>
-                                </DetailGrid>
-                            </DetailSection>
-
-                            <DetailSection title="Visibility">
-                                <DetailGrid>
-                                    <DetailItem label="Featured">
-                                        {selectedProduct.isFeatured
-                                            ? "Yes"
-                                            : "No"}
-                                    </DetailItem>
-                                    <DetailItem label="Best Selling">
-                                        {selectedProduct.isBestSelling
-                                            ? "Yes"
-                                            : "No"}
-                                    </DetailItem>
-                                    <DetailItem label="Latest">
-                                        {selectedProduct.isLatest
-                                            ? "Yes"
-                                            : "No"}
-                                    </DetailItem>
-                                    <DetailItem label="Updated">
-                                        {formatProductDate(
-                                            selectedProduct.updatedAt,
-                                        )}
-                                    </DetailItem>
-                                </DetailGrid>
-                            </DetailSection>
-
-                            <DetailSection title="Description">
-                                <DetailItem label="Short Description" full>
-                                    {selectedProduct.shortDescription}
-                                </DetailItem>
-                            </DetailSection>
-                        </div>
+                        <ProductPreviewContent
+                            product={selectedProduct}
+                            index={
+                                products.data.findIndex(
+                                    (product) =>
+                                        product.id === selectedProduct.id,
+                                ) + firstProductNumber
+                            }
+                        />
                     </DetailModal>
                 ) : null}
             </AdminShell>
         </>
+    );
+}
+
+function ProductPreviewContent({
+    product,
+    index,
+}: {
+    product: ProductListItem;
+    index: number;
+}) {
+    const overviewItems = productDetailItems(product, index);
+    const commerceItems = productCommerceItems(product);
+    const highlightItems = productHighlightItems(product);
+    const additionalSpecs = normalizedProductDetails(product.details);
+    const hasGallery = (product.galleryImages?.length ?? 0) > 0;
+    const primaryImage = product.galleryImages?.[0] ?? null;
+    const thumbnailImages = product.galleryImages?.slice(1, 5) ?? [];
+    const topMetaItems = overviewItems.filter(
+        (item) => item.label === "No." || item.label === "Category",
+    );
+    const slugItem =
+        overviewItems.find((item) => item.label === "Slug") ?? null;
+    const quickInfoItems = overviewItems.filter(
+        (item) => item.label === "SKU" || item.label === "Sort Order",
+    );
+    const detailItems = overviewItems.filter(
+        (item) =>
+            item.label !== "No." &&
+            item.label !== "Category" &&
+            item.label !== "Slug" &&
+            item.label !== "SKU" &&
+            item.label !== "Sort Order",
+    );
+    const descriptionCards = [
+        hasProductValue(product.shortDescription)
+            ? {
+                  label: "Short Description",
+                  value: product.shortDescription as string,
+                  className: "xl:col-span-6",
+              }
+            : null,
+        hasProductValue(product.fullDescription)
+            ? {
+                  label: "Full Description",
+                  value: product.fullDescription as string,
+                  className: "xl:col-span-6",
+              }
+            : null,
+    ].filter(
+        (
+            item,
+        ): item is { label: string; value: string; className: string } =>
+            item !== null,
+    );
+    const summaryItems = [
+        ...quickInfoItems,
+        ...highlightItems.map((item) => ({
+            label: "Highlight",
+            value: item,
+        })),
+    ];
+    const thumbnailGridClass =
+        thumbnailImages.length >= 4
+            ? "grid-cols-4"
+            : thumbnailImages.length === 3
+              ? "grid-cols-3"
+              : thumbnailImages.length === 2
+                ? "grid-cols-2"
+                : "grid-cols-1";
+
+    return (
+        <div className="grid gap-4">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.9fr)]">
+                {hasGallery ? (
+                    <section className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/5 backdrop-blur-sm">
+                        <div className="aspect-[4/3] overflow-hidden bg-zinc-100/5">
+                            <img
+                                src={primaryImage?.url}
+                                alt={product.name}
+                                className="h-full w-full object-cover"
+                            />
+                        </div>
+                        {thumbnailImages.length > 0 ? (
+                            <div className="p-3">
+                                <div
+                                    className={`inline-grid gap-2 ${thumbnailGridClass}`}
+                                >
+                                    {thumbnailImages.map((image, imageIndex) => (
+                                        <div
+                                        key={`${image.id ?? imageIndex}`}
+                                        className="aspect-square w-24 overflow-hidden rounded-xl border border-white/10 bg-white/5"
+                                    >
+                                            <img
+                                                src={image.url}
+                                                alt={
+                                                    image.altText ??
+                                                    `${product.name} ${imageIndex + 2}`
+                                                }
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
+                    </section>
+                ) : null}
+
+                <div className="grid content-start gap-4">
+                    {topMetaItems.length > 0 ? (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {topMetaItems.map((item) => (
+                                <ProductBentoCard
+                                    key={item.label}
+                                    label={item.label}
+                                    value={item.value}
+                                />
+                            ))}
+                        </div>
+                    ) : null}
+
+                    {slugItem ? (
+                        <ProductBentoCard
+                            label={slugItem.label}
+                            value={slugItem.value}
+                            valueClassName="leading-8"
+                        />
+                    ) : null}
+
+                    {summaryItems.length > 0 ? (
+                        <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                                Snapshot
+                            </p>
+                            <div className="mt-3 grid gap-3">
+                                {quickInfoItems.length > 0 ? (
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        {quickInfoItems.map((item) => (
+                                            <div
+                                                key={item.label}
+                                                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5"
+                                            >
+                                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+                                                    {item.label}
+                                                </p>
+                                                <p className="mt-1.5 text-base font-semibold text-white">
+                                                    {item.value}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : null}
+                                {highlightItems.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {highlightItems.map((item) => (
+                                            <span
+                                                key={item}
+                                                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-medium text-zinc-200"
+                                            >
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/80" />
+                                                {item}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6 xl:grid-flow-dense">
+                {commerceItems.map((item) => (
+                    <ProductBentoCard
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                        className="xl:col-span-2"
+                    />
+                ))}
+
+                {detailItems.map((item) => (
+                    <ProductBentoCard
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                        className="xl:col-span-2"
+                    />
+                ))}
+
+                {additionalSpecs.map((detail) => (
+                    <ProductBentoCard
+                        key={`${detail.title}-${detail.value}`}
+                        label={detail.title}
+                        value={detail.value}
+                        className="xl:col-span-2"
+                    />
+                ))}
+
+                {descriptionCards.map((item) => (
+                    <ProductBentoCard
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                        className={item.className}
+                        valueClassName="whitespace-pre-line font-medium leading-7 text-zinc-600 dark:text-zinc-300"
+                    />
+                ))}
+            </div>
+        </div>
     );
 }

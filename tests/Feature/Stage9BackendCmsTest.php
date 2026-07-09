@@ -156,7 +156,7 @@ class Stage9BackendCmsTest extends TestCase
         $this->assertSame(0, InquiryActivity::query()->count());
     }
 
-    public function test_inquiry_export_includes_project_fields_and_uploaded_images(): void
+    public function test_inquiry_export_includes_core_inquiry_fields(): void
     {
         $manager = $this->userFor(UserRole::InquiryManager);
 
@@ -165,20 +165,13 @@ class Stage9BackendCmsTest extends TestCase
             'email' => 'lead@example.com',
             'phone' => '9999999999',
             'subject' => 'Office furniture',
-            'project_location' => 'Surat, Gujarat',
-            'project_state' => 'Gujarat',
-            'project_country' => 'India',
-            'budget_range' => 'Rs. 3 lakh+',
-            'expected_project_start' => '2026-09-15',
-            'uploaded_images' => [
-                [
-                    'name' => 'floor-plan.png',
-                    'path' => 'inquiries/2026/07/floor-plan.png',
-                    'url' => '/storage/inquiries/2026/07/floor-plan.png',
-                    'mime_type' => 'image/png',
-                    'size' => 12345,
-                ],
-            ],
+            'project_location' => null,
+            'project_state' => null,
+            'project_country' => null,
+            'budget_range' => null,
+            'expected_project_start' => null,
+            'uploaded_images' => null,
+            'message' => 'Need a custom desk.',
         ]);
 
         $response = $this->actingAs($manager)->post(route('admin.inquiries.export'));
@@ -189,9 +182,9 @@ class Stage9BackendCmsTest extends TestCase
         $response->sendContent();
         $csv = (string) ob_get_clean();
 
-        $this->assertStringContainsString('"Inquiry Type","Project Location","Project State","Project Country","Budget Range","Expected Project Start",Message,"Uploaded Images"', $csv);
-        $this->assertStringContainsString('"Office furniture","Surat, Gujarat",Gujarat,India,"Rs. 3 lakh+",2026-09-15', $csv);
-        $this->assertStringContainsString('floor-plan.png', $csv);
+        $this->assertStringContainsString('"Inquiry Type","Project Location","Project State","Project Country","Budget Range","Expected Project Start",Message', $csv);
+        $this->assertStringContainsString('"Project Lead",lead@example.com,9999999999', $csv);
+        $this->assertStringContainsString('"Office furniture",,,,,,"Need a custom desk."', $csv);
     }
 
     public function test_redirect_self_and_two_hop_loops_are_rejected(): void
@@ -297,6 +290,7 @@ class Stage9BackendCmsTest extends TestCase
                 'secondary_button_label' => 'Contact',
                 'secondary_button_url' => '/contact',
                 'overlay_opacity' => 30,
+                'background_color' => '#d8c0a2',
                 'text_theme' => 'light',
                 'is_visible' => true,
                 'items' => [
@@ -403,6 +397,17 @@ class Stage9BackendCmsTest extends TestCase
             'media_asset_id' => $media->id,
             'is_visible' => true,
         ]);
+        $this->assertDatabaseHas('homepage_sections', [
+            'section_key' => 'hero',
+            'background_color' => '#d8c0a2',
+        ]);
+        $this->actingAs($editor)
+            ->get(route('admin.homepage.edit'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('homepage.hero.backgroundColor', '#d8c0a2')
+                ->etc()
+            );
         $this->assertDatabaseHas('contact_information', [
             'whatsapp_number' => '+919999999999',
             'whatsapp_text' => 'Hello CMS',
@@ -452,6 +457,7 @@ class Stage9BackendCmsTest extends TestCase
                 'secondary_button_label' => null,
                 'secondary_button_url' => null,
                 'overlay_opacity' => 90,
+                'background_color' => 'not-a-color',
                 'text_theme' => 'light',
                 'is_visible' => true,
                 'items' => [],
@@ -496,6 +502,7 @@ class Stage9BackendCmsTest extends TestCase
                 'hero.desktop_media_id',
                 'hero.primary_button_url',
                 'hero.overlay_opacity',
+                'hero.background_color',
                 'latest.max_items',
                 'turnkey.button_url',
                 'quickInquiry.button_url',
@@ -577,6 +584,28 @@ class Stage9BackendCmsTest extends TestCase
     public function test_testimonials_manager_and_settings_routes_expose_separate_page_modes(): void
     {
         $editor = $this->userFor(UserRole::ContentEditor);
+        $section = HomepageSection::query()->create([
+            'section_key' => 'testimonials',
+            'section_title' => 'Testimonials',
+            'section_intro' => 'What customers are saying.',
+            'source_mode' => 'manual',
+            'sort_order' => 60,
+            'is_visible' => true,
+            'background_color' => '#ffffff',
+        ]);
+
+        foreach (range(1, 12) as $index) {
+            HomepageTestimonial::query()->create([
+                'homepage_section_id' => $section->id,
+                'customer_name' => "Customer {$index}",
+                'location_or_role' => 'Architect',
+                'body_text' => "Testimonial {$index}",
+                'rating' => 5,
+                'status' => $index === 12 ? 'draft' : 'published',
+                'sort_order' => $index,
+                'is_visible' => $index !== 12,
+            ]);
+        }
 
         $this->actingAs($editor)
             ->get(route('admin.testimonials.index'))
@@ -584,9 +613,25 @@ class Stage9BackendCmsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Testimonials/Index', false)
                 ->where('pageMode', 'manager')
-                ->has('testimonials.items')
+                ->has('testimonials.items', 12)
+                ->has('testimonials.data', 10)
+                ->where('testimonials.meta.currentPage', 1)
+                ->where('testimonials.meta.perPage', 10)
+                ->where('testimonials.meta.total', 12)
+                ->where('testimonials.meta.lastPage', 2)
                 ->has('stats')
                 ->has('mediaOptions')
+                ->etc()
+            );
+
+        $this->actingAs($editor)
+            ->get(route('admin.testimonials.index', ['status' => 'inactive']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.status', 'inactive')
+                ->has('testimonials.items', 12)
+                ->has('testimonials.data', 1)
+                ->where('testimonials.meta.total', 1)
                 ->etc()
             );
 
@@ -698,7 +743,7 @@ class Stage9BackendCmsTest extends TestCase
             'show_phone' => true,
             'show_email' => true,
             'show_whatsapp' => true,
-            'contact_intro' => 'Legacy intro',
+            'contact_intro' => 'Talk to us about custom wooden pieces and showroom visits.',
             'form_helper_text' => 'CMS helper copy.',
             'success_message' => 'CMS success message.',
             'consent_text' => 'CMS consent text.',
@@ -716,6 +761,7 @@ class Stage9BackendCmsTest extends TestCase
         $this->get('/contact')
             ->assertOk()
             ->assertSee('Contact Form CMS')
+            ->assertSee('Talk to us about custom wooden pieces and showroom visits.')
             ->assertSee('Showroom visit')
             ->assertSee('https://maps.google.com/maps?q=Zarokha&amp;z=14&amp;output=embed', false)
             ->assertSee('Instagram')

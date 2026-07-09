@@ -5,6 +5,7 @@ import {
     Globe2,
     Plus,
     Power,
+    PowerOff,
     Trash2,
     X,
 } from "lucide-react";
@@ -34,6 +35,7 @@ import { Button } from "@admin/Components/ui/button";
 import { Field, Label } from "@admin/Components/ui/fieldset";
 import { Text } from "@admin/Components/ui/text";
 import { AdminShell } from "@admin/Layouts/AdminShell";
+import { useLockedAdminScroll } from "@admin/hooks/useLockedAdminScroll";
 import type { Paginated } from "@admin/types";
 import { useMemo } from "react";
 
@@ -164,7 +166,7 @@ function ToggleField({
 
 function ClientLogo({
     client,
-    className = "h-14 w-16",
+    className = "h-12 w-12",
 }: {
     client: ClientPayload;
     className?: string;
@@ -173,7 +175,7 @@ function ClientLogo({
 
     return (
         <div
-            className={`grid shrink-0 place-items-center overflow-hidden rounded-xl border border-zinc-950/10 bg-zinc-50 p-2 dark:border-white/10 dark:bg-white/5 ${className}`}
+            className={`grid shrink-0 place-items-center overflow-hidden rounded-full border border-zinc-950/10 bg-zinc-50 p-2 dark:border-white/10 dark:bg-white/5 ${className}`}
         >
             {logoUrl ? (
                 <img
@@ -205,6 +207,8 @@ export default function ClientsIndex({
     const [selectedClient, setSelectedClient] = useState<ClientPayload | null>(
         null,
     );
+    useLockedAdminScroll(drawerOpen);
+
     const firstClientNumber = clients.meta.from ?? 1;
     const clientFilterFields = useMemo(
         () => [
@@ -420,7 +424,7 @@ export default function ClientsIndex({
                                         media={
                                             <ClientLogo
                                                 client={client}
-                                                className="h-12 w-14"
+                                                className="h-10 w-10"
                                             />
                                         }
                                         badge={
@@ -477,7 +481,10 @@ export default function ClientsIndex({
                                         {clients.data.map((client, index) => (
                                             <tr
                                                 key={client.id}
-                                                className="align-middle"
+                                                className="cursor-pointer align-middle"
+                                                onClick={() =>
+                                                    setSelectedClient(client)
+                                                }
                                             >
                                                 <td className="px-4 py-2.5">
                                                     <Text>
@@ -502,6 +509,11 @@ export default function ClientsIndex({
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-sm text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-950 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-white"
+                                                            onClick={(
+                                                                event,
+                                                            ) =>
+                                                                event.stopPropagation()
+                                                            }
                                                         >
                                                             <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                                                             <span className="truncate">
@@ -535,7 +547,12 @@ export default function ClientsIndex({
                                                     </Text>
                                                 </td>
                                                 <td className="px-4 py-2.5">
-                                                    <div className="flex items-center justify-end gap-2">
+                                                    <div
+                                                        className="flex items-center justify-end gap-2"
+                                                        onClick={(event) =>
+                                                            event.stopPropagation()
+                                                        }
+                                                    >
                                                         <Button
                                                             type="button"
                                                             color="light"
@@ -562,7 +579,11 @@ export default function ClientsIndex({
                                                                 )
                                                             }
                                                         >
-                                                            <Power data-slot="icon" />
+                                                                {client.isActive ? (
+                                                                    <PowerOff data-slot="icon" />
+                                                                ) : (
+                                                                    <Power data-slot="icon" />
+                                                                )}
                                                         </Button>
                                                         <Button
                                                             type="button"
@@ -629,7 +650,11 @@ export default function ClientsIndex({
                                     className="justify-center"
                                     onClick={() => toggleClient(selectedClient)}
                                 >
-                                    <Power data-slot="icon" />
+                                    {selectedClient.isActive ? (
+                                        <PowerOff data-slot="icon" />
+                                    ) : (
+                                        <Power data-slot="icon" />
+                                    )}
                                     {selectedClient.isActive
                                         ? "Deactivate"
                                         : "Activate"}
@@ -651,7 +676,7 @@ export default function ClientsIndex({
                                 <div className="mb-4 flex items-center gap-3">
                                     <ClientLogo
                                         client={selectedClient}
-                                        className="h-16 w-20"
+                                        className="h-14 w-14"
                                     />
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-semibold text-zinc-950 dark:text-white">
@@ -754,7 +779,7 @@ export default function ClientsIndex({
                                 </Button>
                             </div>
 
-                            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+                            <div className="admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
                                 <div className="grid gap-5">
                                     <Field>
                                         <Label>Name</Label>

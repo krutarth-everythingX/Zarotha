@@ -340,6 +340,25 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                                             )
                                         }
                                     />
+                                    <FieldError
+                                        message={contactForm.errors.business_name}
+                                    />
+                                </Field>
+                                <Field>
+                                    <Label>Short line under business name</Label>
+                                    <FormInput
+                                        value={contactForm.data.contact_intro}
+                                        onChange={(event) =>
+                                            contactForm.setData(
+                                                'contact_intro',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="A short supporting line for the left contact details section"
+                                    />
+                                    <FieldError
+                                        message={contactForm.errors.contact_intro}
+                                    />
                                 </Field>
                                 <Field>
                                     <Label>Primary phone</Label>
@@ -617,23 +636,6 @@ export default function ContactSocials({ contact, links, settings }: Props) {
                                     <FieldError
                                         message={
                                             contactForm.errors.submit_label
-                                        }
-                                    />
-                                </Field>
-                                <Field>
-                                    <Label>Success message</Label>
-                                    <FormInput
-                                        value={contactForm.data.success_message}
-                                        onChange={(event) =>
-                                            contactForm.setData(
-                                                'success_message',
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                    <FieldError
-                                        message={
-                                            contactForm.errors.success_message
                                         }
                                     />
                                 </Field>

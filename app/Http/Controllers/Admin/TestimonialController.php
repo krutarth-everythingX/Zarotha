@@ -20,9 +20,14 @@ class TestimonialController extends Controller
         $this->authorize('viewAny', Product::class);
         $this->ensureSection();
 
+        $search = trim((string) $request->string('search'));
+        $status = $request->query('status');
+        $status = is_string($status) && in_array($status, ['active', 'inactive'], true)
+            ? $status
+            : null;
+
         $isSettingsPage = $request->routeIs('admin.settings.testimonials.edit');
         $section = HomepageSection::query()
-            ->when(! $isSettingsPage, fn ($query) => $query->with(['testimonials.imageMedia.variants']))
             ->where('section_key', 'testimonials')
             ->firstOrFail();
         $props = [
@@ -38,29 +43,68 @@ class TestimonialController extends Controller
             return Inertia::render('Admin/Testimonials/Index', $props);
         }
 
+        $baseQuery = HomepageTestimonial::query()
+            ->with('imageMedia.variants')
+            ->where('homepage_section_id', $section->id)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+
+        $filteredTestimonials = (clone $baseQuery)
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($builder) use ($search): void {
+                    $builder->where('customer_name', 'like', "%{$search}%")
+                        ->orWhere('location_or_role', 'like', "%{$search}%")
+                        ->orWhere('body_text', 'like', "%{$search}%");
+
+                    if (ctype_digit($search)) {
+                        $builder->orWhere('rating', (int) $search);
+                    }
+                });
+            })
+            ->when($status === 'active', fn ($query) => $query
+                ->where('status', 'published')
+                ->where('is_visible', true))
+            ->when($status === 'inactive', fn ($query) => $query
+                ->where(function ($builder): void {
+                    $builder->where('status', '!=', 'published')
+                        ->orWhere('is_visible', false);
+                }))
+            ->paginate(10)
+            ->withQueryString();
+
         return Inertia::render('Admin/Testimonials/Index', [
             ...$props,
+            'filters' => [
+                'search' => $search === '' ? null : $search,
+                'status' => $status,
+            ],
             'testimonials' => [
-                'items' => $section->testimonials->map(fn (HomepageTestimonial $t) => [
-                    'id' => $t->id,
-                    'customer_name' => $t->customer_name,
-                    'location_or_role' => $t->location_or_role,
-                    'body_text' => $t->body_text,
-                    'rating' => $t->rating,
-                    'image_media_id' => $t->image_media_id,
-                    'status' => $t->status,
-                    'previewUrl' => $t->imageMedia?->responsiveImage('100px')['src'],
-                    'sort_order' => $t->sort_order,
-                    'is_visible' => $t->is_visible,
-                ]),
+                'items' => (clone $baseQuery)
+                    ->get()
+                    ->map(fn (HomepageTestimonial $testimonial): array => $this->testimonialPayload($testimonial)),
+                'data' => $filteredTestimonials
+                    ->getCollection()
+                    ->map(fn (HomepageTestimonial $testimonial): array => $this->testimonialPayload($testimonial)),
+                'meta' => [
+                    'currentPage' => $filteredTestimonials->currentPage(),
+                    'perPage' => $filteredTestimonials->perPage(),
+                    'total' => $filteredTestimonials->total(),
+                    'lastPage' => $filteredTestimonials->lastPage(),
+                    'from' => $filteredTestimonials->firstItem(),
+                    'to' => $filteredTestimonials->lastItem(),
+                ],
             ],
             'stats' => [
-                'total' => HomepageTestimonial::query()->count(),
+                'total' => HomepageTestimonial::query()
+                    ->where('homepage_section_id', $section->id)
+                    ->count(),
                 'active' => HomepageTestimonial::query()
+                    ->where('homepage_section_id', $section->id)
                     ->where('status', 'published')
                     ->where('is_visible', true)
                     ->count(),
                 'inactive' => HomepageTestimonial::query()
+                    ->where('homepage_section_id', $section->id)
                     ->where(function ($query): void {
                         $query->where('status', '!=', 'published')
                             ->orWhere('is_visible', false);
@@ -81,6 +125,25 @@ class TestimonialController extends Controller
                     'status' => $media->status,
                 ]),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function testimonialPayload(HomepageTestimonial $testimonial): array
+    {
+        return [
+            'id' => $testimonial->id,
+            'customer_name' => $testimonial->customer_name,
+            'location_or_role' => $testimonial->location_or_role,
+            'body_text' => $testimonial->body_text,
+            'rating' => $testimonial->rating,
+            'image_media_id' => $testimonial->image_media_id,
+            'status' => $testimonial->status,
+            'previewUrl' => $testimonial->imageMedia?->responsiveImage('100px')['src'],
+            'sort_order' => $testimonial->sort_order,
+            'is_visible' => $testimonial->is_visible,
+        ];
     }
 
     public function update(Request $request): RedirectResponse

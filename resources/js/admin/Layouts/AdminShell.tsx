@@ -160,7 +160,7 @@ export function AdminShell({
     }, [userId, userTheme]);
 
     const signOut = () => {
-        router.post("/admin/logout");
+        window.location.assign("/admin/logout");
     };
 
     const nextTheme = theme === "dark" ? "light" : "dark";
@@ -193,7 +193,7 @@ export function AdminShell({
         <Sidebar>
             <SidebarHeader className="max-lg:hidden">
                 <SidebarSection>
-                    <AdminBrandLogo className="max-h-16 max-w-[13.5rem]" />
+                    <AdminBrandLogo className="max-h-14 max-w-[12rem]" />
                 </SidebarSection>
             </SidebarHeader>
             <SidebarBody>
@@ -209,7 +209,7 @@ export function AdminShell({
                                     item.href === "/admin"
                                         ? page.url === "/admin"
                                         : item.href === "/admin/settings"
-                                          ? page.url.startsWith(
+                                            ? page.url.startsWith(
                                                 "/admin/settings",
                                             ) ||
                                             page.url.startsWith(
@@ -224,7 +224,7 @@ export function AdminShell({
                                             page.url.startsWith(
                                                 "/admin/contact-socials",
                                             )
-                                          : page.url.startsWith(item.href)
+                                            : page.url.startsWith(item.href)
                                 }
                             >
                                 <Icon
@@ -360,11 +360,10 @@ export function AdminShell({
                         )}
                         {actions && (
                             <div
-                                className={`shrink-0 items-center ${
-                                    mobileActions !== undefined
-                                        ? "hidden md:flex"
-                                        : "flex"
-                                }`}
+                                className={`shrink-0 items-center ${mobileActions !== undefined
+                                    ? "hidden md:flex"
+                                    : "flex"
+                                    }`}
                             >
                                 {actions}
                             </div>

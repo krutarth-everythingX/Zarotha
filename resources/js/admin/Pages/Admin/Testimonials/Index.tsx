@@ -1,5 +1,5 @@
 import { Head, useForm } from "@inertiajs/react";
-import { Edit3, Eye, Plus, Power, Star, Trash2, X } from "lucide-react";
+import { Edit3, Eye, Plus, Power, PowerOff, Star, Trash2, X } from "lucide-react";
 import React from "react";
 import {
     MediaDropSelect,
@@ -12,12 +12,12 @@ import {
     FormInput,
     FormSelect,
     FormTextarea,
-    ListTableFooter,
     ListTablePanel,
     MobileSettingsBreadcrumbs,
     MobileTableList,
     MobileTableRow,
     PagePanel,
+    PaginationLinks,
     SearchFilterPanel,
     SettingsSectionLayout,
     StatusBadge,
@@ -27,6 +27,8 @@ import { Button } from "@admin/Components/ui/button";
 import { Field, Label } from "@admin/Components/ui/fieldset";
 import { Text } from "@admin/Components/ui/text";
 import { AdminShell } from "@admin/Layouts/AdminShell";
+import { useLockedAdminScroll } from "@admin/hooks/useLockedAdminScroll";
+import type { PaginationMeta } from "@admin/types";
 
 const MAX_REVIEW_LENGTH = 450;
 
@@ -48,6 +50,11 @@ type TestimonialField = keyof TestimonialItem;
 
 type TestimonialsForm = {
     items: TestimonialItem[];
+};
+
+type TestimonialsPayload = TestimonialsForm & {
+    data?: TestimonialItem[];
+    meta?: PaginationMeta;
 };
 
 type SectionForm = {
@@ -74,7 +81,11 @@ interface Props {
         intro: string | null;
         backgroundColor: string | null;
     };
-    testimonials?: TestimonialsForm;
+    testimonials?: TestimonialsPayload;
+    filters?: {
+        search: string | null;
+        status: string | null;
+    };
     stats?: {
         total: number;
         active: number;
@@ -210,6 +221,7 @@ export default function TestimonialsIndex({
     pageMode = "manager",
     section,
     testimonials = { items: [] },
+    filters = { search: null, status: null },
     stats = { total: 0, active: 0, inactive: 0 },
     mediaOptions = [],
 }: Props) {
@@ -219,14 +231,14 @@ export default function TestimonialsIndex({
     const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
     const [viewingIndex, setViewingIndex] = React.useState<number | null>(null);
     const [draft, setDraft] = React.useState<TestimonialItem | null>(null);
-    const [search, setSearch] = React.useState("");
-    const [statusFilter, setStatusFilter] = React.useState("");
+    useLockedAdminScroll(drawerOpen);
+
     const testimonialFilterFields = React.useMemo(
         () => [
             {
                 name: "status",
                 label: "Status",
-                value: statusFilter,
+                value: filters.status,
                 allLabel: "All",
                 options: [
                     { value: "active", label: "Active" },
@@ -234,7 +246,7 @@ export default function TestimonialsIndex({
                 ],
             },
         ],
-        [statusFilter],
+        [filters.status],
     );
     const showSectionSettings = pageMode === "settings";
     const showTestimonialManager = !showSectionSettings;
@@ -245,7 +257,6 @@ export default function TestimonialsIndex({
     });
 
     const form = useForm<TestimonialsForm>({
-        ...testimonials,
         items: testimonials.items.map((item) => ({
             ...item,
             rating: clampRating(item.rating ?? 5),
@@ -470,29 +481,29 @@ export default function TestimonialsIndex({
     const drawerErrors = errors as Record<string, string | undefined>;
     const viewedItem =
         viewingIndex === null ? null : (data.items[viewingIndex] ?? null);
-    const normalizedSearch = search.trim().toLowerCase();
-    const visibleItems = data.items
-        .map((item, index) => ({ item, index }))
-        .filter(({ item }) => {
-            const matchesSearch =
-                normalizedSearch === "" ||
-                [
-                    item.customer_name,
-                    item.location_or_role,
-                    item.body_text,
-                    String(item.rating),
-                ]
-                    .join(" ")
-                    .toLowerCase()
-                    .includes(normalizedSearch);
-            const status = activeStatus(item) ? "active" : "inactive";
+    const testimonialMeta = testimonials.meta ?? {
+        currentPage: 1,
+        perPage: Math.max(data.items.length, 1),
+        total: data.items.length,
+        lastPage: 1,
+        from: data.items.length > 0 ? 1 : null,
+        to: data.items.length > 0 ? data.items.length : null,
+    };
+    const firstTestimonialNumber = testimonialMeta.from ?? 1;
+    const displayedItems = testimonials.data ?? data.items;
+    const displayRows = displayedItems.map((item, displayIndex) => {
+        const formIndex =
+            item.id === undefined
+                ? displayIndex
+                : data.items.findIndex((candidate) => candidate.id === item.id);
 
-            return (
-                matchesSearch &&
-                (statusFilter === "" || statusFilter === status)
-            );
-        });
-    const hasListFilters = search.trim() !== "" || statusFilter !== "";
+        return {
+            item: formIndex >= 0 ? data.items[formIndex] : item,
+            index: formIndex >= 0 ? formIndex : displayIndex,
+            displayIndex,
+        };
+    });
+    const hasListFilters = Boolean(filters.search || filters.status);
     const pageContent = showSectionSettings ? (
         <SettingsSectionLayout active="testimonials">
             <PagePanel>
@@ -606,41 +617,23 @@ export default function TestimonialsIndex({
             <ListTablePanel
                 toolbar={
                     <SearchFilterPanel
+                        action="/admin/testimonials"
+                        clearHref="/admin/testimonials"
                         variant="toolbar"
-                        searchValue={search}
+                        searchValue={filters.search}
                         searchPlaceholder="Search testimonials"
                         hasActiveFilters={hasListFilters}
-                        onApply={({ search: nextSearch, filters }) => {
-                            setSearch(nextSearch);
-                            setStatusFilter(filters.status ?? "");
-                        }}
-                        onClear={() => {
-                            setSearch("");
-                            setStatusFilter("");
-                        }}
                         filterFields={testimonialFilterFields}
                     />
                 }
                 footer={
-                    <ListTableFooter>
-                        <span>
-                            {hasListFilters
-                                ? `${visibleItems.length} of ${data.items.length} testimonials`
-                                : `${data.items.length} testimonials`}
-                        </span>
-                        <Button
-                            type="button"
-                            color="light"
-                            className="w-full justify-center sm:w-auto"
-                            onClick={openAddDrawer}
-                        >
-                            <Plus data-slot="icon" />
-                            Add testimonial
-                        </Button>
-                    </ListTableFooter>
+                    <PaginationLinks
+                        meta={testimonialMeta}
+                        baseUrl="/admin/testimonials"
+                    />
                 }
             >
-                {visibleItems.length === 0 ? (
+                {displayRows.length === 0 ? (
                     <div className="p-6">
                         <EmptyState
                             title="No testimonials found"
@@ -654,11 +647,14 @@ export default function TestimonialsIndex({
                 ) : (
                     <>
                         <MobileTableList className="p-4">
-                            {visibleItems.map(
-                                ({ item, index }, visibleIndex) => (
+                            {displayRows.map(
+                                ({ item, index, displayIndex }) => (
                                     <MobileTableRow
                                         key={item.id ?? `new-mobile-${index}`}
-                                        number={visibleIndex + 1}
+                                        number={
+                                            firstTestimonialNumber +
+                                            displayIndex
+                                        }
                                         title={
                                             item.customer_name ||
                                             "Untitled testimonial"
@@ -732,15 +728,19 @@ export default function TestimonialsIndex({
                                     </tr>
                                 </thead>
                                 <tbody className="[&>tr]:border-b [&>tr]:border-zinc-950/8 dark:[&>tr]:border-white/10">
-                                    {visibleItems.map(
-                                        ({ item, index }, visibleIndex) => (
+                                    {displayRows.map(
+                                        ({ item, index, displayIndex }) => (
                                             <tr
                                                 key={item.id ?? `new-${index}`}
-                                                className="align-middle"
+                                                className="cursor-pointer align-middle"
+                                                onClick={() =>
+                                                    openDetailsModal(index)
+                                                }
                                             >
                                                 <td className="px-4 py-2.5">
                                                     <Text>
-                                                        {visibleIndex + 1}
+                                                        {firstTestimonialNumber +
+                                                            displayIndex}
                                                     </Text>
                                                 </td>
                                                 <td className="px-4 py-2.5">
@@ -782,7 +782,12 @@ export default function TestimonialsIndex({
                                                     </Text>
                                                 </td>
                                                 <td className="px-4 py-2.5">
-                                                    <div className="flex items-center justify-end gap-2">
+                                                    <div
+                                                        className="flex items-center justify-end gap-2"
+                                                        onClick={(event) =>
+                                                            event.stopPropagation()
+                                                        }
+                                                    >
                                                         <Button
                                                             type="button"
                                                             color="light"
@@ -826,7 +831,11 @@ export default function TestimonialsIndex({
                                                                 )
                                                             }
                                                         >
-                                                            <Power data-slot="icon" />
+                                                            {activeStatus(item) ? (
+                                                                <PowerOff data-slot="icon" />
+                                                            ) : (
+                                                                <Power data-slot="icon" />
+                                                            )}
                                                         </Button>
                                                         <Button
                                                             type="button"
@@ -882,9 +891,7 @@ export default function TestimonialsIndex({
                             form="testimonials-settings-mobile-form"
                             disabled={sectionForm.processing}
                         >
-                            {sectionForm.processing
-                                ? "Saving"
-                                : "Save Changes"}
+                            {sectionForm.processing ? "Saving" : "Save Changes"}
                         </Button>
                     ) : null
                 }
@@ -958,7 +965,7 @@ export default function TestimonialsIndex({
                                 </Button>
                             </div>
 
-                            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+                            <div className="admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
                                 <div className="grid gap-5">
                                     <Field>
                                         <Label>Image</Label>
@@ -1287,7 +1294,11 @@ export default function TestimonialsIndex({
                                             toggleTestimonial(viewingIndex)
                                         }
                                     >
-                                        <Power data-slot="icon" />
+                                        {activeStatus(viewedItem) ? (
+                                            <PowerOff data-slot="icon" />
+                                        ) : (
+                                            <Power data-slot="icon" />
+                                        )}
                                         {activeStatus(viewedItem)
                                             ? "Deactivate"
                                             : "Activate"}

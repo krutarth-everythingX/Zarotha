@@ -19,7 +19,7 @@ type InquiryDetailProps = {
         id: number;
         status: InquiryStatus;
         name: string;
-        email: string;
+        email: string | null;
         phone: string;
         companyName: string | null;
         subject: string | null;
@@ -53,6 +53,13 @@ export default function InquiriesShow({ inquiry, assignableUsers }: InquiryDetai
     const statusForm = useForm({ status: inquiry.status });
     const assignForm = useForm({ assigned_user_id: inquiry.assignedUser?.id ?? '' });
     const noteForm = useForm({ note_body: '' });
+    const hasProjectDetails = Boolean(
+        inquiry.projectLocation ||
+            inquiry.projectState ||
+            inquiry.projectCountry ||
+            inquiry.budgetRange ||
+            inquiry.expectedProjectStart,
+    );
 
     return (
         <>
@@ -67,17 +74,21 @@ export default function InquiriesShow({ inquiry, assignableUsers }: InquiryDetai
                             </StatusBadge>
                         </div>
                         <div className="mt-4 grid gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-                            <Text>{inquiry.email}</Text>
+                            <Text>{inquiry.email ?? 'No email provided'}</Text>
                             <Text>{inquiry.phone}</Text>
                             {inquiry.companyName ? <Text>{inquiry.companyName}</Text> : null}
                             {inquiry.whatsappNumber ? <Text>{inquiry.whatsappNumber}</Text> : null}
                             <Text>{inquiry.product?.name ?? 'General inquiry'}</Text>
                             <Text>Inquiry type: {inquiry.subject ?? 'No subject'}</Text>
-                            <Text>Project location: {inquiry.projectLocation ?? 'Not provided'}</Text>
-                            <Text>State: {inquiry.projectState ?? 'Not provided'}</Text>
-                            <Text>Country: {inquiry.projectCountry ?? 'Not provided'}</Text>
-                            <Text>Budget range: {inquiry.budgetRange ?? 'Not provided'}</Text>
-                            <Text>Expected start: {inquiry.expectedProjectStart ?? 'Not provided'}</Text>
+                            {hasProjectDetails ? (
+                                <>
+                                    <Text>Project location: {inquiry.projectLocation ?? 'Not provided'}</Text>
+                                    <Text>State: {inquiry.projectState ?? 'Not provided'}</Text>
+                                    <Text>Country: {inquiry.projectCountry ?? 'Not provided'}</Text>
+                                    <Text>Budget range: {inquiry.budgetRange ?? 'Not provided'}</Text>
+                                    <Text>Expected start: {inquiry.expectedProjectStart ?? 'Not provided'}</Text>
+                                </>
+                            ) : null}
                         </div>
                         <div className="mt-6 rounded-2xl border border-zinc-950/8 p-4 dark:border-white/10">
                             <Text>{inquiry.message}</Text>

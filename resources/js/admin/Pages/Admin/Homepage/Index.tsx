@@ -54,6 +54,7 @@ type HeroPayload = {
     secondaryButtonLabel: string | null;
     secondaryButtonUrl: string | null;
     overlayOpacity: number;
+    backgroundColor: string | null;
     textTheme: "light" | "dark";
     isVisible: boolean;
     items: BannerPayload[];
@@ -141,6 +142,7 @@ type HomepageForm = {
         secondary_button_label: string;
         secondary_button_url: string;
         overlay_opacity: number;
+        background_color: string;
         text_theme: "light" | "dark";
         is_visible: boolean;
         items: Array<{
@@ -673,6 +675,7 @@ export default function HomepageIndex({
             secondary_button_url:
                 homepage.hero.secondaryButtonUrl ?? "/contact",
             overlay_opacity: homepage.hero.overlayOpacity ?? 35,
+            background_color: homepage.hero.backgroundColor ?? "#eadac5",
             text_theme: homepage.hero.textTheme ?? "light",
             is_visible: homepage.hero.isVisible,
             items: homepage.hero.items.map((banner) => ({
@@ -1200,12 +1203,13 @@ export default function HomepageIndex({
                             submit();
                         }}
                     >
-                        <div className="sticky top-0 z-20 hidden bg-zinc-100/95 py-2 backdrop-blur-sm md:block dark:bg-zinc-900/95">
+                        <div className="sticky top-0 z-20 hidden bg-white/95 py-2 backdrop-blur-sm md:block dark:bg-zinc-950/95">
                             <SettingsSubsectionTabs
                                 activeSection={activeSection}
                                 label="Home Sections"
                                 sections={sections}
                                 onSelect={scrollToSection}
+                                className="dark:bg-transparent"
                             />
                         </div>
 

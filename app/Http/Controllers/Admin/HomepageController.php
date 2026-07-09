@@ -113,6 +113,7 @@ class HomepageController extends Controller
             $heroSection = $sections->get('hero');
             $this->updateSection($heroSection, [
                 'is_visible' => $heroData['is_visible'],
+                'background_color' => $heroData['background_color'] ?? null,
             ], $userId);
 
             $this->syncBanners($heroSection, $heroData['items'] ?? [], $userId);
@@ -500,6 +501,7 @@ class HomepageController extends Controller
             'secondaryButtonLabel' => $hero->secondary_cta_label,
             'secondaryButtonUrl' => $hero->secondary_cta_url,
             'overlayOpacity' => $hero->overlay_opacity,
+            'backgroundColor' => $section?->background_color,
             'textTheme' => $hero->text_theme,
             'isVisible' => $hero->is_active && ($section ? $section->is_visible : true),
             'desktopMedia' => $hero->desktopMedia ? $this->mediaPayload($hero->desktopMedia) : null,

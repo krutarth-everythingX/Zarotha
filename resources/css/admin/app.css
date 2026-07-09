@@ -23,6 +23,15 @@
 }
 
 @layer components {
+    .admin-hidden-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .admin-hidden-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
     .admin-editor-scroll {
         scrollbar-width: none;
         -ms-overflow-style: none;

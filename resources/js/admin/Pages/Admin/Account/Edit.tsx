@@ -89,9 +89,8 @@ function ActionBar({
 }) {
     return (
         <div
-            className={`flex flex-col gap-2 border-t border-zinc-950/8 pt-4 dark:border-white/10 sm:flex-row sm:items-center ${
-                align === "between" ? "sm:justify-between" : "sm:justify-end"
-            }`}
+            className={`flex flex-col gap-2 border-t border-zinc-950/8 pt-4 dark:border-white/10 sm:flex-row sm:items-center ${align === "between" ? "sm:justify-between" : "sm:justify-end"
+                }`}
         >
             {children}
         </div>
@@ -154,7 +153,7 @@ export default function AccountEdit({ account }: AccountEditProps) {
     });
 
     const signOut = () => {
-        router.post("/admin/logout");
+        window.location.assign("/admin/logout");
     };
 
     const submitAvatar = (event: ChangeEvent<HTMLInputElement>): void => {

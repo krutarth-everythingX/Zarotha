@@ -1,6 +1,12 @@
 @props(['heroBanners', 'heroSection', 'theme', 'overlayOpacity', 'siteSettings', 'contactInformation', 'socialLinks'])
 
-<section class="home-hero home-hero--{{ $theme }}" data-hero-slider>
+@php
+    $heroLeftBackground = is_string($heroSection?->background_color) && preg_match('/^#[0-9A-Fa-f]{6}$/', $heroSection->background_color)
+        ? $heroSection->background_color
+        : null;
+@endphp
+
+<section class="home-hero home-hero--{{ $theme }}" data-hero-slider @if($heroLeftBackground) style="--hero-left-bg: {{ $heroLeftBackground }};" @endif>
     <div class="home-hero__bg-left"></div>
     
     <div class="home-hero__container">

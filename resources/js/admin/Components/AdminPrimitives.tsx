@@ -33,6 +33,7 @@ type DetailModalProps = {
     onClose: () => void;
     titleId?: string;
     maxWidthClass?: string;
+    bodyClassName?: string;
 };
 
 type DetailItemProps = {
@@ -270,14 +271,18 @@ export function SettingsSubsectionTabs<T extends string>({
     label,
     onSelect,
     sections,
+    className = "",
 }: {
     activeSection: T;
     label: string;
     onSelect: (id: T) => void;
     sections: ReadonlyArray<{ id: T; label: string }>;
+    className?: string;
 }) {
     return (
-        <PagePanel className="bg-zinc-100/95 p-2 shadow-none ring-1 ring-zinc-950/8 backdrop-blur-sm dark:bg-zinc-900/95 dark:ring-white/10">
+        <div
+            className={`rounded-lg border border-zinc-950/10 bg-white/98 p-2 shadow-sm dark:border-white/12 dark:bg-zinc-900/70 ${className}`}
+        >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <p className="shrink-0 px-2 text-sm font-semibold text-zinc-950 dark:text-white">
                     {label}
@@ -294,7 +299,7 @@ export function SettingsSubsectionTabs<T extends string>({
                             className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                                 activeSection === section.id
                                     ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
-                                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 hover:text-zinc-950 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 dark:hover:text-white"
+                                    : "bg-transparent text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/6 dark:hover:text-white"
                             }`}
                         >
                             {section.label}
@@ -302,7 +307,7 @@ export function SettingsSubsectionTabs<T extends string>({
                     ))}
                 </nav>
             </div>
-        </PagePanel>
+        </div>
     );
 }
 
@@ -953,6 +958,7 @@ export function DetailModal({
     onClose,
     titleId = "detail-modal-title",
     maxWidthClass = "max-w-2xl",
+    bodyClassName = "",
 }: DetailModalProps) {
     return (
         <div
@@ -996,7 +1002,9 @@ export function DetailModal({
                         <X data-slot="icon" />
                     </Button>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+                <div
+                    className={`min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5 ${bodyClassName}`}
+                >
                     {children}
                 </div>
                 {actions ? (

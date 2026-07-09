@@ -16,8 +16,6 @@ use App\Models\SiteSetting;
 use App\Models\SocialLink;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Tests\TestCase;
 
@@ -291,6 +289,19 @@ class PublicPresentationTest extends TestCase
             ->assertDontSee('images/default-hero-wooden-art-3.svg');
     }
 
+    public function test_homepage_hero_renders_cms_left_background_color(): void
+    {
+        HomepageSection::factory()->create([
+            'section_key' => 'hero',
+            'background_color' => '#d8c0a2',
+            'is_visible' => true,
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('--hero-left-bg: #d8c0a2;', false);
+    }
+
     public function test_homepage_turnkey_uses_cms_youtube_video_when_available(): void
     {
         $turnkey = HomepageSection::factory()->create([
@@ -429,12 +440,8 @@ class PublicPresentationTest extends TestCase
 
         $this->post('/products/'.$product->slug.'/inquiries', [
             'name' => 'Inquiry Sender',
-            'email' => 'sender@example.com',
             'phone' => '1234567890',
             'subject' => 'Custom furniture',
-            'project_location' => 'Ahmedabad, Gujarat',
-            'project_state' => 'Gujarat',
-            'project_country' => 'India',
             'message' => 'Please share more information about this product.',
             'consent_confirmed' => '1',
         ])->assertRedirect();
@@ -516,49 +523,30 @@ class PublicPresentationTest extends TestCase
 
     public function test_contact_inquiry_submission_creates_workflow_records(): void
     {
-        Storage::fake('public');
-
         $response = $this->post('/contact', [
             'name' => 'Inquiry Sender',
-            'email' => 'sender@example.com',
             'phone' => '1234567890',
             'subject' => 'Custom furniture',
-            'project_location' => 'Ahmedabad, Gujarat',
-            'project_state' => 'Gujarat',
-            'project_country' => 'India',
-            'budget_range_start' => '100000',
-            'budget_range_end' => '300000',
-            'expected_project_start' => now()->addMonth()->toDateString(),
             'message' => 'Please share more information about this project.',
-            'uploaded_images' => [
-                UploadedFile::fake()->createWithContent(
-                    'room-reference.png',
-                    base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='),
-                ),
-                UploadedFile::fake()->createWithContent('walkthrough.mp4', 'fake-video-content')->mimeType('video/mp4'),
-            ],
-            'consent_confirmed' => '1',
         ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('inquiries', [
             'name' => 'Inquiry Sender',
-            'email' => 'sender@example.com',
+            'email' => null,
             'source_page_key' => 'contact',
             'subject' => 'Custom furniture',
-            'project_location' => 'Ahmedabad, Gujarat',
-            'project_state' => 'Gujarat',
-            'project_country' => 'India',
-            'budget_range' => 'Rs. 1,00,000 - Rs. 3,00,000',
+            'phone' => '1234567890',
+            'message' => 'Please share more information about this project.',
         ]);
 
         $inquiry = Inquiry::query()->firstOrFail();
 
-        $this->assertSame(now()->addMonth()->toDateString(), $inquiry->expected_project_start?->toDateString());
-        $this->assertSame('room-reference.png', $inquiry->uploaded_images[0]['name'] ?? null);
-        $this->assertSame('walkthrough.mp4', $inquiry->uploaded_images[1]['name'] ?? null);
-        Storage::disk('public')->assertExists($inquiry->uploaded_images[0]['path']);
-        Storage::disk('public')->assertExists($inquiry->uploaded_images[1]['path']);
+        $this->assertNull($inquiry->project_location);
+        $this->assertNull($inquiry->project_state);
+        $this->assertNull($inquiry->project_country);
+        $this->assertNull($inquiry->budget_range);
+        $this->assertNull($inquiry->uploaded_images);
         $this->assertSame(1, $inquiry->activities()->count());
     }
 

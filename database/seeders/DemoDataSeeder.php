@@ -50,6 +50,7 @@ class DemoDataSeeder extends Seeder
                 ['label' => 'Facebook', 'url' => 'https://facebook.com/zarokha'],
                 ['label' => 'WhatsApp', 'url' => 'https://wa.me/919876543210'],
             ],
+            'contact_intro' => 'Reach out for custom furniture, wooden art, and showroom visits.',
             'address_line_1' => '123 Woodcrafters Lane',
             'city' => 'Jaipur',
             'state' => 'Rajasthan',

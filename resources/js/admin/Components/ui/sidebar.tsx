@@ -79,7 +79,7 @@ export const SidebarItem = forwardRef(function SidebarItem(
     ref: React.ForwardedRef<HTMLAnchorElement | HTMLButtonElement>,
 ) {
     const classes = clsx(
-        'flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-base/6 font-normal text-zinc-950 sm:py-2.5 sm:text-base/6',
+        'flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-sm/5 font-normal text-zinc-950 sm:py-2.5 sm:text-sm/5',
         '*:data-[slot=icon]:size-6 *:data-[slot=icon]:shrink-0 *:data-[slot=icon]:text-zinc-500 sm:*:data-[slot=icon]:size-5',
         '*:last:data-[slot=icon]:ml-auto *:last:data-[slot=icon]:size-5 sm:*:last:data-[slot=icon]:size-4',
         'data-hover:bg-zinc-950/5 data-hover:*:data-[slot=icon]:text-zinc-950',

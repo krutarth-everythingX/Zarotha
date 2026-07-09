@@ -1,7 +1,7 @@
 import { useForm } from "@inertiajs/react";
 import { Plus, Save, Trash2, X } from "lucide-react";
 import type React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@admin/Components/ui/button";
 import { Field, Label } from "@admin/Components/ui/fieldset";
 import { Text } from "@admin/Components/ui/text";
@@ -11,8 +11,12 @@ import {
     FormSelect,
     FormTextarea,
 } from "@admin/Components/AdminPrimitives";
+import { useLockedAdminScroll } from "@admin/hooks/useLockedAdminScroll";
 import type { PublishStatus, SelectOption } from "@admin/types";
-import ImageUploadArea, { type ProductImage } from "./ImageUploadArea";
+import ImageUploadArea, {
+    sortProductImagesPrimaryFirst,
+    type ProductImage,
+} from "./ImageUploadArea";
 
 type AdditionalDetail = {
     id: string;
@@ -79,8 +83,10 @@ export type ProductDrawerProps = {
     product: ProductPayload | null;
     categories: SelectOption[];
     onClose: () => void;
-    onSaved?: () => void;
+    onSaved?: (intent: SaveIntent) => void;
 };
+
+type SaveIntent = "close" | "add-more";
 
 function slugify(value: string) {
     return value
@@ -163,6 +169,79 @@ function normalizeDetails(details: unknown): AdditionalDetail[] {
     return [{ id: `detail-${Date.now()}`, title: "", value: "" }];
 }
 
+function normalizeStatus(status?: PublishStatus) {
+    return status === "draft" || status === "archived" ? "draft" : "published";
+}
+
+function emptyDetail(): AdditionalDetail {
+    return { id: `detail-${Date.now()}`, title: "", value: "" };
+}
+
+function emptyProductFormData(): ProductFormData {
+    return {
+        category_id: "",
+        name: "",
+        slug: "",
+        regular_price: "",
+        sale_price: "",
+        short_description: "",
+        full_description: "",
+        details: [emptyDetail()],
+        gallery_images_state: [],
+        status: "published",
+        is_featured: false,
+        is_best_selling: false,
+        is_latest: false,
+        robots_index: true,
+        robots_follow: true,
+        show_price: false,
+        sku: "",
+        product_type: "",
+        wood_type: "",
+        style: "",
+        is_track_inventory: false,
+        stock_quantity: "",
+        availability: "",
+    };
+}
+
+function productFormData(
+    product: ProductPayload | null,
+    details: AdditionalDetail[],
+): ProductFormData {
+    if (!product) {
+        return emptyProductFormData();
+    }
+
+    return {
+        category_id: product.categoryId ?? "",
+        name: product.name ?? "",
+        slug: product.slug ?? "",
+        regular_price: product.regularPrice ?? "",
+        sale_price: product.salePrice ?? "",
+        short_description: product.shortDescription ?? "",
+        full_description: product.fullDescription ?? "",
+        details,
+        gallery_images_state: sortProductImagesPrimaryFirst(
+            product.galleryImages ?? [],
+        ),
+        status: normalizeStatus(product.status),
+        is_featured: product.isFeatured ?? false,
+        is_best_selling: product.isBestSelling ?? false,
+        is_latest: product.isLatest ?? false,
+        robots_index: product.robotsIndex ?? true,
+        robots_follow: product.robotsFollow ?? true,
+        show_price: product.showPrice ?? false,
+        sku: product.sku ?? "",
+        product_type: product.productType ?? "",
+        wood_type: product.woodType ?? "",
+        style: product.style ?? "",
+        is_track_inventory: product.isTrackInventory ?? false,
+        stock_quantity: product.stockQuantity ?? "",
+        availability: product.availability ?? "",
+    };
+}
+
 function ToggleField({
     checked,
     onChange,
@@ -206,6 +285,106 @@ function ToggleField({
     );
 }
 
+function ProductStatusToggle({
+    checked,
+    disabled,
+    onChange,
+}: {
+    checked: boolean;
+    disabled?: boolean;
+    onChange: (checked: boolean) => void;
+}) {
+    return (
+        <div className="flex min-w-0 items-center gap-3">
+            <button
+                type="button"
+                className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors focus:outline-2 focus:outline-offset-2 focus:outline-zinc-950 disabled:opacity-50 dark:focus:outline-white ${
+                    checked ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
+                }`}
+                aria-pressed={checked}
+                aria-label={
+                    checked ? "Make product inactive" : "Make product active"
+                }
+                onClick={() => onChange(!checked)}
+                disabled={disabled}
+            >
+                <span
+                    className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                        checked ? "translate-x-6" : "translate-x-1"
+                    }`}
+                />
+            </button>
+            <span className="min-w-0">
+                <span className="block text-sm font-semibold text-zinc-950 dark:text-white">
+                    {checked ? "Active" : "Inactive"}
+                </span>
+            </span>
+        </div>
+    );
+}
+
+function UnsavedChangesModal({
+    onDiscard,
+    onDismiss,
+    onSave,
+    processing,
+}: {
+    onDiscard: () => void;
+    onDismiss: () => void;
+    onSave: () => void;
+    processing: boolean;
+}) {
+    return (
+        <div
+            className="fixed inset-0 z-[90] flex items-end justify-center p-3 sm:items-center sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unsaved-product-title"
+        >
+            <button
+                type="button"
+                className="absolute inset-0 bg-zinc-950/65"
+                aria-label="Close confirmation"
+                onClick={onDismiss}
+            />
+            <div
+                className="relative w-full max-w-sm rounded-xl border border-zinc-950/10 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-zinc-950"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <h2
+                    id="unsaved-product-title"
+                    className="text-base font-semibold text-zinc-950 dark:text-white"
+                >
+                    Save this product?
+                </h2>
+                <Text className="mt-1 text-sm">
+                    Unsaved changes will be lost if you discard.
+                </Text>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                    <Button
+                        type="button"
+                        color="light"
+                        className="justify-center"
+                        onClick={onDiscard}
+                        disabled={processing}
+                    >
+                        Discard
+                    </Button>
+                    <Button
+                        type="button"
+                        className="justify-center"
+                        onClick={onSave}
+                        disabled={processing}
+                    >
+                        <Save data-slot="icon" />
+                        Save
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function DrawerSection({
     title,
     children,
@@ -230,35 +409,45 @@ export default function ProductDrawer({
     onClose,
     onSaved,
 }: ProductDrawerProps) {
+    useLockedAdminScroll();
+
     const initialDetails = useMemo(
         () => normalizeDetails(product?.details),
         [product?.details],
     );
-    const form = useForm<ProductFormData>({
-        category_id: product?.categoryId ?? "",
-        name: product?.name ?? "",
-        slug: product?.slug ?? "",
-        regular_price: product?.regularPrice ?? "",
-        sale_price: product?.salePrice ?? "",
-        short_description: product?.shortDescription ?? "",
-        full_description: product?.fullDescription ?? "",
-        details: initialDetails,
-        gallery_images_state: product?.galleryImages ?? [],
-        status: product?.status ?? "draft",
-        is_featured: product?.isFeatured ?? false,
-        is_best_selling: product?.isBestSelling ?? false,
-        is_latest: product?.isLatest ?? false,
-        robots_index: product?.robotsIndex ?? true,
-        robots_follow: product?.robotsFollow ?? true,
-        show_price: product?.showPrice ?? false,
-        sku: product?.sku ?? "",
-        product_type: product?.productType ?? "",
-        wood_type: product?.woodType ?? "",
-        style: product?.style ?? "",
-        is_track_inventory: product?.isTrackInventory ?? false,
-        stock_quantity: product?.stockQuantity ?? "",
-        availability: product?.availability ?? "",
-    });
+    const initialFormData = useMemo(
+        () => productFormData(product, initialDetails),
+        [initialDetails, product],
+    );
+    const form = useForm<ProductFormData>(initialFormData);
+    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+
+    const uploadInProgress = form.data.gallery_images_state.some(
+        (image) => image.uploading,
+    );
+    const isActive = form.data.status === "published";
+
+    const requestClose = () => {
+        if (form.isDirty && !form.processing) {
+            setShowUnsavedModal(true);
+            return;
+        }
+
+        onClose();
+    };
+
+    const discardAndClose = () => {
+        setShowUnsavedModal(false);
+        onClose();
+    };
+
+    const resetForAnotherProduct = () => {
+        const nextData = emptyProductFormData();
+
+        form.setDefaults(nextData);
+        form.setData(nextData);
+        form.clearErrors();
+    };
 
     const updateDetail = (
         id: string,
@@ -292,22 +481,17 @@ export default function ProductDrawer({
         );
     };
 
-    const submit = (status: ProductFormData["status"]) => {
-        const uploadInProgress = form.data.gallery_images_state.some(
-            (image) => image.uploading,
-        );
-
+    const submit = (intent: SaveIntent) => {
         if (uploadInProgress) {
             return;
         }
 
-        const galleryImages = form.data.gallery_images_state.filter(
-            (image) => typeof image.id === "number",
-        );
-        const primaryImage =
-            galleryImages.find((image) => image.isPrimary) ??
-            galleryImages[0] ??
-            null;
+        setShowUnsavedModal(false);
+
+        const galleryImages = sortProductImagesPrimaryFirst(
+            form.data.gallery_images_state,
+        ).filter((image) => typeof image.id === "number");
+        const primaryImage = galleryImages[0] ?? null;
         const cleanDetails = form.data.details
             .map((detail) => ({
                 title: detail.title.trim(),
@@ -323,7 +507,7 @@ export default function ProductDrawer({
             full_description: form.data.full_description,
             regular_price: form.data.regular_price,
             sale_price: form.data.sale_price,
-            status,
+            status: isActive ? "published" : "draft",
             is_available_for_inquiry: true,
             show_price: form.data.show_price,
             details: cleanDetails,
@@ -347,7 +531,15 @@ export default function ProductDrawer({
 
         const options = {
             preserveScroll: true,
-            onSuccess: () => onSaved?.(),
+            preserveState: true,
+            onSuccess: () => {
+                if (intent === "add-more" && mode === "create") {
+                    resetForAnotherProduct();
+                    return;
+                }
+
+                onSaved?.(intent);
+            },
         };
 
         if (mode === "edit" && product?.id) {
@@ -363,7 +555,7 @@ export default function ProductDrawer({
             <div
                 className="fixed inset-0 z-[60] bg-zinc-950/45"
                 aria-hidden="true"
-                onClick={onClose}
+                onClick={requestClose}
             />
             <form
                 className="fixed inset-y-0 right-0 z-[70] flex w-full flex-col bg-white shadow-2xl sm:max-w-xl lg:max-w-2xl dark:bg-zinc-950"
@@ -372,7 +564,7 @@ export default function ProductDrawer({
                 aria-labelledby="product-drawer-title"
                 onSubmit={(event) => {
                     event.preventDefault();
-                    submit(form.data.status);
+                    submit("close");
                 }}
             >
                 <header className="shrink-0 border-b border-zinc-950/8 px-4 py-4 dark:border-white/10 sm:px-6">
@@ -397,14 +589,14 @@ export default function ProductDrawer({
                             plain
                             className="h-10 w-10 px-0"
                             aria-label="Close product drawer"
-                            onClick={onClose}
+                            onClick={requestClose}
                         >
                             <X data-slot="icon" />
                         </Button>
                     </div>
                 </header>
 
-                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+                <div className="admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
                     <div className="grid gap-5">
                         <DrawerSection title="Essentials">
                             <div className="grid gap-4">
@@ -623,36 +815,49 @@ export default function ProductDrawer({
                 </div>
 
                 <footer className="shrink-0 border-t border-zinc-950/8 bg-white px-4 py-3 dark:border-white/10 dark:bg-zinc-950 sm:px-6">
-                    <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-                        <Button
-                            type="button"
-                            plain
-                            className="justify-center"
-                            onClick={onClose}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="button"
-                            color="light"
-                            className="justify-center"
-                            onClick={() => submit("draft")}
+                    <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
+                        <ProductStatusToggle
+                            checked={isActive}
                             disabled={form.processing}
-                        >
-                            Save inactive
-                        </Button>
-                        <Button
-                            type="button"
-                            className="col-span-2 justify-center sm:col-span-1"
-                            onClick={() => submit("published")}
-                            disabled={form.processing}
-                        >
-                            <Save data-slot="icon" />
-                            Save active
-                        </Button>
+                            onChange={(checked) =>
+                                form.setData(
+                                    "status",
+                                    checked ? "published" : "draft",
+                                )
+                            }
+                        />
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                            <Button
+                                type="button"
+                                className="justify-center"
+                                onClick={() => submit("close")}
+                                disabled={form.processing || uploadInProgress}
+                            >
+                                <Save data-slot="icon" />
+                                Save
+                            </Button>
+                            <Button
+                                type="button"
+                                color="light"
+                                className="justify-center"
+                                onClick={() => submit("add-more")}
+                                disabled={form.processing || uploadInProgress}
+                            >
+                                <Plus data-slot="icon" />
+                                Add More
+                            </Button>
+                        </div>
                     </div>
                 </footer>
             </form>
+            {showUnsavedModal ? (
+                <UnsavedChangesModal
+                    onDiscard={discardAndClose}
+                    onDismiss={() => setShowUnsavedModal(false)}
+                    onSave={() => submit("close")}
+                    processing={form.processing || uploadInProgress}
+                />
+            ) : null}
         </>
     );
 }

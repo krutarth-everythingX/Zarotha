@@ -1,4 +1,7 @@
+import { mountContactSocialIcons } from '@public/contactSocialIcons';
+
 document.documentElement.dataset.js = 'enabled';
+mountContactSocialIcons();
 
 const menuButton = document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
 const siteNav = document.querySelector<HTMLElement>('[data-site-nav]');
@@ -240,11 +243,14 @@ document.querySelectorAll<HTMLElement>('[data-mobile-marquee]').forEach((marquee
 
     const speed = Math.max(1, Number.parseFloat(marquee.dataset.mobileMarqueeSpeed ?? '') || 28);
     const pauseDuration = Math.max(0, Number.parseInt(marquee.dataset.mobileMarqueePause ?? '', 10) || 5000);
+    const scrollSettleDelay = 160;
     let frameId: number | null = null;
-    let pauseTimer: number | null = null;
+    let resumeTimer: number | null = null;
+    let scrollSettleTimer: number | null = null;
     let lastFrameTime: number | null = null;
     let lastAutomaticScrollLeft: number | null = null;
     let isPaused = false;
+    let isUserInteracting = false;
     const automaticScrollTolerance = Math.max(4, speed * 0.25);
 
     const canAutoScroll = () => mobileMarqueeQuery.matches && !reducedMotionQuery.matches;
@@ -300,6 +306,20 @@ document.querySelectorAll<HTMLElement>('[data-mobile-marquee]').forEach((marquee
         }
     };
 
+    const clearResumeTimer = () => {
+        if (resumeTimer !== null) {
+            window.clearTimeout(resumeTimer);
+            resumeTimer = null;
+        }
+    };
+
+    const clearScrollSettleTimer = () => {
+        if (scrollSettleTimer !== null) {
+            window.clearTimeout(scrollSettleTimer);
+            scrollSettleTimer = null;
+        }
+    };
+
     function step(timestamp: number) {
         frameId = null;
 
@@ -324,37 +344,85 @@ document.querySelectorAll<HTMLElement>('[data-mobile-marquee]').forEach((marquee
         queueFrame();
     }
 
-    const pauseAfterUserScroll = () => {
+    const pauseForUserScroll = () => {
         if (!canAutoScroll()) {
             return;
         }
 
         isPaused = true;
         lastFrameTime = null;
+        clearResumeTimer();
+        stopFrame();
+    };
 
-        if (pauseTimer !== null) {
-            window.clearTimeout(pauseTimer);
+    const resumeAfterDelay = () => {
+        if (!canAutoScroll()) {
+            return;
         }
 
-        pauseTimer = window.setTimeout(() => {
-            pauseTimer = null;
+        clearResumeTimer();
+
+        resumeTimer = window.setTimeout(() => {
+            resumeTimer = null;
             isPaused = false;
             lastFrameTime = null;
+            scrollAutomatically(marquee.scrollLeft);
             queueFrame();
         }, pauseDuration);
+    };
+
+    const resumeWhenScrollSettles = () => {
+        if (!canAutoScroll()) {
+            return;
+        }
+
+        clearScrollSettleTimer();
+
+        scrollSettleTimer = window.setTimeout(() => {
+            scrollSettleTimer = null;
+
+            if (isUserInteracting) {
+                return;
+            }
+
+            resumeAfterDelay();
+        }, scrollSettleDelay);
+    };
+
+    const beginUserScroll = () => {
+        if (!canAutoScroll()) {
+            return;
+        }
+
+        isUserInteracting = true;
+        pauseForUserScroll();
+        clearScrollSettleTimer();
+    };
+
+    const endUserScroll = () => {
+        if (!canAutoScroll()) {
+            return;
+        }
+
+        isUserInteracting = false;
+        resumeWhenScrollSettles();
+    };
+
+    const handleWheelScroll = () => {
+        pauseForUserScroll();
+        isUserInteracting = false;
+        resumeWhenScrollSettles();
     };
 
     const deactivate = () => {
         stopFrame();
         isPaused = false;
+        isUserInteracting = false;
         lastFrameTime = null;
         lastAutomaticScrollLeft = null;
         delete marquee.dataset.mobileMarqueeActive;
-
-        if (pauseTimer !== null) {
-            window.clearTimeout(pauseTimer);
-            pauseTimer = null;
-        }
+        clearResumeTimer();
+        clearScrollSettleTimer();
 
         marquee.scrollLeft = 0;
     };
@@ -383,13 +451,21 @@ document.querySelectorAll<HTMLElement>('[data-mobile-marquee]').forEach((marquee
             return;
         }
 
-        pauseAfterUserScroll();
+        pauseForUserScroll();
+
+        if (!isUserInteracting) {
+            resumeWhenScrollSettles();
+        }
     };
 
-    marquee.addEventListener('pointerdown', pauseAfterUserScroll, { passive: true });
-    marquee.addEventListener('touchstart', pauseAfterUserScroll, { passive: true });
-    marquee.addEventListener('touchmove', pauseAfterUserScroll, { passive: true });
-    marquee.addEventListener('wheel', pauseAfterUserScroll, { passive: true });
+    marquee.addEventListener('pointerdown', beginUserScroll, { passive: true });
+    marquee.addEventListener('pointerup', endUserScroll, { passive: true });
+    marquee.addEventListener('pointercancel', endUserScroll, { passive: true });
+    marquee.addEventListener('touchstart', beginUserScroll, { passive: true });
+    marquee.addEventListener('touchmove', beginUserScroll, { passive: true });
+    marquee.addEventListener('touchend', endUserScroll, { passive: true });
+    marquee.addEventListener('touchcancel', endUserScroll, { passive: true });
+    marquee.addEventListener('wheel', handleWheelScroll, { passive: true });
     marquee.addEventListener('scroll', handleScroll, { passive: true });
     mobileMarqueeQuery.addEventListener('change', syncMarqueeMode);
     reducedMotionQuery.addEventListener('change', syncMarqueeMode);

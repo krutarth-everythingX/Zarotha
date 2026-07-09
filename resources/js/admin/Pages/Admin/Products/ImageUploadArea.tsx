@@ -1,12 +1,26 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { ImagePlus, X, Star } from 'lucide-react';
-import { Button } from '@admin/Components/ui/button';
-import { Text } from '@admin/Components/ui/text';
-import type { MediaOption } from '@admin/Components/MediaDropSelect';
-import axios from 'axios';
+import React, { useEffect, useRef, useState } from "react";
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from "@dnd-kit/core";
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    rectSortingStrategy,
+    useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ImagePlus, X, Star } from "lucide-react";
+import { Button } from "@admin/Components/ui/button";
+import { Text } from "@admin/Components/ui/text";
+import type { MediaOption } from "@admin/Components/MediaDropSelect";
+import axios from "axios";
 
 export type ProductImage = {
     id: number | string;
@@ -26,8 +40,41 @@ type SortableItemProps = {
     onPreview: (image: ProductImage) => void;
 };
 
-function SortableImageItem({ image, onRemove, onSetPrimary, onPreview }: SortableItemProps) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
+export function sortProductImagesPrimaryFirst(images: ProductImage[]) {
+    if (images.length === 0) {
+        return images;
+    }
+
+    const primaryIndex = images.findIndex((image) => image.isPrimary);
+    const selectedIndex = primaryIndex >= 0 ? primaryIndex : 0;
+    const normalizedImages = images.map((image, index) => ({
+        ...image,
+        isPrimary: index === selectedIndex,
+    }));
+
+    if (selectedIndex === 0) {
+        return normalizedImages;
+    }
+
+    const [primaryImage] = normalizedImages.splice(selectedIndex, 1);
+
+    return [primaryImage, ...normalizedImages];
+}
+
+function SortableImageItem({
+    image,
+    onRemove,
+    onSetPrimary,
+    onPreview,
+}: SortableItemProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: image.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -36,16 +83,24 @@ function SortableImageItem({ image, onRemove, onSetPrimary, onPreview }: Sortabl
     };
 
     return (
-        <div ref={setNodeRef} style={style} className={`relative group aspect-square rounded-lg border overflow-hidden bg-zinc-100 dark:bg-zinc-800 ${isDragging ? 'opacity-50 ring-2 ring-zinc-950 dark:ring-white' : ''}`}>
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`relative group aspect-square rounded-lg border overflow-hidden bg-zinc-100 dark:bg-zinc-800 ${isDragging ? "opacity-50 ring-2 ring-zinc-950 dark:ring-white" : ""}`}
+        >
             <button
                 type="button"
                 className="block h-full w-full cursor-zoom-in"
                 onClick={() => onPreview(image)}
-                aria-label={`Preview ${image.label ?? 'product image'}`}
+                aria-label={`Preview ${image.label ?? "product image"}`}
                 {...attributes}
                 {...listeners}
             >
-                <img src={image.url} alt={image.altText ?? ''} className="object-cover w-full h-full" />
+                <img
+                    src={image.url}
+                    alt={image.altText ?? ""}
+                    className="object-cover w-full h-full"
+                />
             </button>
 
             {image.uploading && (
@@ -54,16 +109,30 @@ function SortableImageItem({ image, onRemove, onSetPrimary, onPreview }: Sortabl
                 </div>
             )}
 
-            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/90 shadow-sm hover:bg-white" onClick={() => onSetPrimary(image.id)} title="Set as primary">
-                    <Star className={`h-4 w-4 ${image.isPrimary ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-600'}`} />
-                </button>
-                <button type="button" className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-white shadow-sm hover:bg-red-600" onClick={() => onRemove(image.id)}>
-                    <X className="h-4 w-4" />
+            <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                {!image.isPrimary ? (
+                    <button
+                        type="button"
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/95 shadow-sm hover:bg-white"
+                        onClick={() => onSetPrimary(image.id)}
+                        title="Set as primary"
+                        aria-label="Set image as primary"
+                    >
+                        <Star className="h-3.5 w-3.5 text-zinc-600" />
+                    </button>
+                ) : null}
+                <button
+                    type="button"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-red-500 text-white shadow-sm hover:bg-red-600"
+                    onClick={() => onRemove(image.id)}
+                    title="Remove image"
+                    aria-label="Remove image"
+                >
+                    <X className="h-3.5 w-3.5" />
                 </button>
             </div>
             {image.isPrimary && (
-                <div className="absolute top-2 left-2 bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded">
+                <div className="absolute top-1.5 left-1.5 inline-flex h-6 items-center rounded-md bg-yellow-400 px-2 text-[10px] font-bold text-black">
                     Primary
                 </div>
             )}
@@ -79,32 +148,43 @@ type ImageUploadAreaProps = {
 
 function uploadErrorMessage(error: unknown) {
     if (!axios.isAxiosError(error)) {
-        return 'Image upload failed.';
+        return "Image upload failed.";
     }
 
     const responseData = error.response?.data;
 
-    if (typeof responseData === 'object' && responseData !== null && 'message' in responseData) {
+    if (
+        typeof responseData === "object" &&
+        responseData !== null &&
+        "message" in responseData
+    ) {
         const message = responseData.message;
 
-        if (typeof message === 'string') {
+        if (typeof message === "string") {
             return message;
         }
     }
 
-    return 'Image upload failed.';
+    return "Image upload failed.";
 }
 
-export default function ImageUploadArea({ images, onChange, maxImages = 10 }: ImageUploadAreaProps) {
+export default function ImageUploadArea({
+    images,
+    onChange,
+    maxImages = 10,
+}: ImageUploadAreaProps) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [isDraggingOver, setIsDraggingOver] = useState(false);
     const [previewImage, setPreviewImage] = useState<ProductImage | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const orderedImages = sortProductImagesPrimaryFirst(images);
     const remainingSlots = Math.max(maxImages - images.length, 0);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
     );
 
     useEffect(() => {
@@ -113,22 +193,26 @@ export default function ImageUploadArea({ images, onChange, maxImages = 10 }: Im
         }
 
         const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
+            if (event.key === "Escape") {
                 setPreviewImage(null);
             }
         };
 
-        window.addEventListener('keydown', closeOnEscape);
+        window.addEventListener("keydown", closeOnEscape);
 
-        return () => window.removeEventListener('keydown', closeOnEscape);
+        return () => window.removeEventListener("keydown", closeOnEscape);
     }, [previewImage]);
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            const oldIndex = images.findIndex((i) => i.id === active.id);
-            const newIndex = images.findIndex((i) => i.id === over.id);
-            onChange(arrayMove(images, oldIndex, newIndex));
+            const oldIndex = orderedImages.findIndex((i) => i.id === active.id);
+            const newIndex = orderedImages.findIndex((i) => i.id === over.id);
+            onChange(
+                sortProductImagesPrimaryFirst(
+                    arrayMove(orderedImages, oldIndex, newIndex),
+                ),
+            );
         }
     };
 
@@ -145,7 +229,9 @@ export default function ImageUploadArea({ images, onChange, maxImages = 10 }: Im
         const acceptedFiles = Array.from(files).slice(0, remainingSlots);
 
         if (files.length > remainingSlots) {
-            setUploadError(`Only ${remainingSlots} more image${remainingSlots === 1 ? '' : 's'} can be added.`);
+            setUploadError(
+                `Only ${remainingSlots} more image${remainingSlots === 1 ? "" : "s"} can be added.`,
+            );
         }
 
         const newImages: ProductImage[] = acceptedFiles.map((file, index) => ({
@@ -153,26 +239,33 @@ export default function ImageUploadArea({ images, onChange, maxImages = 10 }: Im
             url: URL.createObjectURL(file),
             isPrimary: images.length === 0 && index === 0,
             file,
-            uploading: true
+            uploading: true,
         }));
 
-        let updatedImages = [...images, ...newImages];
+        let updatedImages = sortProductImagesPrimaryFirst([
+            ...orderedImages,
+            ...newImages,
+        ]);
         onChange(updatedImages);
 
         for (const image of newImages) {
             const formData = new FormData();
-            formData.append('file', image.file as File);
-            formData.append('alt_text', '');
+            formData.append("file", image.file as File);
+            formData.append("alt_text", "");
 
             try {
-                const response = await axios.post<MediaOption>('/admin/media', formData, {
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'multipart/form-data',
-                    }
-                });
+                const response = await axios.post<MediaOption>(
+                    "/admin/media",
+                    formData,
+                    {
+                        headers: {
+                            Accept: "application/json",
+                            "Content-Type": "multipart/form-data",
+                        },
+                    },
+                );
 
-                updatedImages = updatedImages.map(img => {
+                updatedImages = updatedImages.map((img) => {
                     if (img.id === image.id) {
                         return {
                             ...img,
@@ -186,32 +279,45 @@ export default function ImageUploadArea({ images, onChange, maxImages = 10 }: Im
                     }
                     return img;
                 });
+                updatedImages = sortProductImagesPrimaryFirst(updatedImages);
                 onChange(updatedImages);
             } catch (error: unknown) {
                 setUploadError(uploadErrorMessage(error));
-                updatedImages = updatedImages.filter(img => img.id !== image.id);
+                updatedImages = sortProductImagesPrimaryFirst(
+                    updatedImages.filter((img) => img.id !== image.id),
+                );
                 onChange(updatedImages);
             }
         }
     };
 
     const removeImage = (id: number | string) => {
-        const nextImages = images.filter(img => img.id !== id);
-        if (images.find(img => img.id === id)?.isPrimary && nextImages.length > 0) {
-            nextImages[0].isPrimary = true;
-        }
-        onChange(nextImages);
+        onChange(
+            sortProductImagesPrimaryFirst(
+                orderedImages.filter((img) => img.id !== id),
+            ),
+        );
     };
 
     const setPrimary = (id: number | string) => {
-        onChange(images.map(img => ({ ...img, isPrimary: img.id === id })));
+        onChange(
+            sortProductImagesPrimaryFirst(
+                orderedImages.map((img) => ({
+                    ...img,
+                    isPrimary: img.id === id,
+                })),
+            ),
+        );
     };
 
     return (
         <div className="space-y-4">
             <div
-                className={`rounded-xl border border-dashed p-5 text-center transition-colors ${remainingSlots <= 0 ? 'border-zinc-200 bg-zinc-50 opacity-75 dark:border-zinc-800 dark:bg-white/5' : isDraggingOver ? 'border-zinc-950 bg-zinc-50 dark:border-white dark:bg-white/5' : 'border-zinc-300 dark:border-zinc-700'}`}
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+                className={`rounded-xl border border-dashed p-5 text-center transition-colors ${remainingSlots <= 0 ? "border-zinc-200 bg-zinc-50 opacity-75 dark:border-zinc-800 dark:bg-white/5" : isDraggingOver ? "border-zinc-950 bg-zinc-50 dark:border-white dark:bg-white/5" : "border-zinc-300 dark:border-zinc-700"}`}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingOver(true);
+                }}
                 onDragLeave={() => setIsDraggingOver(false)}
                 onDrop={(e) => {
                     e.preventDefault();
@@ -223,9 +329,14 @@ export default function ImageUploadArea({ images, onChange, maxImages = 10 }: Im
                     <div className="h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                         <ImagePlus className="h-5 w-5 text-zinc-500" />
                     </div>
-                    <Text className="font-medium">{remainingSlots > 0 ? 'Upload product images' : 'Image limit reached'}</Text>
+                    <Text className="font-medium">
+                        {remainingSlots > 0
+                            ? "Upload product images"
+                            : "Image limit reached"}
+                    </Text>
                     <Text className="text-sm text-zinc-500">
-                        {images.length}/{maxImages} images selected. First image is primary unless you choose another.
+                        {images.length}/{maxImages} images selected. First image
+                        is primary unless you choose another.
                     </Text>
                     <input
                         ref={fileInputRef}
@@ -235,24 +346,40 @@ export default function ImageUploadArea({ images, onChange, maxImages = 10 }: Im
                         className="hidden"
                         onChange={(e) => {
                             handleFiles(e.target.files);
-                            e.currentTarget.value = '';
+                            e.currentTarget.value = "";
                         }}
                         disabled={remainingSlots <= 0}
                     />
-                    <Button outline type="button" onClick={() => fileInputRef.current?.click()} disabled={remainingSlots <= 0}>
+                    <Button
+                        outline
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={remainingSlots <= 0}
+                    >
                         <ImagePlus data-slot="icon" />
                         <span>Browse files</span>
                     </Button>
                 </div>
             </div>
 
-            {uploadError ? <p className="text-sm text-red-600 dark:text-red-400">{uploadError}</p> : null}
+            {uploadError ? (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                    {uploadError}
+                </p>
+            ) : null}
 
             {images.length > 0 && (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={images.map(i => i.id)} strategy={rectSortingStrategy}>
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext
+                        items={orderedImages.map((i) => i.id)}
+                        strategy={rectSortingStrategy}
+                    >
                         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                            {images.map((image) => (
+                            {orderedImages.map((image) => (
                                 <SortableImageItem
                                     key={image.id}
                                     image={image}
@@ -271,10 +398,13 @@ export default function ImageUploadArea({ images, onChange, maxImages = 10 }: Im
                     className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4"
                     role="dialog"
                     aria-modal="true"
-                    aria-label={`Image preview for ${previewImage.label ?? 'product image'}`}
+                    aria-label={`Image preview for ${previewImage.label ?? "product image"}`}
                     onClick={() => setPreviewImage(null)}
                 >
-                    <div className="relative max-h-[90vh] max-w-5xl" onClick={(event) => event.stopPropagation()}>
+                    <div
+                        className="relative max-h-[90vh] max-w-5xl"
+                        onClick={(event) => event.stopPropagation()}
+                    >
                         <button
                             type="button"
                             className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-zinc-900 shadow-sm hover:bg-white"
@@ -285,7 +415,7 @@ export default function ImageUploadArea({ images, onChange, maxImages = 10 }: Im
                         </button>
                         <img
                             src={previewImage.url}
-                            alt={previewImage.altText ?? ''}
+                            alt={previewImage.altText ?? ""}
                             className="max-h-[90vh] max-w-full rounded-xl object-contain shadow-2xl"
                         />
                     </div>

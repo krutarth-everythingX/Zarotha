@@ -140,6 +140,7 @@ class UpdateHomepageRequest extends FormRequest
             'hero.secondary_button_label' => ['nullable', 'string', 'max:80'],
             'hero.secondary_button_url' => ['nullable', 'string', 'max:2048', 'not_regex:/^\s*javascript:/i'],
             'hero.overlay_opacity' => ['required', 'integer', 'min:0', 'max:80'],
+            'hero.background_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'hero.text_theme' => ['required', Rule::in(['light', 'dark'])],
             'hero.is_visible' => ['required', 'boolean'],
             'hero.items' => ['nullable', 'array', 'max:10'],

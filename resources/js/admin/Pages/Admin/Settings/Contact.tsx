@@ -1,45 +1,33 @@
 import { Head, useForm } from "@inertiajs/react";
-import { useEffect, useState } from "react";
 import { Button } from "@admin/Components/ui/button";
 import { Field, Label } from "@admin/Components/ui/fieldset";
 import { Text } from "@admin/Components/ui/text";
 import { AdminShell } from "@admin/Layouts/AdminShell";
 import {
-    DetailGrid,
-    DetailItem,
-    DetailModal,
-    DetailSection,
     EditableTable,
     EditableTableBody,
     EditableTableCell,
     EditableTableHead,
     EditableTableHeader,
     FieldError,
-    FormCheckbox,
+    findActiveAdminSection,
     FormInput,
     FormTextarea,
-    MobileSettingsBreadcrumbs,
+    getAdminScrollContainer,
     MobileSettingsListItem,
     MobileSettingsScreen,
-    MobileTableList,
-    MobileTableRow,
     PagePanel,
     SettingsSectionLayout,
     SettingsSubsectionTabs,
-    findActiveAdminSection,
-    getAdminScrollContainer,
     scrollToAdminSection,
 } from "@admin/Components/AdminPrimitives";
 import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
-const sections = [
-    { id: "page-form", label: "Page and form" },
-    { id: "inquiry-options", label: "Inquiry type options" },
-    { id: "contact-details", label: "Contact details" },
-    { id: "map-location", label: "Map and location copy" },
-] as const;
-
-type SectionId = (typeof sections)[number]["id"];
+type ContactSocialLink = {
+    label: string;
+    url: string;
+};
 
 type SettingsContactProps = {
     contact: {
@@ -61,6 +49,7 @@ type SettingsContactProps = {
         addressLabel: string | null;
         mapEmbedUrl: string | null;
         mapLinkUrl: string | null;
+        contactSocialLinks: ContactSocialLink[];
         addressLine1: string | null;
         addressLine2: string | null;
         city: string | null;
@@ -78,19 +67,65 @@ type SettingsContactProps = {
     };
 };
 
+type ContactForm = {
+    business_name: string;
+    phone_primary: string;
+    phone_secondary: string;
+    email_primary: string;
+    email_secondary: string;
+    whatsapp_number: string;
+    whatsapp_text: string;
+    page_title: string;
+    page_intro: string;
+    form_title: string;
+    submit_label: string;
+    inquiry_type_options: string[];
+    location_kicker: string;
+    location_title: string;
+    location_body: string;
+    address_label: string;
+    map_embed_url: string;
+    map_link_url: string;
+    contact_social_links: ContactSocialLink[];
+    address_line_1: string;
+    address_line_2: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+    show_phone: boolean;
+    show_email: boolean;
+    show_whatsapp: boolean;
+    show_address: boolean;
+    contact_intro: string;
+    form_helper_text: string;
+    success_message: string;
+    consent_text: string;
+};
+
+const sectionLinks = [
+    { id: "page-copy", label: "Page copy" },
+    { id: "inquiry-form", label: "Inquiry form" },
+    { id: "contact-details", label: "Contact details" },
+    { id: "social-map", label: "Socials and map" },
+] as const;
+
+type SectionId = (typeof sectionLinks)[number]["id"];
+
+const defaultInquiryOptions = [
+    "Home furniture",
+    "Office furniture",
+    "Custom wooden art",
+    "Commercial project",
+    "General inquiry",
+];
+
 export default function SettingsContact({ contact }: SettingsContactProps) {
-    const [selectedInquiryOptionIndex, setSelectedInquiryOptionIndex] =
-        useState<number | null>(null);
-    const [mobileStep, setMobileStep] = useState<"sections" | "editor">(
-        "sections",
-    );
-    const [mobileSection, setMobileSection] = useState<SectionId>(
-        sections[0].id,
-    );
     const [activeSection, setActiveSection] = useState<SectionId>(
-        sections[0].id,
+        sectionLinks[0].id,
     );
-    const form = useForm({
+
+    const form = useForm<ContactForm>({
         business_name: contact.businessName ?? "",
         phone_primary: contact.phonePrimary ?? "",
         phone_secondary: contact.phoneSecondary ?? "",
@@ -105,61 +140,38 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
         inquiry_type_options:
             contact.inquiryTypeOptions?.length > 0
                 ? contact.inquiryTypeOptions
-                : ["Home furniture", "Office furniture", "Custom wooden art"],
+                : defaultInquiryOptions,
         location_kicker: contact.locationKicker ?? "",
         location_title: contact.locationTitle ?? "",
         location_body: contact.locationBody ?? "",
         address_label: contact.addressLabel ?? "",
         map_embed_url: contact.mapEmbedUrl ?? "",
         map_link_url: contact.mapLinkUrl ?? "",
+        contact_social_links:
+            contact.contactSocialLinks?.length > 0
+                ? contact.contactSocialLinks
+                : [],
         address_line_1: contact.addressLine1 ?? "",
         address_line_2: contact.addressLine2 ?? "",
         city: contact.city ?? "",
         state: contact.state ?? "",
         postal_code: contact.postalCode ?? "",
         country: contact.country ?? "",
-        show_phone: contact.showPhone,
-        show_email: contact.showEmail,
-        show_whatsapp: contact.showWhatsapp,
-        show_address: contact.showAddress,
+        show_phone: true,
+        show_email: true,
+        show_whatsapp: true,
+        show_address: true,
         contact_intro: contact.contactIntro ?? "",
         form_helper_text: contact.formHelperText ?? "",
         success_message: contact.successMessage ?? "",
         consent_text: contact.consentText ?? "",
     });
 
-    const setInquiryOption = (index: number, value: string) => {
-        const next = [...form.data.inquiry_type_options];
-        next[index] = value;
-        form.setData("inquiry_type_options", next);
-    };
-
-    const removeInquiryOption = (index: number) => {
-        form.setData(
-            "inquiry_type_options",
-            form.data.inquiry_type_options.filter(
-                (_, itemIndex) => itemIndex !== index,
-            ),
-        );
-    };
-
-    const openMobileEditor = (section: SectionId) => {
-        setMobileSection(section);
-        setActiveSection(section);
-        setMobileStep("editor");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-
-    const selectedMobileSectionLabel =
-        sections.find((section) => section.id === mobileSection)?.label ??
-        "Contact";
-
-    const mobileSectionClass = (id: SectionId) =>
-        `${mobileStep === "editor" && mobileSection === id ? "block" : "hidden"} scroll-mt-28 md:block`;
+    const save = () => form.patch("/admin/settings/contact");
 
     useEffect(() => {
         const handleScroll = () => {
-            const nextSection = findActiveAdminSection(sections);
+            const nextSection = findActiveAdminSection(sectionLinks);
 
             if (nextSection) {
                 setActiveSection(nextSection);
@@ -182,68 +194,37 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
         scrollToAdminSection(id);
     };
 
+    const setInquiryOption = (index: number, value: string) => {
+        const next = [...form.data.inquiry_type_options];
+        next[index] = value;
+        form.setData("inquiry_type_options", next);
+    };
+
+    const setContactSocialLink = (
+        index: number,
+        field: keyof ContactSocialLink,
+        value: string,
+    ) => {
+        form.setData(
+            "contact_social_links",
+            form.data.contact_social_links.map((link, itemIndex) =>
+                itemIndex === index ? { ...link, [field]: value } : link,
+            ),
+        );
+    };
+
     return (
         <>
             <Head title="Contact Settings" />
             <AdminShell
                 title="Contact Settings"
-                description="Manage the public contact page form, contact details, location, and map."
+                description="Manage the public contact page, inquiry form, contact details, social links, and map."
                 containedScroll
-                mobileTitle={
-                    mobileStep === "sections"
-                        ? "Contact"
-                        : selectedMobileSectionLabel
-                }
-                mobileDescription={
-                    mobileStep === "sections"
-                        ? "Manage the public contact page and contact details."
-                        : null
-                }
-                mobileActions={
-                    mobileStep === "editor" ? (
-                        <Button
-                            type="submit"
-                            form="contact-mobile-form"
-                            disabled={form.processing}
-                            className="shrink-0"
-                        >
-                            {form.processing ? "Saving" : "Save Changes"}
-                        </Button>
-                    ) : null
-                }
-                mobileBreadcrumbs={
-                    mobileStep === "editor" ? (
-                        <MobileSettingsBreadcrumbs
-                            items={[
-                                {
-                                    label: "Settings",
-                                    onClick: () => window.history.back(),
-                                },
-                                {
-                                    label: "Contact",
-                                    onClick: () => {
-                                        setMobileStep("sections");
-                                        window.scrollTo({
-                                            top: 0,
-                                            behavior: "smooth",
-                                        });
-                                    },
-                                },
-                                {
-                                    label: selectedMobileSectionLabel,
-                                    current: true,
-                                },
-                            ]}
-                        />
-                    ) : null
-                }
+                mobileTitle="Contact"
+                mobileDescription="Manage public contact page details."
                 actions={
-                    <Button
-                        type="button"
-                        onClick={() => form.patch("/admin/settings/contact")}
-                        disabled={form.processing}
-                    >
-                        Save contact settings
+                    <Button type="button" onClick={save} disabled={form.processing}>
+                        {form.processing ? "Saving" : "Save contact settings"}
                     </Button>
                 }
             >
@@ -251,51 +232,43 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                     active="contact"
                     contentClassName="min-h-0 space-y-8"
                 >
-                    {mobileStep === "sections" ? (
-                        <MobileSettingsScreen>
-                            {sections.map((section) => (
-                                <MobileSettingsListItem
-                                    key={section.id}
-                                    onClick={() => openMobileEditor(section.id)}
-                                >
-                                    {section.label}
-                                </MobileSettingsListItem>
-                            ))}
-                        </MobileSettingsScreen>
-                    ) : null}
+                    <MobileSettingsScreen>
+                        {sectionLinks.map((section) => (
+                            <MobileSettingsListItem
+                                key={section.id}
+                                onClick={() => scrollToSection(section.id)}
+                            >
+                                {section.label}
+                            </MobileSettingsListItem>
+                        ))}
+                    </MobileSettingsScreen>
 
                     <form
-                        id="contact-mobile-form"
-                        className={`space-y-8 ${mobileStep === "editor" ? "block" : "hidden"} md:block`}
+                        className="space-y-8"
                         onSubmit={(event) => {
                             event.preventDefault();
-                            form.patch("/admin/settings/contact");
+                            save();
                         }}
                     >
-                        <div className="sticky top-0 z-20 hidden bg-zinc-100/95 py-2 backdrop-blur-sm md:block dark:bg-zinc-900/95">
+                        <div className="sticky top-0 z-20 hidden bg-white/95 py-2 backdrop-blur-sm md:block dark:bg-transparent">
                             <SettingsSubsectionTabs
                                 activeSection={activeSection}
                                 label="Contact Sections"
-                                sections={sections}
+                                sections={sectionLinks}
                                 onSelect={scrollToSection}
+                                className="dark:border-transparent dark:bg-transparent dark:shadow-none"
                             />
                         </div>
 
-                        <div
-                            id="page-form"
-                            className={mobileSectionClass("page-form")}
-                        >
+                        <div id="page-copy" className="scroll-mt-24">
                         <PagePanel>
-                            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                                <div>
-                                    <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
-                                        Contact
-                                    </h2>
-                                    <Text>
-                                        These fields control the top contact
-                                        form shown to public visitors.
-                                    </Text>
-                                </div>
+                            <div className="mb-5">
+                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                                    Page copy
+                                </h2>
+                                <Text>
+                                    Heading and short intro shown above the contact page layout.
+                                </Text>
                             </div>
                             <div className="grid gap-4 lg:grid-cols-2">
                                 <Field>
@@ -303,32 +276,11 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                     <FormInput
                                         value={form.data.page_title}
                                         onChange={(event) =>
-                                            form.setData(
-                                                "page_title",
-                                                event.target.value,
-                                            )
+                                            form.setData("page_title", event.target.value)
                                         }
-                                        placeholder="Contact Form"
+                                        placeholder="Contact Us"
                                     />
-                                    <FieldError
-                                        message={form.errors.page_title}
-                                    />
-                                </Field>
-                                <Field>
-                                    <Label>Form title</Label>
-                                    <FormInput
-                                        value={form.data.form_title}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                "form_title",
-                                                event.target.value,
-                                            )
-                                        }
-                                        placeholder="Tell us about your project"
-                                    />
-                                    <FieldError
-                                        message={form.errors.form_title}
-                                    />
+                                    <FieldError message={form.errors.page_title} />
                                 </Field>
                                 <Field className="lg:col-span-2">
                                     <Label>Page intro</Label>
@@ -336,15 +288,54 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                         rows={3}
                                         value={form.data.page_intro}
                                         onChange={(event) =>
-                                            form.setData(
-                                                "page_intro",
-                                                event.target.value,
-                                            )
+                                            form.setData("page_intro", event.target.value)
                                         }
+                                        placeholder="Share your inquiry and we will get back to you shortly."
                                     />
-                                    <FieldError
-                                        message={form.errors.page_intro}
+                                    <FieldError message={form.errors.page_intro} />
+                                </Field>
+                            </div>
+                        </PagePanel>
+                        </div>
+
+                        <div id="inquiry-form" className="scroll-mt-24">
+                        <PagePanel>
+                            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                                        Inquiry form
+                                    </h2>
+                                    <Text>
+                                        The public form uses name, optional email, required phone,
+                                        inquiry type, and message.
+                                    </Text>
+                                </div>
+                                <Button
+                                    type="button"
+                                    color="light"
+                                    onClick={() =>
+                                        form.setData("inquiry_type_options", [
+                                            ...form.data.inquiry_type_options,
+                                            "",
+                                        ])
+                                    }
+                                >
+                                    <Plus data-slot="icon" />
+                                    Add type
+                                </Button>
+                            </div>
+
+                            <div className="grid gap-4 lg:grid-cols-2">
+                                <Field>
+                                    <Label>Form title</Label>
+                                    <FormInput
+                                        value={form.data.form_title}
+                                        onChange={(event) =>
+                                            form.setData("form_title", event.target.value)
+                                        }
+                                        placeholder="Send an inquiry"
                                     />
+                                    <FieldError message={form.errors.form_title} />
                                 </Field>
                                 <Field>
                                     <Label>Submit button label</Label>
@@ -358,24 +349,7 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                         }
                                         placeholder="Send Inquiry"
                                     />
-                                    <FieldError
-                                        message={form.errors.submit_label}
-                                    />
-                                </Field>
-                                <Field>
-                                    <Label>Success message</Label>
-                                    <FormInput
-                                        value={form.data.success_message}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                "success_message",
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                    <FieldError
-                                        message={form.errors.success_message}
-                                    />
+                                    <FieldError message={form.errors.submit_label} />
                                 </Field>
                                 <Field className="lg:col-span-2">
                                     <Label>Form helper text</Label>
@@ -393,72 +367,9 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                         message={form.errors.form_helper_text}
                                     />
                                 </Field>
-                                <Field className="lg:col-span-2">
-                                    <Label>Consent text</Label>
-                                    <FormTextarea
-                                        rows={3}
-                                        value={form.data.consent_text}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                "consent_text",
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                    <FieldError
-                                        message={form.errors.consent_text}
-                                    />
-                                </Field>
                             </div>
-                        </PagePanel>
-                        </div>
 
-                        <div
-                            id="inquiry-options"
-                            className={mobileSectionClass("inquiry-options")}
-                        >
-                        <PagePanel>
-                            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                                <div>
-                                    <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
-                                        Inquiry type options
-                                    </h2>
-                                    <Text>
-                                        Options shown in the contact form
-                                        inquiry type dropdown.
-                                    </Text>
-                                </div>
-                                <Button
-                                    type="button"
-                                    color="light"
-                                    onClick={() =>
-                                        form.setData("inquiry_type_options", [
-                                            ...form.data.inquiry_type_options,
-                                            "",
-                                        ])
-                                    }
-                                >
-                                    <Plus data-slot="icon" />
-                                    Add option
-                                </Button>
-                            </div>
-                            <MobileTableList className="p-0">
-                                {form.data.inquiry_type_options.map(
-                                    (option, index) => (
-                                        <MobileTableRow
-                                            key={`option-mobile-${index}`}
-                                            number={index + 1}
-                                            title={option || "Inquiry type"}
-                                            onOpen={() =>
-                                                setSelectedInquiryOptionIndex(
-                                                    index,
-                                                )
-                                            }
-                                        />
-                                    ),
-                                )}
-                            </MobileTableList>
-                            <div className="hidden md:block">
+                            <div className="mt-5">
                                 <EditableTable minWidth="34rem">
                                     <colgroup>
                                         <col className="w-[90px]" />
@@ -466,11 +377,9 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                         <col className="w-[120px]" />
                                     </colgroup>
                                     <EditableTableHead>
+                                        <EditableTableHeader>Item</EditableTableHeader>
                                         <EditableTableHeader>
-                                            Item
-                                        </EditableTableHeader>
-                                        <EditableTableHeader>
-                                            Option
+                                            Inquiry type
                                         </EditableTableHeader>
                                         <EditableTableHeader className="text-right">
                                             Actions
@@ -491,11 +400,10 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                                             onChange={(event) =>
                                                                 setInquiryOption(
                                                                     index,
-                                                                    event.target
-                                                                        .value,
+                                                                    event.target.value,
                                                                 )
                                                             }
-                                                            placeholder="Inquiry type"
+                                                            placeholder="General inquiry"
                                                         />
                                                     </EditableTableCell>
                                                     <EditableTableCell className="text-right">
@@ -503,8 +411,13 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                                             type="button"
                                                             plain
                                                             onClick={() =>
-                                                                removeInquiryOption(
-                                                                    index,
+                                                                form.setData(
+                                                                    "inquiry_type_options",
+                                                                    form.data.inquiry_type_options.filter(
+                                                                        (_, itemIndex) =>
+                                                                            itemIndex !==
+                                                                            index,
+                                                                    ),
                                                                 )
                                                             }
                                                         >
@@ -518,84 +431,18 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                     </EditableTableBody>
                                 </EditableTable>
                             </div>
-                            {selectedInquiryOptionIndex !== null ? (
-                                <DetailModal
-                                    title={
-                                        form.data.inquiry_type_options[
-                                            selectedInquiryOptionIndex
-                                        ] || "Inquiry type"
-                                    }
-                                    subtitle={`Option #${selectedInquiryOptionIndex + 1}`}
-                                    onClose={() =>
-                                        setSelectedInquiryOptionIndex(null)
-                                    }
-                                    titleId="inquiry-option-detail-title"
-                                    actions={
-                                        <Button
-                                            type="button"
-                                            plain
-                                            className="justify-center"
-                                            onClick={() => {
-                                                removeInquiryOption(
-                                                    selectedInquiryOptionIndex,
-                                                );
-                                                setSelectedInquiryOptionIndex(
-                                                    null,
-                                                );
-                                            }}
-                                        >
-                                            <Trash2 data-slot="icon" />
-                                            Remove
-                                        </Button>
-                                    }
-                                >
-                                    <DetailSection title="Inquiry Option">
-                                        <div className="grid gap-4">
-                                            <DetailGrid>
-                                                <DetailItem label="No.">
-                                                    #
-                                                    {selectedInquiryOptionIndex +
-                                                        1}
-                                                </DetailItem>
-                                            </DetailGrid>
-                                            <Field>
-                                                <Label>Option</Label>
-                                                <FormInput
-                                                    value={
-                                                        form.data
-                                                            .inquiry_type_options[
-                                                            selectedInquiryOptionIndex
-                                                        ]
-                                                    }
-                                                    onChange={(event) =>
-                                                        setInquiryOption(
-                                                            selectedInquiryOptionIndex,
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                    placeholder="Inquiry type"
-                                                />
-                                            </Field>
-                                        </div>
-                                    </DetailSection>
-                                </DetailModal>
-                            ) : null}
                         </PagePanel>
                         </div>
 
-                        <div
-                            id="contact-details"
-                            className={mobileSectionClass("contact-details")}
-                        >
+                        <div id="contact-details" className="scroll-mt-24">
                         <PagePanel>
                             <div className="mb-5">
                                 <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
                                     Contact details
                                 </h2>
                                 <Text>
-                                    Phone, email, WhatsApp, address, and
-                                    visibility controls for the public contact
-                                    page.
+                                    Business name, email, phone, WhatsApp, and address shown beside
+                                    the form.
                                 </Text>
                             </div>
                             <div className="grid gap-4 lg:grid-cols-2">
@@ -609,31 +456,23 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                                 event.target.value,
                                             )
                                         }
+                                        placeholder="Zarokha Wooden Arts"
                                     />
+                                    <FieldError message={form.errors.business_name} />
                                 </Field>
                                 <Field>
-                                    <Label>Primary phone</Label>
+                                    <Label>Short line under business name</Label>
                                     <FormInput
-                                        value={form.data.phone_primary}
+                                        value={form.data.contact_intro}
                                         onChange={(event) =>
                                             form.setData(
-                                                "phone_primary",
+                                                "contact_intro",
                                                 event.target.value,
                                             )
                                         }
+                                        placeholder="A short supporting line for the left contact details section"
                                     />
-                                </Field>
-                                <Field>
-                                    <Label>Secondary phone</Label>
-                                    <FormInput
-                                        value={form.data.phone_secondary}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                "phone_secondary",
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
+                                    <FieldError message={form.errors.contact_intro} />
                                 </Field>
                                 <Field>
                                     <Label>Primary email</Label>
@@ -647,19 +486,20 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                             )
                                         }
                                     />
+                                    <FieldError message={form.errors.email_primary} />
                                 </Field>
                                 <Field>
-                                    <Label>Secondary email</Label>
+                                    <Label>Primary phone</Label>
                                     <FormInput
-                                        type="email"
-                                        value={form.data.email_secondary}
+                                        value={form.data.phone_primary}
                                         onChange={(event) =>
                                             form.setData(
-                                                "email_secondary",
+                                                "phone_primary",
                                                 event.target.value,
                                             )
                                         }
                                     />
+                                    <FieldError message={form.errors.phone_primary} />
                                 </Field>
                                 <Field>
                                     <Label>WhatsApp number</Label>
@@ -672,6 +512,7 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                             )
                                         }
                                     />
+                                    <FieldError message={form.errors.whatsapp_number} />
                                 </Field>
                                 <Field className="lg:col-span-2">
                                     <Label>WhatsApp message</Label>
@@ -684,6 +525,7 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                             )
                                         }
                                     />
+                                    <FieldError message={form.errors.whatsapp_text} />
                                 </Field>
                                 <Field>
                                     <Label>Address label</Label>
@@ -695,8 +537,9 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                                 event.target.value,
                                             )
                                         }
-                                        placeholder="Showroom"
+                                        placeholder="Address"
                                     />
+                                    <FieldError message={form.errors.address_label} />
                                 </Field>
                                 <Field>
                                     <Label>Address line 1</Label>
@@ -709,6 +552,7 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                             )
                                         }
                                     />
+                                    <FieldError message={form.errors.address_line_1} />
                                 </Field>
                                 <Field>
                                     <Label>Address line 2</Label>
@@ -721,30 +565,27 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                             )
                                         }
                                     />
+                                    <FieldError message={form.errors.address_line_2} />
                                 </Field>
                                 <Field>
                                     <Label>City</Label>
                                     <FormInput
                                         value={form.data.city}
                                         onChange={(event) =>
-                                            form.setData(
-                                                "city",
-                                                event.target.value,
-                                            )
+                                            form.setData("city", event.target.value)
                                         }
                                     />
+                                    <FieldError message={form.errors.city} />
                                 </Field>
                                 <Field>
                                     <Label>State</Label>
                                     <FormInput
                                         value={form.data.state}
                                         onChange={(event) =>
-                                            form.setData(
-                                                "state",
-                                                event.target.value,
-                                            )
+                                            form.setData("state", event.target.value)
                                         }
                                     />
+                                    <FieldError message={form.errors.state} />
                                 </Field>
                                 <Field>
                                     <Label>Postal code</Label>
@@ -757,118 +598,49 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                             )
                                         }
                                     />
+                                    <FieldError message={form.errors.postal_code} />
                                 </Field>
                                 <Field>
                                     <Label>Country</Label>
                                     <FormInput
                                         value={form.data.country}
                                         onChange={(event) =>
-                                            form.setData(
-                                                "country",
-                                                event.target.value,
-                                            )
+                                            form.setData("country", event.target.value)
                                         }
                                     />
+                                    <FieldError message={form.errors.country} />
                                 </Field>
-                            </div>
-                            <div className="mt-5 flex flex-wrap gap-4">
-                                <FormCheckbox
-                                    checked={form.data.show_phone}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            "show_phone",
-                                            event.target.checked,
-                                        )
-                                    }
-                                    label="Show phone"
-                                />
-                                <FormCheckbox
-                                    checked={form.data.show_email}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            "show_email",
-                                            event.target.checked,
-                                        )
-                                    }
-                                    label="Show email"
-                                />
-                                <FormCheckbox
-                                    checked={form.data.show_whatsapp}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            "show_whatsapp",
-                                            event.target.checked,
-                                        )
-                                    }
-                                    label="Show WhatsApp"
-                                />
-                                <FormCheckbox
-                                    checked={form.data.show_address}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            "show_address",
-                                            event.target.checked,
-                                        )
-                                    }
-                                    label="Show address"
-                                />
                             </div>
                         </PagePanel>
                         </div>
 
-                        <div
-                            id="map-location"
-                            className={mobileSectionClass("map-location")}
-                        >
+                        <div id="social-map" className="scroll-mt-24">
                         <PagePanel>
-                            <div className="mb-5">
-                                <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
-                                    Map and location copy
-                                </h2>
-                                <Text>
-                                    Add a Google Maps embed URL or a normal map
-                                    link. The page falls back gracefully when
-                                    empty.
-                                </Text>
+                            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                                        Socials and map
+                                    </h2>
+                                    <Text>
+                                        Add social links and the map URLs used by the
+                                        clickable map preview.
+                                    </Text>
+                                </div>
+                                <Button
+                                    type="button"
+                                    color="light"
+                                    onClick={() =>
+                                        form.setData("contact_social_links", [
+                                            ...form.data.contact_social_links,
+                                            { label: "", url: "" },
+                                        ])
+                                    }
+                                >
+                                    <Plus data-slot="icon" />
+                                    Add link
+                                </Button>
                             </div>
-                            <div className="grid gap-4 lg:grid-cols-2">
-                                <Field>
-                                    <Label>Location kicker</Label>
-                                    <FormInput
-                                        value={form.data.location_kicker}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                "location_kicker",
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </Field>
-                                <Field>
-                                    <Label>Location title</Label>
-                                    <FormInput
-                                        value={form.data.location_title}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                "location_title",
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </Field>
-                                <Field className="lg:col-span-2">
-                                    <Label>Location body</Label>
-                                    <FormTextarea
-                                        rows={3}
-                                        value={form.data.location_body}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                "location_body",
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </Field>
+                            <div className="mb-5 grid gap-4 lg:grid-cols-2">
                                 <Field>
                                     <Label>Map embed URL</Label>
                                     <FormInput
@@ -882,6 +654,7 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                         }
                                         placeholder="https://www.google.com/maps/embed?..."
                                     />
+                                    <FieldError message={form.errors.map_embed_url} />
                                 </Field>
                                 <Field>
                                     <Label>Map link URL</Label>
@@ -896,8 +669,84 @@ export default function SettingsContact({ contact }: SettingsContactProps) {
                                         }
                                         placeholder="https://maps.google.com/..."
                                     />
+                                    <FieldError message={form.errors.map_link_url} />
                                 </Field>
                             </div>
+                            <EditableTable minWidth="44rem">
+                                <colgroup>
+                                    <col className="w-[90px]" />
+                                    <col className="w-[220px]" />
+                                    <col />
+                                    <col className="w-[120px]" />
+                                </colgroup>
+                                <EditableTableHead>
+                                    <EditableTableHeader>Item</EditableTableHeader>
+                                    <EditableTableHeader>Label</EditableTableHeader>
+                                    <EditableTableHeader>URL</EditableTableHeader>
+                                    <EditableTableHeader className="text-right">
+                                        Actions
+                                    </EditableTableHeader>
+                                </EditableTableHead>
+                                <EditableTableBody>
+                                    {form.data.contact_social_links.map(
+                                        (link, index) => (
+                                            <tr key={index}>
+                                                <EditableTableCell>
+                                                    <p className="text-sm font-semibold text-zinc-950 dark:text-white">
+                                                        #{index + 1}
+                                                    </p>
+                                                </EditableTableCell>
+                                                <EditableTableCell>
+                                                    <FormInput
+                                                        value={link.label}
+                                                        onChange={(event) =>
+                                                            setContactSocialLink(
+                                                                index,
+                                                                "label",
+                                                                event.target.value,
+                                                            )
+                                                        }
+                                                        placeholder="Instagram"
+                                                    />
+                                                </EditableTableCell>
+                                                <EditableTableCell>
+                                                    <FormInput
+                                                        type="url"
+                                                        value={link.url}
+                                                        onChange={(event) =>
+                                                            setContactSocialLink(
+                                                                index,
+                                                                "url",
+                                                                event.target.value,
+                                                            )
+                                                        }
+                                                        placeholder="https://..."
+                                                    />
+                                                </EditableTableCell>
+                                                <EditableTableCell className="text-right">
+                                                    <Button
+                                                        type="button"
+                                                        plain
+                                                        onClick={() =>
+                                                            form.setData(
+                                                                "contact_social_links",
+                                                                form.data.contact_social_links.filter(
+                                                                    (_, itemIndex) =>
+                                                                        itemIndex !==
+                                                                        index,
+                                                                ),
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 data-slot="icon" />
+                                                        Remove
+                                                    </Button>
+                                                </EditableTableCell>
+                                            </tr>
+                                        ),
+                                    )}
+                                </EditableTableBody>
+                            </EditableTable>
                         </PagePanel>
                         </div>
                     </form>

@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $source_page_key
  * @property string|null $source_url
  * @property string $name
- * @property string $email
+ * @property string|null $email
  * @property string $phone
  * @property string|null $company_name
  * @property string|null $whatsapp_number
